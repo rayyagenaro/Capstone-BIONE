@@ -1,0 +1,197 @@
+.background {
+  min-height: 100vh;
+  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+}
+
+/* TOPBAR */
+.topbar {
+  width: 100vw;
+  height: 65px;
+  background: #2F4D8E;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  box-sizing: border-box;
+}
+
+.logoOnly {
+  width: 68px !important;
+  height: 68px !important;
+  object-fit: contain;
+  margin-left: 2px;
+}
+
+.menu {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.signIn {
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.signUp {
+  color: #c23c3c;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+/* CARD */
+.card {
+  background: #fff;
+  max-width: 600px;
+  margin: 70px auto 0 auto;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 rgba(70,90,150,0.12), 0 1.5px 6px 0 rgba(70,90,150,0.05);
+  padding: 46px 36px 48px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.cardRowHeader {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 8px;
+  margin-top: 0;
+  gap: 12px;
+}
+
+.cardBankLogo {
+  width: 95px !important;
+  height: 38px !important;
+  object-fit: contain;
+}
+
+.welcome {
+  font-size: 24px;
+  font-weight: 500;
+  color: #2F4D8E;
+  margin-left: 16px;
+  margin-bottom: 0;
+  margin-top: 0;
+  letter-spacing: 0.2px;
+  font-family: inherit;
+}
+
+/* Logo D'ONE besar di tengah */
+.logoDoneWrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin: 14px 0 16px 0;
+}
+
+.logoLarge {
+  width: 160px !important;
+  height: 70px !important;
+  object-fit: contain;
+}
+
+.cardTitle {
+  font-size: 22px;
+  color: #2F4D8E;
+  text-align: center;
+  margin-bottom: 34px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  font-family: inherit;
+}
+
+.button {
+  background: #2F4D8E;
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  padding: 13px 0;
+  font-size: 20px;
+  width: 100%;
+  max-width: 370px;
+  font-weight: 500;
+  margin-bottom: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px 0 rgba(70,90,150,0.18);
+  transition: background 0.2s;
+}
+.button:hover {
+  background: #3b4e84;
+}
+
+.orSection {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 18px 0 16px 0;
+}
+
+.orLine {
+  flex: 1;
+  height: 2px;
+  background: #c4c6d0;
+  border-radius: 2px;
+}
+
+.orText {
+  padding: 0 12px;
+  color: #465a96;
+  font-size: 16px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.buttonAdmin {
+  background: #465a96;
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  padding: 13px 0;
+  font-size: 20px;
+  width: 100%;
+  max-width: 370px;
+  font-weight: 500;
+  box-shadow: 0 4px 14px 0 rgba(70,90,150,0.18);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.buttonAdmin:hover {
+  background: #2f3d65;
+}
+
+@media (max-width: 600px) {
+  .card {
+    max-width: 95vw;
+    padding: 28px 10px 32px 10px;
+  }
+  .topbar {
+    padding: 0 8px;
+    height: 54px;
+  }
+  .logoOnly {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  .cardBankLogo {
+    width: 60px !important;
+    height: 25px !important;
+  }
+  .logoLarge {
+    width: 100px !important;
+    height: 40px !important;
+  }
+  .welcome {
+    font-size: 18px;
+  }
+  .cardTitle {
+    font-size: 16px;
+  }
+}  
