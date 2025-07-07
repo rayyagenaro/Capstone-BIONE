@@ -10,8 +10,8 @@ export default function Login() {
         <Image
           src="/assets/D'ONE Putih.png"
           alt="D'ONE Logo Putih"
-          width={70}  // Perbesar logo sesuai kebutuhan
-          height={70}
+          width={100}  // Perbesar logo sesuai kebutuhan
+          height={100}
           className={styles.logoOnly}
           priority
         />
@@ -39,7 +39,7 @@ export default function Login() {
         {/* Logo D'ONE tengah */}
         <div className={styles.logoDoneWrapper}>
           <Image
-            src="/assets/Logo D'ONE.png"
+            src="/assets/D'ONE.png"
             alt="D'ONE Logo"
             width={200}
             height={100}
