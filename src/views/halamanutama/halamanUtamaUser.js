@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import styles from './halamanUtamaUser.module.css';
-import { FaHome, FaCalendarAlt, FaHistory, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaClipboardList, FaHistory, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
 export default function HalamanUtamaUser() {
   return (
@@ -21,7 +21,7 @@ export default function HalamanUtamaUser() {
         <nav className={styles.navMenu}>
           <ul>
             <li className={styles.active}><FaHome className={styles.menuIcon} />Beranda</li>
-            <li><FaCalendarAlt className={styles.menuIcon} />Status Booking</li>
+            <li><FaClipboardList className={styles.menuIcon} />Status Booking</li>
             <li><FaHistory className={styles.menuIcon} />Riwayat Pesanan</li>
             <li><FaCog className={styles.menuIcon} />Pengaturan</li>
           </ul>
@@ -60,11 +60,11 @@ export default function HalamanUtamaUser() {
 
         {/* WELCOME BOX */}
         <div className={styles.welcomeBox}>
-          <h2 className={styles.greeting}>Selamat datang, Rafief Chalvani</h2>
+          <h2 className={styles.greeting}>Selamat Datang, Rafief Chalvani!</h2>
           <div className={styles.servicesBox}>
             <div className={styles.servicesTitle}>Pilih Layanan Sesuai Kebutuhan Anda</div>
             <div className={styles.servicesDesc}>
-              Pilih layanan yang Anda butuhkan dan rasakan manfaat nyata dari driver booking, residence booking, clinic appointment & reservation, meal booking, tracking & numbering letter, Digital Reservation Meeting Room, Sports Reservation, dan Mental Insight
+              Pilih layanan yang anda inginkan mulai dari Driver Booking, Residence Booking, Clinic Appointment & Reservation, Meal Booking, Tracking & Numbering Letter, Digital Reservation Meeting Room, Sports Reservation, dan Mental Insight
             </div>
             <div className={styles.cardsGrid}>
               {/* CARD 1 */}
