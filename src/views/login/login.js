@@ -50,7 +50,7 @@ export default function Login() {
 
         {/* Judul Card */}
         <div className={styles.cardTitle}>
-          Digital One Systems<br />By Bank Indonesia
+          Digital One Order<br />By Bank Indonesia
         </div>
 
         <button className={styles.button}>Masuk</button>

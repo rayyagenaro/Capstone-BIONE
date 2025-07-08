@@ -1,0 +1,227 @@
+.background {
+  min-height: 100vh;
+  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+}
+
+/* TOPBAR */
+.topbar {
+  width: 100vw;
+  height: 65px;
+  background: #2F4D8E;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
+/* Untuk memberi jarak agar card tidak tertutup navbar */
+.contentWrapper {
+  padding-top: 80px;
+  min-height: calc(100vh - 65px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.logoOnly {
+  width: 68px !important;
+  height: 68px !important;
+  object-fit: contain;
+  margin-left: 2px;
+}
+
+.menu {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.signIn {
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.signUp {
+  color: #DA3B3B;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+/* CARD */
+.card {
+  background: #ffffff;
+  max-width: 600px;
+  width: 100%;
+  margin: 30px auto 0 auto;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px 0 rgba(70,90,150,0.12), 0 1.5px 6px 0 rgba(70,90,150,0.05);
+  padding: 15px 30px 100px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.cardHeader {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 8px;
+  margin-top: 0;
+  gap: 14px;
+}
+
+.cardBankLogo {
+  width: 100px !important;
+  height: 40px !important;
+  object-fit: contain;
+}
+
+.welcome {
+  font-size: 24px;
+  font-weight: 100;
+  color: #2F4D8E;
+  margin-left: 65px;
+  margin-bottom: 10px;
+  margin-top: 10px;
+  letter-spacing: 0.2px;
+  font-family: inherit;
+}
+
+.cardTitle {
+  font-size: 34px;
+  color: #2F4D8E;
+  text-align: center;
+  margin-bottom: 32px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  font-family: inherit;
+}
+
+/* FORM */
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 1.6px solid #bcd0f0;
+  font-size: 1.08rem;
+  outline: none;
+  background: #f7faff;
+  transition: border 0.18s;
+}
+
+.input:focus {
+  border: 1.6px solid #2F4D8E;
+  background: #fff;
+}
+
+.passwordGroup {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.eyeIcon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 2;
+  padding: 2px;
+  opacity: 0.8;
+}
+
+/* Options */
+.optionsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: -4px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #707070;
+  cursor: pointer;
+  gap: 7px;
+  user-select: none;
+}
+
+.checkbox {
+  accent-color: #2F4D8E;
+  width: 15px;
+  height: 15px;
+}
+
+.forgotLink {
+  color: #2F4D8E;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.forgotLink:hover {
+  text-decoration: underline;
+}
+
+/* Button */
+.button {
+  background: #2F4D8E;
+  color: #ffffff;
+  border: none;
+  border-radius: 30px;
+  padding: 12px 0;
+  font-size: 18px;
+  width: 100%;
+  max-width: 370px;
+  font-weight: 500;
+  margin-top: 50px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px 0 rgba(70,90,150,0.18);
+  transition: background 0.2s;
+}
+.button:hover {
+  background: #253e70;
+}
+
+/* Register */
+.registerArea {
+  margin-top: 18px;
+  font-size: 12px;
+  color: #878787;
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+
+.registerLink {
+  color: #2F4D8E;
+  text-decoration: none;
+  margin-left: 5px;
+  font-weight: bold;
+  letter-spacing: 0.3px;
+  font-size: 12px;
+}
+.registerLink:hover {
+  text-decoration: underline;
+}

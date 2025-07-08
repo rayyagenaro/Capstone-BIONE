@@ -36,13 +36,13 @@ export default function LandingPage() {
           padding: "50px 40px",
           boxShadow: "0 8px 32px 0 rgba(70,90,150,0.12)"
         }}>
-          <Image src="/assets/Logo D'ONE.png" alt="D'ONE Logo" width={90} height={90} />
-          <h1 style={{ margin: "20px 0 8px 0", color: "#465a96", fontWeight: 700, fontSize: 30 }}>
+          <Image src="/assets/D'ONE.png" alt="D'ONE Logo" width={150} height={90} />
+          <h1 style={{ margin: "5px 0 8px 0", color: "#465a96", fontWeight: 700, fontSize: 26 }}>
             Selamat Datang di
-            <br />D’ONE
+            <br />D&#39;ONE
           </h1>
-          <p style={{ color: "#465a96", fontWeight: 500, fontSize: 16 }}>
-            Digital One Systems by Bank Indonesia
+          <p style={{ color: "#465a96", fontWeight: 500, fontSize: 10 }}>
+            Digital One Order by Bank Indonesia
           </p>
         </div>
       </div>
