@@ -22,7 +22,7 @@ export default function HalamanUtamaUser() {
         <nav className={styles.navMenu}>
           <ul>
             <li className={styles.active}><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser'>Beranda</Link></li>
-            <li><FaClipboardList className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser#'>Status Booking</Link></li>
+            <li><FaClipboardList className={styles.menuIcon} /><Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link></li>
             <li><FaHistory className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser#'>Riwayat Pesanan</Link></li>
             <li><FaCog className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser#'>Pengaturan</Link></li>
           </ul>

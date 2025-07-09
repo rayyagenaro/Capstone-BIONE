@@ -7,6 +7,18 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      setError('Email dan password wajib diisi.');
+      return;
+    }
+    setError('');
+    // Simulasi login sukses:
+    window.location.href = "/HalamanUtama/hal-utamauser";
+  }
 
   return (
     <div className={styles.background}>
@@ -26,7 +38,6 @@ export default function SignIn() {
         </div>
       </div>
 
-      {/* Tambahkan padding top sesuai tinggi navbar */}
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
           <div className={styles.cardHeader}>
@@ -42,8 +53,10 @@ export default function SignIn() {
           </div>
           <div className={styles.cardTitle}>Login</div>
 
-          <form className={styles.form} autoComplete="off" onSubmit={e => e.preventDefault()}>
+          <form className={styles.form} autoComplete="off" onSubmit={handleSubmit}>
+            <label htmlFor="email" className={styles.inputLabel}>Email</label>
             <input
+              id="email"
               type="email"
               placeholder="rafief.chalvani8@gmail.com"
               className={styles.input}
@@ -52,8 +65,11 @@ export default function SignIn() {
               autoComplete="username"
               required
             />
+
+            <label htmlFor="password" className={styles.inputLabel}>Password</label>
             <div className={styles.passwordGroup}>
               <input
+                id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="************"
                 className={styles.input}
@@ -114,9 +130,19 @@ export default function SignIn() {
               </a>
             </div>
 
-        <Link href="/HalamanUtama/hal-utamauser" passHref legacyBehavior>
-          <button className={styles.button}>Masuk</button>
-        </Link>
+            {error && <div className={styles.errorMsgBlue}>{error}</div>}
+
+            <button
+              type="submit"
+              className={styles.button}
+              disabled={!email.trim() || !password}
+              style={{
+                opacity: !email.trim() || !password ? 0.6 : 1,
+                cursor: !email.trim() || !password ? "not-allowed" : "pointer"
+              }}
+            >
+              Masuk
+            </button>
           </form>
 
           <div className={styles.registerArea}>
