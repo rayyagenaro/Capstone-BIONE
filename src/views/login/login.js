@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import styles from './login.module.css';
 
 export default function Login() {
@@ -52,8 +53,9 @@ export default function Login() {
         <div className={styles.cardTitle}>
           Digital One Order<br />By Bank Indonesia
         </div>
-
-        <button className={styles.button}>Masuk</button>
+        <Link href="/Signin/hal-sign" passHref legacyBehavior>
+          <button className={styles.button}>Masuk</button>
+        </Link>
         <div className={styles.orSection}>
           <span className={styles.orLine}></span>
           <span className={styles.orText}>Atau</span>

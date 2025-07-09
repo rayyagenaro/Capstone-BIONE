@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import styles from './signin.module.css';
 
 export default function SignIn() {
@@ -113,9 +114,9 @@ export default function SignIn() {
               </a>
             </div>
 
-            <button type="submit" className={styles.button}>
-              Masuk
-            </button>
+        <Link href="/HalamanUtama/hal-utamauser" passHref legacyBehavior>
+          <button className={styles.button}>Masuk</button>
+        </Link>
           </form>
 
           <div className={styles.registerArea}>

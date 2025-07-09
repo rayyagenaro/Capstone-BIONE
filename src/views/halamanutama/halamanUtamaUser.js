@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import styles from './halamanUtamaUser.module.css';
 import { FaHome, FaClipboardList, FaHistory, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
@@ -10,8 +11,8 @@ export default function HalamanUtamaUser() {
       <aside className={styles.sidebar}>
         <div className={styles.logoSidebar}>
           <Image
-            src="/assets/D'ONE.png"
-            alt="D'ONE"
+            src="/assets/BI_Logo.png"
+            alt="Bank Indonesia"
             width={110}
             height={36}
             className={styles.logoDone}
@@ -20,14 +21,16 @@ export default function HalamanUtamaUser() {
         </div>
         <nav className={styles.navMenu}>
           <ul>
-            <li className={styles.active}><FaHome className={styles.menuIcon} />Beranda</li>
-            <li><FaClipboardList className={styles.menuIcon} />Status Booking</li>
-            <li><FaHistory className={styles.menuIcon} />Riwayat Pesanan</li>
-            <li><FaCog className={styles.menuIcon} />Pengaturan</li>
+            <li className={styles.active}><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser'>Beranda</Link></li>
+            <li><FaClipboardList className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser#'>Status Booking</Link></li>
+            <li><FaHistory className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser#'>Riwayat Pesanan</Link></li>
+            <li><FaCog className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser#'>Pengaturan</Link></li>
           </ul>
         </nav>
         <div className={styles.logout}>
-          <FaSignOutAlt className={styles.logoutIcon} />
+          <Link href="/Login/hal-login" passHref legacyBehavior>
+            <FaSignOutAlt className={styles.logoutIcon} />
+          </Link>
           Logout
         </div>
       </aside>
@@ -38,8 +41,8 @@ export default function HalamanUtamaUser() {
         <div className={styles.header}>
           <div className={styles.logoBIWrapper}>
             <Image
-              src="/assets/BI_Logo.png"
-              alt="Bank Indonesia"
+              src="/assets/D'ONE.png"
+              alt="D'ONE"
               width={170}
               height={34}
               className={styles.logoBI}
@@ -81,7 +84,9 @@ export default function HalamanUtamaUser() {
                 <div className={styles.cardDesc}>
                   Pilih driver dan jadwal yang sesuai untuk kebutuhan dinas dan rapat anda.
                 </div>
-                <button className={styles.bookingBtn}>Booking</button>
+                <Link href="/FiturDmove/hal-dmove" passHref legacyBehavior>
+                  <button className={styles.bookingBtn}>Booking</button>
+                </Link>
               </div>
               {/* CARD 2 */}
               <div className={styles.card}>
