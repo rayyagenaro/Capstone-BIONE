@@ -8,7 +8,7 @@ const bookingData = [
   {
     id: 1,
     logo: "/assets/D'MOVE.png",
-    title: "Booking D'MOVE – Malang",
+    title: "Booking D'MOVE | Malang",
     desc: "12 Hari",
     process: "Process",
     status: "process"
@@ -16,7 +16,7 @@ const bookingData = [
   {
     id: 2,
     logo: "/assets/D'REST.png",
-    title: "Booking D'REST – Trawas",
+    title: "Booking D'REST | Trawas",
     desc: "3 Hari",
     process: "Process",
     status: "process"
@@ -24,7 +24,7 @@ const bookingData = [
   {
     id: 3,
     logo: "/assets/D'MEAL.png",
-    title: "Booking D'MEAL – Ruang Rapat Lt 4",
+    title: "Booking D'MEAL | Ruang Rapat Lt 4",
     desc: "07 July 2025 | 10.00",
     process: "Process",
     status: "process"
@@ -32,12 +32,28 @@ const bookingData = [
   {
     id: 4,
     logo: "/assets/D'CARE.png",
-    title: "Booking D'CARE – dr. Rafief Chalvani S.Ked.",
+    title: "Booking D'CARE | dr. Rafief Chalvani S.Ked.",
     desc: "08 July 2025 | Sesi 1 (10.00 - 11.00)",
     process: "Process",
     status: "process"
   },
   // Kamu bisa tambahkan data Approved/Rejected di sini
+  {
+    id: 5,
+    logo: "/assets/D'CARE.png",
+    title: "Booking D'CARE | dr. Rafief Chalvani S.Ked.",
+    desc: "08 July 2025 | Sesi 1 (10.00 - 11.00)",
+    process: "Approved",
+    status: "approved"
+  },
+   {
+    id: 6,
+    logo: "/assets/D'REST.png",
+    title: "Booking D'REST | Trawas",
+    desc: "3 Hari",
+    process: "Rejected",
+    status: "rejected"
+  },
 ];
 
 export default function StatusBooking() {
@@ -105,7 +121,7 @@ export default function StatusBooking() {
         {/* CONTENT BOX */}
         <div className={styles.bookingBox}>
           <div className={styles.topRow}>
-            <button className={styles.backBtn}><FaArrowLeft /> Kembali</button>
+            <button className={styles.backBtn}><FaArrowLeft /><Link href="/HalamanUtama/hal-utamauser" passHref legacyBehavior>Kembali</Link></button>
             <span className={styles.pageTitle}>STATUS BOOKING</span>
           </div>
           <div className={styles.tabRow}>
