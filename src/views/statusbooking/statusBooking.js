@@ -4,63 +4,65 @@ import Link from 'next/link';
 import styles from './statusBooking.module.css';
 import { FaHome, FaClipboardList, FaHistory, FaCog, FaSignOutAlt, FaArrowLeft } from 'react-icons/fa';
 
-const bookingData = [
+const bookingsData = [
+  // PROCESS
   {
     id: 1,
+    status: "Process",
     logo: "/assets/D'MOVE.png",
     title: "Booking D'MOVE | Malang",
-    desc: "12 Hari",
-    process: "Process",
-    status: "process"
+    sub: "12 Hari",
+    desc: "Process"
   },
   {
     id: 2,
+    status: "Process",
     logo: "/assets/D'REST.png",
     title: "Booking D'REST | Trawas",
-    desc: "3 Hari",
-    process: "Process",
-    status: "process"
+    sub: "3 Hari",
+    desc: "Process"
   },
   {
     id: 3,
+    status: "Process",
     logo: "/assets/D'MEAL.png",
     title: "Booking D'MEAL | Ruang Rapat Lt 4",
-    desc: "07 July 2025 | 10.00",
-    process: "Process",
-    status: "process"
+    sub: "07 July 2025 | 10.00",
+    desc: "Process"
   },
   {
     id: 4,
+    status: "Process",
     logo: "/assets/D'CARE.png",
     title: "Booking D'CARE | dr. Rafief Chalvani S.Ked.",
-    desc: "08 July 2025 | Sesi 1 (10.00 - 11.00)",
-    process: "Process",
-    status: "process"
+    sub: "08 July 2025 | Sesi 1 (10.00 - 11.00)",
+    desc: "Process"
   },
-  // Kamu bisa tambahkan data Approved/Rejected di sini
+  // APPROVED
   {
     id: 5,
+    status: "Approved",
     logo: "/assets/D'CARE.png",
     title: "Booking D'CARE | dr. Rafief Chalvani S.Ked.",
-    desc: "08 July 2025 | Sesi 1 (10.00 - 11.00)",
-    process: "Approved",
-    status: "approved"
+    sub: "08 July 2025 | Sesi 1 (10.00 - 11.00)",
+    desc: "Approved"
   },
-   {
+  // REJECTED
+  {
     id: 6,
+    status: "Rejected",
     logo: "/assets/D'REST.png",
     title: "Booking D'REST | Trawas",
-    desc: "3 Hari",
-    process: "Rejected",
-    status: "rejected"
+    sub: "3 Hari",
+    desc: "Rejected"
   },
 ];
 
 export default function StatusBooking() {
-  const [activeTab, setActiveTab] = useState('process');
+  const [tab, setTab] = useState("Process");
 
-  // Filter sesuai tab
-  const bookings = bookingData.filter(b => b.status === activeTab);
+  // Filter bookings by status
+  const bookings = bookingsData.filter(item => item.status === tab);
 
   return (
     <div className={styles.background}>
@@ -68,8 +70,8 @@ export default function StatusBooking() {
       <aside className={styles.sidebar}>
         <div className={styles.logoSidebar}>
           <Image
-            src="/assets/BI_Logo.png"
-            alt="Bank Indonesia"
+            src="/assets/D'ONE.png"
+            alt="D'ONE"
             width={110}
             height={36}
             className={styles.logoDone}
@@ -94,12 +96,12 @@ export default function StatusBooking() {
 
       {/* MAIN CONTENT */}
       <main className={styles.mainContent}>
-        {/* HEADER NAVBAR */}
+        {/* HEADER */}
         <div className={styles.header}>
           <div className={styles.logoBIWrapper}>
             <Image
-              src="/assets/D'ONE.png"
-              alt="D'ONE"
+              src="/assets/BI_Logo.png"
+              alt="Bank Indonesia"
               width={170}
               height={34}
               className={styles.logoBI}
@@ -118,52 +120,60 @@ export default function StatusBooking() {
           </form>
         </div>
 
-        {/* CONTENT BOX */}
         <div className={styles.bookingBox}>
           <div className={styles.topRow}>
             <button className={styles.backBtn}><FaArrowLeft /><Link href="/HalamanUtama/hal-utamauser" passHref legacyBehavior>Kembali</Link></button>
-            <span className={styles.pageTitle}>STATUS BOOKING</span>
+            <div className={styles.title}>STATUS BOOKING</div>
           </div>
+
+          {/* TAB FILTER */}
           <div className={styles.tabRow}>
             <button
-              className={`${styles.tabBtn} ${activeTab === 'process' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('process')}
+              className={`${styles.tabBtn} ${tab === "Process" ? styles.tabActive : ""}`}
+              onClick={() => setTab("Process")}
             >
               Process
             </button>
             <button
-              className={`${styles.tabBtn} ${activeTab === 'approved' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('approved')}
+              className={`${styles.tabBtn} ${tab === "Approved" ? styles.tabActive : ""}`}
+              onClick={() => setTab("Approved")}
             >
               Approved
             </button>
             <button
-              className={`${styles.tabBtn} ${activeTab === 'rejected' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('rejected')}
+              className={`${styles.tabBtn} ${tab === "Rejected" ? styles.tabActive : ""}`}
+              onClick={() => setTab("Rejected")}
             >
               Rejected
             </button>
           </div>
 
+          {/* LIST */}
           <div className={styles.listArea}>
             {bookings.length === 0 && (
-              <div className={styles.emptyMsg}>Tidak ada booking pada tab ini.</div>
+              <div className={styles.emptyState}>Tidak ada booking dengan status ini.</div>
             )}
-            {bookings.map(b => (
-              <div className={styles.bookingCard} key={b.id}>
-                <div className={styles.cardLogoWrap}>
-                  <Image
-                    src={b.logo}
-                    alt="Logo"
-                    width={54}
-                    height={54}
-                    className={styles.cardLogo}
-                  />
-                </div>
-                <div className={styles.cardInfo}>
-                  <div className={styles.cardTitle}>{b.title}</div>
-                  <div className={styles.cardDesc}>{b.desc}</div>
-                  <div className={styles.cardProcess}>{b.process}</div>
+            {bookings.map(item => (
+              <div key={item.id} className={styles.bookingCard}>
+                <Image
+                  src={item.logo}
+                  alt="logo"
+                  width={60}
+                  height={60}
+                  className={styles.cardLogo}
+                />
+                <div className={styles.cardDetail}>
+                  <div className={styles.cardTitle}>{item.title}</div>
+                  <div className={styles.cardSub}>{item.sub}</div>
+                  <div className={
+                    item.status === "Approved"
+                      ? styles.statusApproved
+                      : item.status === "Rejected"
+                      ? styles.statusRejected
+                      : styles.statusProcess
+                  }>
+                    {item.desc}
+                  </div>
                 </div>
               </div>
             ))}

@@ -2,8 +2,6 @@
   min-height: 100vh;
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
 }
-
-/* TOPBAR */
 .topbar {
   width: 100vw;
   height: 68px;
@@ -28,7 +26,6 @@
   height: 40px !important;
   object-fit: contain;
 }
-
 .menu {
   display: flex;
   align-items: center;
@@ -48,8 +45,6 @@
   cursor: pointer;
   text-decoration: none;
 }
-
-/* CARD */
 .contentWrapper {
   padding-top: 110px;
   display: flex;
@@ -91,8 +86,6 @@
   margin-bottom: 24px;
   text-align: center;
 }
-
-/* FORM */
 .form {
   width: 100%;
   display: flex;
@@ -137,16 +130,12 @@
   padding: 2px;
   z-index: 3;
 }
-
-/* ERROR */
 .errorMsg {
   font-size: 13px;
   color: #d62c2c;
   margin-top: 2px;
   margin-left: 10px;
 }
-
-/* Button */
 .button {
   background: #2F4D8E;
   color: #ffffff;
@@ -166,8 +155,6 @@
   color: #fff;
   cursor: not-allowed;
 }
-
-/* Register Area */
 .registerArea {
   margin-top: 10px;
   font-size: 13px;
@@ -185,7 +172,6 @@
 .registerLink:hover {
   text-decoration: underline;
 }
-
 /* Responsive */
 @media (max-width: 650px) {
   .card {

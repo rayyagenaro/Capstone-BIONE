@@ -4,8 +4,6 @@
   background: #f6f7fa;
   font-family: 'Poppins', Arial, sans-serif;
 }
-
-/* SIDEBAR */
 .sidebar {
   width: 255px;
   background: #fff;
@@ -35,7 +33,6 @@
   height: 36px !important;
   object-fit: contain;
 }
-
 .navMenu {
   flex: 1;
   width: 100%;
@@ -82,8 +79,6 @@
 .logoutIcon {
   font-size: 20px;
 }
-
-/* HEADER NAVBAR ATAS */
 .header {
   position: fixed;
   top: 0;
@@ -109,8 +104,6 @@
   height: 34px !important;
   object-fit: contain;
 }
-
-/* SEARCH BAR DI HEADER */
 .searchBar {
   display: flex;
   align-items: center;
@@ -145,8 +138,6 @@
   font-weight: 600;
   margin-left: 8px;
 }
-
-/* CONTENT DI BAWAH HEADER */
 .mainContent {
   flex: 1;
   min-width: 0;
@@ -157,8 +148,6 @@
   margin-left: 255px;
   padding-top: 92px; /* setara tinggi header */
 }
-
-/* WELCOME BOX, CARDS */
 .welcomeBox {
   width: 90%;
   max-width: 1050px;

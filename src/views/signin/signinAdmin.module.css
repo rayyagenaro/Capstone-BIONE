@@ -2,7 +2,6 @@
   min-height: 100vh;
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
 }
-
 .topbar {
   width: 100vw;
   height: 65px;
@@ -17,7 +16,6 @@
   left: 0;
   z-index: 10;
 }
-
 .contentWrapper {
   padding-top: 110px;
   min-height: calc(100vh - 65px);
@@ -26,20 +24,17 @@
   align-items: center;
   justify-content: flex-start;
 }
-
 .logoOnly {
   width: 68px !important;
   height: 68px !important;
   object-fit: contain;
   margin-left: 2px;
 }
-
 .menu {
   display: flex;
   align-items: center;
   gap: 18px;
 }
-
 .signIn {
   color: #ffffff;
   font-size: 16px;
@@ -47,7 +42,6 @@
   cursor: pointer;
   text-decoration: none;
 }
-
 .signUp {
   color: #DA3B3B;
   font-size: 16px;
@@ -56,7 +50,6 @@
   cursor: pointer;
   text-decoration: none;
 }
-
 .card {
   background: #fff;
   max-width: 600px;
@@ -70,7 +63,6 @@
   align-items: center;
   position: relative;
 }
-
 .cardHeaderRow {
   width: 100%;
   display: flex;
@@ -81,13 +73,11 @@
   margin-top: 0;
   gap: 16px;
 }
-
 .cardBankLogo {
   width: 120px !important;
   height: 44px !important;
   object-fit: contain;
 }
-
 .cardTitle {
   font-size: 46px;
   color: #5c5c5c;
@@ -99,7 +89,6 @@
   font-family: inherit;
   line-height: 1.12;
 }
-
 .subGreeting {
   color: #666;
   text-align: center;
@@ -109,7 +98,6 @@
   margin-bottom: 24px;
   line-height: 1.2;
 }
-
 .adminText {
   color: #555;
   font-size: 21px;
@@ -117,14 +105,12 @@
   margin-top: 0;
   letter-spacing: 0.2px;
 }
-
 .form {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
-
 .input {
   width: 100%;
   padding: 13px 16px;
@@ -137,19 +123,16 @@
   color: #253e70;
   font-weight: 600;
 }
-
 .input:focus {
   border: 1.7px solid #253e70;
   background: #fff;
   color: #253e70;
 }
-
 .passwordGroup {
   position: relative;
   display: flex;
   align-items: center;
 }
-
 .eyeIcon {
   position: absolute;
   right: 16px;
@@ -160,14 +143,12 @@
   padding: 2px;
   opacity: 0.8;
 }
-
 .optionsRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: -4px;
 }
-
 .checkboxLabel {
   display: flex;
   align-items: center;
@@ -178,13 +159,11 @@
   user-select: none;
   font-weight: 600;
 }
-
 .checkbox {
   accent-color: #2F4D8E;
   width: 15px;
   height: 15px;
 }
-
 .forgotLink {
   color: #72a0df;
   font-size: 13px;
@@ -196,7 +175,6 @@
   text-decoration: underline;
   color: #1d2e54;
 }
-
 .button {
   background: #2F4D8E;
   color: #ffffff;
@@ -218,7 +196,6 @@
 .button:hover {
   background: #253e70;
 }
-
 .registerArea {
   margin-top: 19px;
   font-size: 13px;
@@ -226,7 +203,6 @@
   text-align: center;
   letter-spacing: 0.2px;
 }
-
 .registerLink {
   color: #253e70;
   text-decoration: none;
@@ -239,8 +215,6 @@
   text-decoration: underline;
   color: #1d2e54;
 }
-
-/* Pesan error biru */
 .errorMsgBlue {
   color: #253e70;
   font-size: 15px;
@@ -248,7 +222,6 @@
   font-weight: 600;
   text-align: center;
 }
-
 @media (max-width: 600px) {
   .card {
     max-width: 97vw;

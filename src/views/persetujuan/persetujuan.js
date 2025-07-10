@@ -1,40 +1,40 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import styles from './halamanUtamaAdmin.module.css';
+import styles from './persetujuan.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
-export default function HalamanUtamaAdmin() {
-  // Dummy data
-  const layananMasuk = [
+export default function PersetujuanBooking() {
+  // Data dummy persetujuan booking
+  const bookings = [
     {
       id: 1,
       logo: "/assets/D'MOVE.png",
       title: "Booking D'MOVE | Malang",
       subtitle: "12 Hari",
-      status: "Process"
+      status: "Approved",
     },
     {
       id: 2,
       logo: "/assets/D'MOVE.png",
       title: "Booking D'MOVE | Malang",
       subtitle: "12 Hari",
-      status: "Process"
+      status: "Approved",
     },
     {
       id: 3,
       logo: "/assets/D'MOVE.png",
       title: "Booking D'MOVE | Malang",
       subtitle: "12 Hari",
-      status: "Process"
+      status: "Rejected",
     },
     {
       id: 4,
       logo: "/assets/D'MOVE.png",
       title: "Booking D'MOVE | Malang",
       subtitle: "12 Hari",
-      status: "Process"
-    }
+      status: "Rejected",
+    },
   ];
 
   return (
@@ -53,8 +53,8 @@ export default function HalamanUtamaAdmin() {
         </div>
         <nav className={styles.navMenu}>
           <ul>
-            <li className={styles.active}><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamaAdmin'>Beranda</Link></li>
-            <li><FaClipboardList className={styles.menuIcon} /><Link href='/Persetujuan/hal-persetujuan'>Persetujuan Booking</Link></li>
+            <li><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamaAdmin'>Beranda</Link></li>
+            <li className={styles.active}><FaClipboardList className={styles.menuIcon} /><Link href='/Persetujuan/hal-persetujuan'>Persetujuan Booking</Link></li>
             <li><FaCog className={styles.menuIcon} /><Link href='/Pengaturan/hal-pengaturan'>Pengaturan</Link></li>
           </ul>
         </nav>
@@ -98,11 +98,11 @@ export default function HalamanUtamaAdmin() {
           <div className={styles.adminText}>Admin</div>
         </div>
 
-        {/* BOX LAYANAN MASUK */}
+        {/* BOX PERSETUJUAN */}
         <div className={styles.boxLayanan}>
-          <div className={styles.titleLayanan}>LAYANAN MASUK</div>
+          <div className={styles.titleLayanan}>PERSETUJUAN BOOKING</div>
           <div className={styles.cardList}>
-            {layananMasuk.map(item => (
+            {bookings.map(item => (
               <div key={item.id} className={styles.cardLayanan}>
                 <Image
                   src={item.logo}
@@ -115,7 +115,15 @@ export default function HalamanUtamaAdmin() {
                 <div className={styles.cardContent}>
                   <div className={styles.layananTitle}>{item.title}</div>
                   <div className={styles.layananSub}>{item.subtitle}</div>
-                  <div className={styles.layananStatus}>{item.status}</div>
+                  <div className={`${styles.layananStatus} ${
+                    item.status === "Approved"
+                      ? styles.statusApproved
+                      : item.status === "Rejected"
+                      ? styles.statusRejected
+                      : ""
+                  }`}>
+                    {item.status}
+                  </div>
                 </div>
               </div>
             ))}
