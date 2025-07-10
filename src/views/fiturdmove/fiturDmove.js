@@ -115,10 +115,10 @@ export default function FiturDmove() {
         </div>
         <nav className={styles.navMenu}>
           <ul>
-            <li className={styles.active}><FaHome className={styles.menuIcon} />Beranda</li>
-            <li><FaClipboardList className={styles.menuIcon} />Status Booking</li>
-            <li><FaHistory className={styles.menuIcon} />Riwayat Pesanan</li>
-            <li><FaCog className={styles.menuIcon} />Pengaturan</li>
+           <li className={styles.active}><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser'>Beranda</Link></li>
+            <li><FaClipboardList className={styles.menuIcon} /><Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link></li>
+            <li><FaHistory className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser#'>Riwayat Pesanan</Link></li>
+            <li><FaCog className={styles.menuIcon} /><Link href='/EditProfile/hal-editprofile'>Pengaturan</Link></li>
           </ul>
         </nav>
         <div className={styles.logout}>

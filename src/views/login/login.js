@@ -17,8 +17,8 @@ export default function Login() {
           priority
         />
         <div className={styles.menu}>
-          <span className={styles.signIn}>Sign In</span>
-          <span className={styles.signUp}>Sign Up</span>
+          <span className={styles.signIn}><Link href="/Signin/hal-sign" passHref legacyBehavior>Sign In</Link></span>
+          <span className={styles.signUp}><Link href="/Signup/hal-sign" passHref legacyBehavior>Sign Up</Link></span>
         </div>
       </div>
 
@@ -61,7 +61,9 @@ export default function Login() {
           <span className={styles.orText}>Atau</span>
           <span className={styles.orLine}></span>
         </div>
-        <button className={styles.buttonAdmin}>Masuk Sebagai Admin</button>
+        <Link href="/Signin/hal-signAdmin" passHref legacyBehavior>
+          <button className={styles.buttonAdmin}>Masuk Sebagai Admin</button>
+        </Link>
       </div>
     </div>
   );

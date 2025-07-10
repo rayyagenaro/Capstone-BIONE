@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import styles from './signin.module.css';
+import styles from './signinAdmin.module.css';
 
-export default function SignIn() {
+export default function SignInAdmin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -17,7 +17,7 @@ export default function SignIn() {
     }
     setError('');
     // Simulasi login sukses:
-    window.location.href = "/HalamanUtama/hal-utamauser";
+    window.location.href = "/HalamanUtama/hal-utamaAdmin";
   }
 
   return (
@@ -32,41 +32,38 @@ export default function SignIn() {
           className={styles.logoOnly}
           priority
         />
-        <div className={styles.menu}>
-          <Link href="/Signin/hal-sign" className={styles.signIn}>Sign In</Link>
-          <Link href="/SignUp/hal-signup" className={styles.signUp}>Sign Up</Link>
-        </div>
       </div>
 
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
-          <div className={styles.cardHeader}>
+          <div className={styles.cardHeaderRow}>
             <Image
               src="/assets/BI_Logo.png"
               alt="Bank Indonesia"
-              width={100}
-              height={40}
+              width={110}
+              height={42}
               className={styles.cardBankLogo}
               priority
             />
-            <span className={styles.welcome}>Selamat Datang</span>
           </div>
           <div className={styles.cardTitle}>Login</div>
+          <div className={styles.subGreeting}>
+            Selamat Datang
+            <div className={styles.adminText}>Admin</div>
+          </div>
 
           <form className={styles.form} autoComplete="off" onSubmit={handleSubmit}>
-            <label htmlFor="email" className={styles.inputLabel}>Email</label>
             <input
               id="email"
               type="email"
               placeholder="rafief.chalvani8@gmail.com"
               className={styles.input}
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => { setEmail(e.target.value); if (error) setError(''); }}
               autoComplete="username"
               required
             />
 
-            <label htmlFor="password" className={styles.inputLabel}>Password</label>
             <div className={styles.passwordGroup}>
               <input
                 id="password"
@@ -74,7 +71,7 @@ export default function SignIn() {
                 placeholder="************"
                 className={styles.input}
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => { setPassword(e.target.value); if (error) setError(''); }}
                 autoComplete="current-password"
                 required
               />
@@ -125,9 +122,6 @@ export default function SignIn() {
                 <input type="checkbox" className={styles.checkbox} />
                 Ingat Saya
               </label>
-              <a className={styles.forgotLink} href="#">
-                Lupa Kata Sandi?
-              </a>
             </div>
 
             {error && <div className={styles.errorMsgBlue}>{error}</div>}
@@ -144,11 +138,6 @@ export default function SignIn() {
               Masuk
             </button>
           </form>
-
-          <div className={styles.registerArea}>
-            Belum Terdaftar?
-            <a href="/SignUp/hal-signup" className={styles.registerLink}>Buat Akun</a>
-          </div>
         </div>
       </div>
     </div>

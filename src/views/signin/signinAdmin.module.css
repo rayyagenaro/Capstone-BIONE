@@ -3,7 +3,6 @@
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
 }
 
-/* TOPBAR */
 .topbar {
   width: 100vw;
   height: 65px;
@@ -19,9 +18,8 @@
   z-index: 10;
 }
 
-/* Untuk memberi jarak agar card tidak tertutup navbar */
 .contentWrapper {
-  padding-top: 80px;
+  padding-top: 110px;
   min-height: calc(100vh - 65px);
   display: flex;
   flex-direction: column;
@@ -47,6 +45,7 @@
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .signUp {
@@ -55,92 +54,94 @@
   font-weight: bold;
   margin-left: 4px;
   cursor: pointer;
+  text-decoration: none;
 }
 
-/* CARD */
 .card {
-  background: #ffffff;
+  background: #fff;
   max-width: 600px;
   width: 100%;
-  margin: 30px auto 0 auto;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px 0 rgba(70,90,150,0.12), 0 1.5px 6px 0 rgba(70,90,150,0.05);
-  padding: 15px 30px 100px 30px;
+  margin: 38px auto 0 auto;
+  border-radius: 28px;
+  box-shadow: 0 8px 32px 0 rgba(70,90,150,0.13), 0 1.5px 6px 0 rgba(70,90,150,0.06);
+  padding: 44px 40px 44px 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
 }
 
-.cardHeader {
+.cardHeaderRow {
   width: 100%;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
   margin-top: 0;
-  gap: 14px;
+  gap: 16px;
 }
 
 .cardBankLogo {
-  width: 100px !important;
-  height: 40px !important;
+  width: 120px !important;
+  height: 44px !important;
   object-fit: contain;
 }
 
-.welcome {
-  font-size: 24px;
-  font-weight: 100;
-  color: #253e70;
-  margin-left: 65px;
-  margin-bottom: 10px;
-  margin-top: 10px;
-  letter-spacing: 0.2px;
-  font-family: inherit;
-}
-
 .cardTitle {
-  font-size: 34px;
-  color: #253e70;
+  font-size: 46px;
+  color: #5c5c5c;
   text-align: center;
-  margin-bottom: 32px;
-  font-weight: bold;
-  letter-spacing: 0.5px;
+  margin-top: 14px;
+  margin-bottom: 0px;
+  font-weight: 600;
+  letter-spacing: 1px;
   font-family: inherit;
+  line-height: 1.12;
 }
 
-/* FORM */
+.subGreeting {
+  color: #666;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 400;
+  margin-top: 8px;
+  margin-bottom: 24px;
+  line-height: 1.2;
+}
+
+.adminText {
+  color: #555;
+  font-size: 21px;
+  font-weight: 400;
+  margin-top: 0;
+  letter-spacing: 0.2px;
+}
+
 .form {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.inputLabel {
-  color: #253e70;
-  font-weight: 600;
-  font-size: 15px;
-  margin-bottom: 4px;
+  gap: 18px;
 }
 
 .input {
   width: 100%;
   padding: 13px 16px;
   border-radius: 14px;
-  border: 1.6px solid #bcd0f0;
-  font-size: 1.08rem;
+  border: 1.7px solid #bcd0f0;
+  font-size: 1.14rem;
   outline: none;
   background: #f7faff;
   transition: border 0.18s;
-  color: #373E3C;
+  color: #253e70;
   font-weight: 600;
 }
 
 .input:focus {
-  border: 1.6px solid #253e70;
+  border: 1.7px solid #253e70;
   background: #fff;
+  color: #253e70;
 }
 
 .passwordGroup {
@@ -160,7 +161,6 @@
   opacity: 0.8;
 }
 
-/* Options */
 .optionsRow {
   display: flex;
   justify-content: space-between;
@@ -186,7 +186,7 @@
 }
 
 .forgotLink {
-  color: #253e70;
+  color: #72a0df;
   font-size: 13px;
   text-decoration: none;
   transition: color 0.15s;
@@ -197,33 +197,31 @@
   color: #1d2e54;
 }
 
-/* Button */
 .button {
   background: #2F4D8E;
   color: #ffffff;
   border: none;
   border-radius: 30px;
-  padding: 12px 0;
-  font-size: 18px;
+  padding: 13px 0;
+  font-size: 20px;
   width: 100%;
   max-width: 370px;
   font-weight: 500;
-  margin-top: 80px;
-  margin-bottom: 5px;
+  margin-top: 65px;
+  margin-bottom: 7px;
   margin-left: auto;
   margin-right: auto;
   cursor: pointer;
-  box-shadow: 0 4px 14px 0 rgba(70,90,150,0.18);
+  box-shadow: 0 4px 16px 0 rgba(70,90,150,0.14);
   transition: background 0.2s;
 }
 .button:hover {
   background: #253e70;
 }
 
-/* Register */
 .registerArea {
-  margin-top: 18px;
-  font-size: 12px;
+  margin-top: 19px;
+  font-size: 13px;
   color: #878787;
   text-align: center;
   letter-spacing: 0.2px;
@@ -232,10 +230,10 @@
 .registerLink {
   color: #253e70;
   text-decoration: none;
-  margin-left: 5px;
+  margin-left: 6px;
   font-weight: bold;
   letter-spacing: 0.3px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .registerLink:hover {
   text-decoration: underline;
@@ -253,8 +251,9 @@
 
 @media (max-width: 600px) {
   .card {
-    max-width: 95vw;
-    padding: 28px 10px 32px 10px;
+    max-width: 97vw;
+    padding: 24px 6px 32px 6px;
+    border-radius: 16px;
   }
   .topbar {
     padding: 0 8px;
@@ -268,10 +267,10 @@
     width: 60px !important;
     height: 25px !important;
   }
-  .welcome {
-    font-size: 18px;
-  }
   .cardTitle {
-    font-size: 22px;
+    font-size: 26px;
+  }
+  .subGreeting, .adminText {
+    font-size: 15px;
   }
 }
