@@ -147,7 +147,7 @@ export default function SignIn() {
 
           <div className={styles.registerArea}>
             Belum Terdaftar?
-            <a href="/SignUp/hal-signup" className={styles.registerLink}>Buat Akun</a>
+            <Link href="/SignUp/hal-signup" className={styles.registerLink}>Buat Akun</Link>
           </div>
         </div>
       </div>

@@ -1,20 +1,43 @@
 .background {
   min-height: 100vh;
-  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+  width: 100vw;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+/* BACKGROUND IMAGE */
+.bgImage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/assets/bankindonesia.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: brightness(0.6) blur(1.2px);
+  opacity: 0.38;
+  pointer-events: none;
+}
+/* TOPBAR LANGSUNG MENEMPEL KE ATAS */
 .topbar {
   width: 100vw;
-  height: 65px;
+  height: 62px;
   background: #2F4D8E;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 38px;
   box-sizing: border-box;
+  z-index: 2;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 .logoOnly {
-  width: 68px !important;
-  height: 68px !important;
+  width: 60px !important;
+  height: 60px !important;
   object-fit: contain;
   margin-left: 2px;
 }
@@ -35,59 +58,80 @@
   margin-left: 4px;
   cursor: pointer;
 }
+/* CARD LOGIN TENGAH & BESAR */
 .card {
-  background: #ffffff;
+  background: #fff;
   max-width: 600px;
-  margin: 30px auto 0 auto;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px 0 rgba(70,90,150,0.12), 0 1.5px 6px 0 rgba(70,90,150,0.05);
-  padding: 15px 30px 100px 30px;
+  width: 94vw;
+  min-height: 530px;
+  margin: 0 auto;
+  border-radius: 24px;
+  box-shadow: 0 8px 40px 0 rgba(70,90,150,0.16), 0 1.5px 6px 0 rgba(70,90,150,0.05);
+  padding: 46px 38px 46px 38px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
+  z-index: 2;
+  top: 38px;
+  animation: cardpop 0.7s cubic-bezier(.77,0,.18,1) 1;
 }
-.cardRowHeader {
+
+@keyframes cardpop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(80px);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* HEADER CARD */
+.cardHeader {
   width: 100%;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 8px;
-  margin-top: 0;
   gap: 12px;
+  margin-bottom: 6px;
 }
 .cardBankLogo {
-  width: 100px !important;
-  height: 40px !important;
+  width: 130px !important;
+  height: 38px !important;
   object-fit: contain;
 }
 .welcome {
-  font-size: 24px;
-  font-weight: 100;
+  font-size: 25px;
+  font-weight: 600;
   color: #2F4D8E;
-  margin-left: 50px;
-  margin-bottom: 0;
-  margin-top: 8px;
+  margin: 0 auto 0 auto;
   letter-spacing: 0.2px;
   font-family: inherit;
+  text-align: center;
 }
+
 .logoDoneWrapper {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin: 30px 10px 10px 1px;
+  margin: 20px 10px 10px 1px;
 }
 .logoLarge {
-  width: 160px !important;
-  height: 70px !important;
+  width: 150px !important;
+  height: 90px !important;
   object-fit: contain;
 }
 .cardTitle {
-  font-size: 10px;
+  font-size: 18px;
   color: #2F4D8E;
   text-align: center;
-  margin-bottom: 80px;
+  margin-bottom: 55px;
   font-weight: bold;
   letter-spacing: 0.5px;
   font-family: inherit;
@@ -97,7 +141,7 @@
   color: #ffffff;
   border: none;
   border-radius: 30px;
-  padding: 11px 0;
+  padding: 13px 0;
   font-size: 18px;
   width: 100%;
   max-width: 370px;
@@ -108,13 +152,13 @@
   transition: background 0.2s;
 }
 .button:hover {
-  background: #2f3d65;
+  background: #243768;
 }
 .orSection {
   display: flex;
   align-items: center;
   width: 100%;
-  margin: 18px 0 16px 0;
+  margin: 20px 0 20px 0;
 }
 .orLine {
   flex: 1;
@@ -125,7 +169,7 @@
 .orText {
   padding: 0 12px;
   color: #2F4D8E;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   opacity: 0.7;
 }
@@ -134,7 +178,7 @@
   color: #ffffff;
   border: none;
   border-radius: 30px;
-  padding: 11px 0;
+  padding: 13px 0;
   font-size: 20px;
   width: 100%;
   max-width: 370px;
@@ -144,14 +188,10 @@
   transition: background 0.2s;
 }
 .buttonAdmin:hover {
-  background: #2f3d65;
+  background: #25386b;
 }
 
-@media (max-width: 600px) {
-  .card {
-    max-width: 95vw;
-    padding: 28px 10px 32px 10px;
-  }
+@media (max-width: 700px) {
   .topbar {
     padding: 0 8px;
     height: 54px;
@@ -160,18 +200,24 @@
     width: 44px !important;
     height: 44px !important;
   }
+  .card {
+    max-width: 96vw;
+    padding: 22px 7vw 28px 7vw;
+    min-height: 400px;
+    top: 16px;
+  }
   .cardBankLogo {
-    width: 60px !important;
-    height: 25px !important;
+    width: 75px !important;
+    height: 20px !important;
   }
   .logoLarge {
-    width: 100px !important;
+    width: 80px !important;
     height: 40px !important;
   }
   .welcome {
-    font-size: 18px;
+    font-size: 17px;
   }
   .cardTitle {
-    font-size: 16px;
+    font-size: 11px;
   }
-}  
+}

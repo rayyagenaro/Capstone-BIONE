@@ -6,13 +6,14 @@ import styles from './login.module.css';
 export default function Login() {
   return (
     <div className={styles.background}>
+      <div className={styles.bgImage}></div>
       {/* TOPBAR */}
       <div className={styles.topbar}>
         <Image
           src="/assets/D'ONE Putih.png"
           alt="D'ONE Logo Putih"
-          width={100}  // Perbesar logo sesuai kebutuhan
-          height={100}
+          width={90}
+          height={90}
           className={styles.logoOnly}
           priority
         />
@@ -24,32 +25,27 @@ export default function Login() {
 
       {/* CARD */}
       <div className={styles.card}>
-        {/* Row Selamat Datang + Logo BI */}
-        <div className={styles.cardRowHeader}>
+        <div className={styles.cardHeader}>
           <Image
             src="/assets/BI_Logo.png"
             alt="Bank Indonesia"
-            width={400}
-            height={200}
+            width={120}
+            height={44}
             className={styles.cardBankLogo}
             priority
           />
-          <span className={styles.welcome}>Selamat datang di</span>
+          <div className={styles.welcome}>Selamat datang di</div>
         </div>
-
-        {/* Logo D'ONE tengah */}
         <div className={styles.logoDoneWrapper}>
           <Image
             src="/assets/D'ONE.png"
             alt="D'ONE Logo"
-            width={200}
-            height={100}
+            width={220}
+            height={110}
             className={styles.logoLarge}
             priority
           />
         </div>
-
-        {/* Judul Card */}
         <div className={styles.cardTitle}>
           Digital One Order<br />By Bank Indonesia
         </div>

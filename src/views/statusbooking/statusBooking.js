@@ -70,8 +70,8 @@ export default function StatusBooking() {
       <aside className={styles.sidebar}>
         <div className={styles.logoSidebar}>
           <Image
-            src="/assets/D'ONE.png"
-            alt="D'ONE"
+            src="/assets/BI_Logo.png"
+            alt="Bank Indonesia"
             width={110}
             height={36}
             className={styles.logoDone}
@@ -100,8 +100,8 @@ export default function StatusBooking() {
         <div className={styles.header}>
           <div className={styles.logoBIWrapper}>
             <Image
-              src="/assets/BI_Logo.png"
-              alt="Bank Indonesia"
+              src="/assets/D'ONE.png"
+              alt="D'ONE"
               width={170}
               height={34}
               className={styles.logoBI}
