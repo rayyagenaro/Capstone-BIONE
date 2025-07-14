@@ -319,3 +319,44 @@
     font-size: 12px;
   }
 }
+.cardLayanan {
+  /* ...css lama kamu... */
+  transition: box-shadow 0.13s, border 0.13s, background 0.16s;
+  cursor: pointer;
+}
+.cardLayanan:hover {
+  border: 1.8px solid #3450a7;
+  background: #f3f7ff;
+  box-shadow: 0 4px 14px 0 rgba(70,90,150,0.13);
+}
+.topRowPersetujuan {
+  margin-top: 36px;
+  margin-bottom: 2px;
+  margin-left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 20px;
+}
+.backBtn {
+  background: #fff;
+  color: #2F4D8E;
+  border: none;
+  font-weight: 600;
+  font-size: 19px;
+  border-radius: 21px;
+  padding: 8px 27px 8px 17px;
+  cursor: pointer;
+  box-shadow: 0 1px 6px 0 rgba(47,77,142,0.10);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.14s, color 0.14s;
+  margin-bottom: 8px;
+  margin-right: 120px;
+  margin-left: 30px;
+}
+.backBtn:hover {
+  background: #e8f0fe;
+  color: #1c295a;
+}

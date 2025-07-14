@@ -1,0 +1,416 @@
+.background {
+  min-height: 100vh;
+  position: relative;
+  z-index: 0;
+  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+  overflow: hidden;
+}
+.background::before {
+  content: "";
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -2;
+  background: url('/assets/bankindonesia.png') center center / cover no-repeat;
+  opacity: 0.32;
+  pointer-events: none;
+}
+.background::after {
+  content: "";
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.sidebar {
+  width: 255px;
+  background: #fff;
+  border-right: 1px solid #ececec;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 99;
+}
+.logoSidebar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 92px;
+  padding-left: 28px;
+  padding-top: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #ececec;
+}
+.logoDone {
+  width: 110px !important;
+  height: 36px !important;
+  object-fit: contain;
+}
+.navMenu {
+  flex: 1;
+  width: 100%;
+  margin-top: 10px;
+}
+.navMenu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.navMenu li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 30px 14px 28px;
+  font-size: 17px;
+  color: #888b96;
+  cursor: pointer;
+  border-radius: 0 28px 28px 0;
+  transition: background .15s, color .15s;
+  margin-bottom: 2px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.menuIcon {
+  font-size: 20px;
+}
+.navMenu li.active,
+.navMenu li:hover {
+  background: #2f4d8e;
+  color: #fff;
+}
+.logout {
+  margin: 20px 0 28px 28px;
+  color: #ed6257;
+  font-weight: 600;
+  font-size: 17px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logoutIcon {
+  font-size: 20px;
+}
+.header {
+  position: fixed;
+  top: 0;
+  left: 255px;
+  right: 0;
+  height: 92px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 60px 0 38px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 4px 0 rgba(47,77,142,0.04);
+  z-index: 10;
+}
+.logoBIWrapper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.logoBI {
+  width: 170px !important;
+  height: 34px !important;
+  object-fit: contain;
+}
+.logoBank {
+  width: 130px !important;
+  height: 40px !important;
+  object-fit: contain;
+}
+.searchBar {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 36px;
+  border: 1px solid #ececec;
+  box-shadow: 0 1px 4px 0 rgba(47,77,142,0.03);
+  padding: 4px 28px;
+  min-width: 330px;
+  height: 48px;
+  gap: 14px;
+}
+.searchBar input {
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  font-size: 20px;
+  color: #363958;
+  padding: 8px 6px;
+}
+.searchBar button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #2f4d8e;
+  min-height: 100vh;
+  margin-left: 255px;
+  padding-top: 92px;
+}
+
+.titleBox {
+  display: flex;
+  align-items: center;
+  margin: 44px 0 10px 0;
+  gap: 18px;
+}
+.backBtn {
+  background: #fff;
+  color: #2F4D8E;
+  border: none;
+  font-weight: 600;
+  font-size: 19px;
+  border-radius: 21px;
+  padding: 8px 27px 8px 17px;
+  cursor: pointer;
+  box-shadow: 0 1px 6px 0 rgba(47,77,142,0.10);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.14s, color 0.14s;
+  margin-bottom: 8px;
+  margin-right: 120px;
+  margin-left: 30px;
+}
+.backBtn:hover {
+  background: #e8f0fe;
+  color: #1c295a;
+}
+.pageTitle {
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 700;
+  text-align: left;
+  margin-left: 120px;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 8px rgba(60,60,120,0.08);
+}
+.detailCard {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px 0 rgba(47,77,142,0.13);
+  width: 93%;
+  max-width: 1000px;
+  margin: 18px auto 44px auto;
+  padding: 38px 42px 28px 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.topRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  border-bottom: 1.1px solid #e0e6f2;
+  padding-bottom: 17px;
+  margin-bottom: 16px;
+}
+.leftTitle {
+  flex: 1;
+}
+.bookingTitle {
+  font-size: 23px;
+  font-weight: 700;
+  color: #253e70;
+  margin-bottom: 10px;
+  letter-spacing: 0.01em;
+}
+.metaInfo {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+.metaLabel {
+  color: #888;
+  font-size: 14px;
+  font-weight: 600;
+  margin-right: 4px;
+  letter-spacing: 0.01em;
+}
+.metaValue {
+  color: #222;
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: 14px;
+}
+.statusPending {
+  color: #338ef7;
+  background: none;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+}
+.dotPending {
+  width: 10px;
+  height: 10px;
+  background: #338ef7;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: row;
+  gap: 40px;
+  margin-bottom: 26px;
+}
+.detailColLeft, .detailColRight {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detailColRight {
+  border-left: 1.2px solid #e0e6f2;
+  padding-left: 32px;
+  margin-left: 20px;
+}
+.detailLabel {
+  font-size: 13px;
+  color: #888;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 1px;
+  margin-top: 10px;
+  letter-spacing: 0.03em;
+}
+.detailValue {
+  font-size: 15px;
+  color: #23263b;
+  margin-bottom: 0;
+  margin-top: 1px;
+  font-weight: 600;
+}
+.fileBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #ececec;
+  border-radius: 8px;
+  padding: 7px 14px 7px 11px;
+  margin-top: 3px;
+  font-size: 15px;
+}
+.fileIcon {
+  color: #23263b;
+  font-size: 21px;
+  margin-right: 7px;
+}
+.fileName {
+  color: #23263b;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 14.5px;
+  letter-spacing: 0.01em;
+}
+.fileName:hover {
+  text-decoration: underline;
+}
+.actionBtnRow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: flex-start;
+  margin-top: 20px;
+}
+.btnSetujui {
+  background: #2F4D8E;
+  color: #fff;
+  border: none;
+  border-radius: 18px;
+  padding: 11px 46px;
+  font-size: 18px;
+  font-weight: 600;
+  box-shadow: 0 3px 12px 0 rgba(47,77,142,0.14);
+  margin-right: 14px;
+  cursor: pointer;
+  transition: background 0.17s;
+}
+.btnSetujui:hover {
+  background: #253e70;
+}
+.btnTolak {
+  background: #fff;
+  color: #DA3B3B;
+  border: 1.7px solid #DA3B3B;
+  border-radius: 18px;
+  padding: 11px 36px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btnTolak:hover {
+  background: #ffeaea;
+  color: #c82b2b;
+}
+
+@media (max-width: 900px) {
+  .mainContent {
+    margin-left: 0;
+    padding-top: 92px;
+  }
+  .sidebar {
+    display: none;
+  }
+  .header {
+    left: 0;
+    padding: 0 8px 0 8px;
+  }
+  .detailCard {
+    width: 98vw;
+    padding: 22px 8vw 18px 8vw;
+    border-radius: 12px;
+  }
+  .titleBox {
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 22px 0 5px 0;
+    gap: 9px;
+  }
+  .pageTitle {
+    margin-left: 0;
+    font-size: 18px;
+  }
+  .detailRow {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .detailColRight {
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0;
+  }
+  .actionBtnRow {
+    gap: 10px;
+    flex-direction: row;
+  }
+}

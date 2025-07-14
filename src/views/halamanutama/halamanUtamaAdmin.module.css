@@ -313,3 +313,13 @@
     font-size: 12px;
   }
 }
+.cardLayanan {
+  /* ...css lama kamu... */
+  transition: box-shadow 0.13s, border 0.13s, background 0.16s;
+  cursor: pointer;
+}
+.cardLayanan:hover {
+  border: 1.8px solid #3450a7;
+  background: #f3f7ff;
+  box-shadow: 0 4px 14px 0 rgba(70,90,150,0.13);
+}

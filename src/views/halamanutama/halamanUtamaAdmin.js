@@ -1,10 +1,13 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/router'; // Tambah import ini
 import styles from './halamanUtamaAdmin.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
 export default function HalamanUtamaAdmin() {
+  const router = useRouter(); // Gunakan router
+
   // Dummy data
   const layananMasuk = [
     {
@@ -103,7 +106,12 @@ export default function HalamanUtamaAdmin() {
           <div className={styles.titleLayanan}>LAYANAN MASUK</div>
           <div className={styles.cardList}>
             {layananMasuk.map(item => (
-              <div key={item.id} className={styles.cardLayanan}>
+              <div
+                key={item.id}
+                className={styles.cardLayanan}
+                onClick={() => router.push(`/DetailsLaporan/detailsLaporan?id=${item.id}`)}
+                style={{ cursor: 'pointer' }} // Agar ada efek pointer
+              >
                 <Image
                   src={item.logo}
                   alt="D'MOVE"

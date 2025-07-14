@@ -1,10 +1,12 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from "next/router";
 import styles from './persetujuan.module.css';
-import { FaHome, FaClipboardList, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaArrowLeft } from 'react-icons/fa';
 
 export default function PersetujuanBooking() {
+  const router = useRouter();
   // Data dummy persetujuan booking
   const bookings = [
     {
@@ -92,10 +94,12 @@ export default function PersetujuanBooking() {
           </form>
         </div>
 
-        {/* TITLE */}
-        <div className={styles.greeting}>
-          Selamat datang, Rafief Chalvani
-          <div className={styles.adminText}>Admin</div>
+        {/* BUTTON KEMBALI DAN TITLE */}
+        <div className={styles.topRowPersetujuan}>
+          <button className={styles.backBtn} onClick={() => router.back()}>
+            <FaArrowLeft style={{ marginRight: 7, fontSize: 18 }} />
+            Kembali
+          </button>
         </div>
 
         {/* BOX PERSETUJUAN */}
