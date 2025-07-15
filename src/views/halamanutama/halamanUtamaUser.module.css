@@ -217,6 +217,12 @@
   gap: 34px 24px;
   margin-top: 10px;
 }
+/* RESPONSIVE jika <900px lebar, jadi 1 kolom */
+@media (max-width: 900px) {
+  .cardsGrid {
+    grid-template-columns: 1fr;
+  }
+}
 .card {
   background: #fafbff;
   border: 1.4px solid #dbe2f2;
