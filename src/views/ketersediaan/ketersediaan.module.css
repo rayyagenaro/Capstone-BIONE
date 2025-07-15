@@ -1,0 +1,327 @@
+.background {
+  min-height: 100vh;
+  position: relative;
+  z-index: 0;
+  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+  overflow: hidden;
+}
+.background::before {
+  content: "";
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -2;
+  background: url('/assets/bankindonesia.png') center center / cover no-repeat;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.background::after {
+  content: "";
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.sidebar {
+  width: 255px;
+  background: #fff;
+  border-right: 1px solid #ececec;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 99;
+}
+.logoSidebar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 92px;
+  padding-left: 28px;
+  padding-top: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #ececec;
+}
+.logoDone {
+  width: 110px !important;
+  height: 36px !important;
+  object-fit: contain;
+}
+.navMenu {
+  flex: 1;
+  width: 100%;
+  margin-top: 10px;
+}
+.navMenu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.navMenu li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 30px 14px 28px;
+  font-size: 17px;
+  color: #888b96;
+  cursor: pointer;
+  border-radius: 0 28px 28px 0;
+  transition: background .15s, color .15s;
+  margin-bottom: 2px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.menuIcon {
+  font-size: 20px;
+}
+.navMenu li.active,
+.navMenu li:hover {
+  background: #2f4d8e;
+  color: #fff;
+}
+.logout {
+  margin: 20px 0 28px 28px;
+  color: #ed6257;
+  font-weight: 600;
+  font-size: 17px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logoutIcon {
+  font-size: 20px;
+}
+.header {
+  position: fixed;
+  top: 0;
+  left: 255px;
+  right: 0;
+  height: 92px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 60px 0 38px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 4px 0 rgba(47,77,142,0.04);
+  z-index: 10;
+}
+.logoBIWrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.logoBI {
+  width: 170px !important;
+  height: 34px !important;
+  object-fit: contain;
+}
+.searchBar {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 36px;
+  border: 1px solid #ececec;
+  box-shadow: 0 1px 4px 0 rgba(47,77,142,0.03);
+  padding: 4px 28px;
+  min-width: 330px;
+  height: 48px;
+  gap: 14px;
+}
+.searchBar input {
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  font-size: 20px;
+  color: #363958;
+  padding: 8px 6px;
+}
+.searchBar button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.searchLabel {
+  font-size: 22px;
+  color: #2F4D8E;
+  font-weight: 600;
+  margin-left: 8px;
+}
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #2f4d8e;
+  min-height: 100vh;
+  margin-left: 255px;
+  padding-top: 92px;
+}
+.cardContainer {
+  width: 90%;
+  max-width: 1200px;
+  margin: 40px auto 0 auto;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px 0 rgba(47,77,142,0.13);
+  min-height: 72vh;
+  padding: 36px 30px 32px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.tabButtons {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 22px;
+  justify-content: flex-start;
+}
+.tabBtn {
+  background: #f3f7ff;
+  color: #2F4D8E;
+  border: 1.6px solid #bcd0f0;
+  padding: 12px 36px;
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: 16px 16px 0 0;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.14s, color 0.14s, border 0.14s;
+}
+.tabBtnActive {
+  background: #2F4D8E;
+  color: #fff;
+  border-bottom: 2.5px solid #fff;
+  z-index: 2;
+}
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 2px 8px rgba(47,77,142,0.03);
+  padding: 0;
+}
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 16px;
+  color: #2F4D8E;
+  font-weight: 600;
+}
+.dataTable th, .dataTable td {
+  padding: 12px 18px;
+  border-bottom: 1.3px solid #e0e6f2;
+  text-align: left;
+}
+.dataTable th {
+  background: #f4f7fb;
+  color: #2F4D8E;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.dataTable tbody tr:hover {
+  background: #f7faff;
+}
+.statusTersedia {
+  color: #22a455;
+  font-weight: bold;
+}
+.statusTidak {
+  color: #ed6257;
+  font-weight: bold;
+}
+@media (max-width: 900px) {
+  .mainContent {
+    margin-left: 0;
+    padding-top: 92px;
+  }
+  .sidebar {
+    display: none;
+  }
+  .header {
+    left: 0;
+    padding: 0 8px 0 8px;
+  }
+  .cardContainer {
+    width: 98vw;
+    padding: 18px 4vw 14px 4vw;
+    border-radius: 12px;
+  }
+  .tabBtn {
+    padding: 10px 18px;
+    font-size: 15px;
+  }
+}
+@media (max-width: 600px) {
+  .cardContainer {
+    padding: 7vw 2vw 8vw 2vw;
+  }
+  .tabBtn {
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+  .dataTable th, .dataTable td {
+    padding: 7px 5px;
+    font-size: 12px;
+  }
+}
+.addRow {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin: 8px 0 10px 0;
+}
+.btnCreate {
+  background: #2F4D8E;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 9px 18px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.btnCreate:hover {
+  background: #233969;
+}
+.btnAction,
+.btnActionDelete {
+  background: none;
+  border: none;
+  font-size: 18px;
+  margin-right: 5px;
+  cursor: pointer;
+  color: #2f4d8e;
+  padding: 2px 4px;
+  border-radius: 6px;
+  transition: background 0.13s;
+}
+.btnAction:hover {
+  background: #e8f0fe;
+}
+.btnActionDelete {
+  color: #e64b3b;
+}
+.btnActionDelete:hover {
+  background: #ffeaea;
+}
