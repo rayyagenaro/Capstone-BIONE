@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/router'; // Tambah ini!
+import { useRouter } from 'next/router';
 import styles from './detailsLaporan.module.css';
-import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaFilePdf, FaArrowLeft } from 'react-icons/fa';
+import {
+  FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaFilePdf, FaArrowLeft, FaUsers
+} from 'react-icons/fa';
 
 export default function DetailsLaporan() {
   const router = useRouter();
   const { id } = router.query;
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  // Data dummy seluruh booking (nanti bisa diambil dari backend/props)
+  // Data dummy booking
   const dataLaporan = [
     {
       id: 1,
@@ -18,7 +21,7 @@ export default function DetailsLaporan() {
       status: "Pending",
       nama: "Athalla Rayya Genaro",
       jenisKendaraan: "Mobil SUV dan Mobil MPV",
-      jumlahOrang: "10 Orang",
+      jumlahOrang: "10",
       jumlahKendaraan: "2",
       tujuan: "Malang",
       keterangan: "Kebutuhan Dinas Ke Malang, 1 Mobil SUV dan 1 Mobil MPV",
@@ -27,27 +30,20 @@ export default function DetailsLaporan() {
       volume: "5 Kg",
       noHp: "0812345678910"
     },
-    {
-      id: 2,
-      title: "Booking D'MOVE | Malang",
-      tglPengajuan: "9 Juli 2025 12:15:00",
-      status: "Pending",
-      nama: "Indra Aulia",
-      jenisKendaraan: "Mobil SUV",
-      jumlahOrang: "6 Orang",
-      jumlahKendaraan: "1",
-      tujuan: "Surabaya",
-      keterangan: "Rapat Dinas ke Surabaya",
-      file: { name: "Bookdmove2.pdf", url: "#" },
-      durasi: "5 Hari | 2 Juli 2025 - 7 Juli 2025",
-      volume: "2 Kg",
-      noHp: "082145678910"
-    },
-    // ...tambahkan sesuai kebutuhan
+    // Tambahkan data lain jika perlu
   ];
-
-  // Temukan detail berdasarkan id
   const detail = dataLaporan.find(item => item.id === Number(id)) || dataLaporan[0];
+
+  // Dummy Data Availability
+  const driverList = [
+    "Fikri Ramadhan", "Budi Santoso", "Dewi Lestari",
+    "Arief Nugroho", "Putra Setiawan", "Nadia Pramesti",
+    "Rina Dewanti", "Hendri Gunawan"
+  ];
+  const vehicleList = [
+    "N 1234 XX", "B 5678 YY", "D 4321 ZZ", "AB 3456 DF",
+    "L 8907 KL", "B 2121 QT", "N 9999 PI", "D 8888 KK"
+  ];
 
   return (
     <div className={styles.background}>
@@ -67,6 +63,7 @@ export default function DetailsLaporan() {
           <ul>
             <li className={styles.active}><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamaAdmin'>Beranda</Link></li>
             <li><FaClipboardList className={styles.menuIcon} /><Link href='/Persetujuan/hal-persetujuan'>Persetujuan Booking</Link></li>
+            <li><FaUsers className={styles.menuIcon} /><Link href='/Ketersediaan/hal-ketersediaan'>Ketersediaan</Link></li>
             <li><FaCog className={styles.menuIcon} /><Link href='/Pengaturan/hal-pengaturan'>Pengaturan</Link></li>
           </ul>
         </nav>
@@ -104,13 +101,16 @@ export default function DetailsLaporan() {
           </form>
         </div>
 
+        {/* TITLE + BACK */}
         <div className={styles.titleBox}>
-          <button className={styles.backBtn}><FaArrowLeft /> <Link href="/HalamanUtama/hal-utamaAdmin" passHref legacyBehavior>Kembali</Link></button>
+          <button className={styles.backBtn} onClick={() => router.back()}>
+            <FaArrowLeft style={{ marginRight: 7, fontSize: 18 }} />
+            Kembali
+          </button>
           <div className={styles.pageTitle}>DETAIL LAPORAN BOOKING</div>
         </div>
 
         <div className={styles.detailCard}>
-          {/* Judul dan status */}
           <div className={styles.topRow}>
             <div className={styles.leftTitle}>
               <div className={styles.bookingTitle}>{detail.title}</div>
@@ -122,9 +122,47 @@ export default function DetailsLaporan() {
                 </span>
               </div>
             </div>
+            <div className={styles.availWrapper}>
+              <button
+                className={styles.viewAvailabilityBtn}
+                onClick={() => setShowDropdown(v => !v)}
+              >
+                VIEW AVAILABILITY
+              </button>
+              {showDropdown && (
+                <div className={styles.availabilityDropdown}>
+                  <div className={styles.availabilityTables}>
+                    <div className={styles.availabilityCol}>
+                      <div className={styles.availabilityTitle}>Drivers</div>
+                      <table className={styles.availabilityTable}>
+                        <tbody>
+                          {driverList.map((driver, i) => (
+                            <tr key={i}>
+                              <td>{driver}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className={styles.availabilityCol}>
+                      <div className={styles.availabilityTitle}>Vehicles</div>
+                      <table className={styles.availabilityTable}>
+                        <tbody>
+                          {vehicleList.map((plat, i) => (
+                            <tr key={i}>
+                              <td>{plat}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Isi detail */}
+          {/* DETAIL ROW */}
           <div className={styles.detailRow}>
             <div className={styles.detailColLeft}>
               <div className={styles.detailLabel}>NAMA</div>
@@ -157,10 +195,10 @@ export default function DetailsLaporan() {
             </div>
           </div>
 
-          {/* Button action */}
+          {/* BUTTON ACTIONS */}
           <div className={styles.actionBtnRow}>
-            <Link href="#" className={styles.btnSetujui}>Setujui</Link>
-            <Link href="#" className={styles.btnTolak}>Tolak</Link>
+            <button className={styles.btnTolak}>Tolak</button>
+            <button className={styles.btnSetujui}>Setujui</button>
           </div>
         </div>
       </main>
