@@ -20,7 +20,7 @@
   opacity: 0.38;
   pointer-events: none;
 }
-/* TOPBAR LANGSUNG MENEMPEL KE ATAS */
+/* TOPBAR */
 .topbar {
   width: 100vw;
   height: 62px;
@@ -102,9 +102,12 @@
   margin-bottom: 6px;
 }
 .cardBankLogo {
-  width: 130px !important;
-  height: 38px !important;
+  width: 250px !important;      /* Lebar logo BI desktop */
+  max-width: 96vw;
+  height: auto !important;
   object-fit: contain;
+  display: block;
+  margin: 0 auto 8px auto;
 }
 .welcome {
   font-size: 25px;
@@ -123,9 +126,12 @@
   margin: 20px 10px 10px 1px;
 }
 .logoLarge {
-  width: 150px !important;
-  height: 90px !important;
+  width: 130px !important;     /* Logo D'ONE LEBIH KECIL dari BI */
+  max-width: 75vw;
+  height: auto !important;
   object-fit: contain;
+  display: block;
+  margin: 0 auto 16px auto;
 }
 .cardTitle {
   font-size: 18px;
@@ -191,6 +197,7 @@
   background: #25386b;
 }
 
+/* RESPONSIVE */
 @media (max-width: 700px) {
   .topbar {
     padding: 0 8px;
@@ -207,12 +214,16 @@
     top: 16px;
   }
   .cardBankLogo {
-    width: 75px !important;
-    height: 20px !important;
+    width: 120px !important;     /* Logo BI tetap LEBIH LEBAR dari D'ONE di mobile */
+    max-width: 92vw;
+    height: auto !important;
+    margin-bottom: 4px;
   }
   .logoLarge {
-    width: 80px !important;
-    height: 40px !important;
+    width: 54px !important;
+    max-width: 60vw;
+    height: auto !important;
+    margin-bottom: 8px;
   }
   .welcome {
     font-size: 17px;

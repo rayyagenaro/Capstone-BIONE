@@ -3,19 +3,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import styles from './fiturDmove.module.css';
 import { FaHome, FaClipboardList, FaHistory, FaCog, FaSignOutAlt, FaArrowLeft } from 'react-icons/fa';
-import { DateRange } from 'react-date-range';
-import { addDays, format } from 'date-fns';
+import { addDays } from 'date-fns';
 import idLocale from 'date-fns/locale/id';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const JENIS_KENDARAAN_OPTIONS = [
   "Mobil SUV", "Mobil MPV", "Truck", "Minibus", "Double Cabin", "Kaskeliling", "Edukator"
 ];
 
 export default function FiturDmove() {
-  // State field
+  // State form
   const [fields, setFields] = useState({
+    jumlahDriver: '',
     jenisKendaraan: [],
     lokasi: 'Malang',
     jumlahOrang: '6 Orang',
@@ -24,47 +24,59 @@ export default function FiturDmove() {
     noHp: '0812345678910',
     keterangan: 'Kebutuhan Dinas di Kota Malang',
     attachment: null,
-  });
-
-  // State date range
-  const [dateRange, setDateRange] = useState([{
     startDate: new Date(),
     endDate: addDays(new Date(), 2),
-    key: 'selection',
-  }]);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const calendarRef = useRef();
+  });
 
-  // Multi-select dropdown
+  // Multi-select kendaraan
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef();
 
-  // Error state
+  // Availability dropdown
+  const [showAvailability, setShowAvailability] = useState(false);
+  const availabilityRef = useRef();
+  const availabilityData = [
+    { jenis: 'Driver', jumlah: 10 },
+    { jenis: 'Vehicles', jumlah: 20 }
+  ];
+
+  // Error & success state
   const [errors, setErrors] = useState({});
-  // Pop up berhasil
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Format tanggal Indonesia
-  function formatDateIndo(d) {
-    return format(d, "dd MMMM yyyy", { locale: idLocale });
-  }
-
-  // Click outside handler
+  // Click outside close dropdowns
   useEffect(() => {
     function handleClickOutside(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
-      if (calendarRef.current && !calendarRef.current.contains(e.target)) setShowCalendar(false);
+      if (availabilityRef.current && !availabilityRef.current.contains(e.target)) setShowAvailability(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle field change
+  // Handle input change
   function handleChange(e) {
     const { name, value, files } = e.target;
-    setFields({ ...fields, [name]: files ? files[0] : value });
-    setErrors({ ...errors, [name]: undefined });
+    if (name === "attachment" && files && files[0]) {
+      const file = files[0];
+      if (
+        !(file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))
+      ) {
+        setErrors((prev) => ({
+          ...prev,
+          attachment: "Hanya file PDF yang diperbolehkan"
+        }));
+        setFields((prev) => ({ ...prev, attachment: null }));
+        return;
+      }
+      setFields((prev) => ({ ...prev, [name]: file }));
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    } else {
+      setFields({ ...fields, [name]: files ? files[0] : value });
+      setErrors({ ...errors, [name]: undefined });
+    }
   }
+
   function handleJenisKendaraanChange(option) {
     let baru;
     if (fields.jenisKendaraan.includes(option)) {
@@ -76,22 +88,29 @@ export default function FiturDmove() {
     setErrors({ ...errors, jenisKendaraan: undefined });
   }
 
+  function handleDateChange(date, field) {
+    setFields({ ...fields, [field]: date });
+    setErrors({ ...errors, [field]: undefined });
+  }
+
   // Validasi
   function validate() {
     const err = {};
+    if (!fields.jumlahDriver || Number(fields.jumlahDriver) < 1) err.jumlahDriver = 'Isi jumlah driver yang diperlukan';
     if (!fields.jenisKendaraan.length) err.jenisKendaraan = 'Pilih minimal satu kendaraan';
     if (!fields.lokasi) err.lokasi = 'Isi lokasi atau tujuan';
     if (!fields.jumlahOrang) err.jumlahOrang = 'Isi jumlah orang';
     if (!fields.jumlahKendaraan) err.jumlahKendaraan = 'Isi jumlah kendaraan';
     if (!fields.volumeBarang) err.volumeBarang = 'Isi volume barang';
-    if (!dateRange[0].startDate || !dateRange[0].endDate) err.durasi = 'Pilih durasi pemesanan';
+    if (!fields.startDate) err.startDate = 'Isi tanggal & jam mulai';
+    if (!fields.endDate) err.endDate = 'Isi tanggal & jam selesai';
+    if (fields.endDate && fields.startDate && fields.endDate < fields.startDate) err.endDate = 'End Date harus setelah Start Date';
     if (!fields.noHp) err.noHp = 'Isi nomor HP';
     if (!fields.keterangan) err.keterangan = 'Isi keterangan booking';
     if (!fields.attachment) err.attachment = 'Lampirkan file';
     return err;
   }
 
-  // Handle submit
   function handleSubmit(e) {
     e.preventDefault();
     const err = validate();
@@ -101,10 +120,9 @@ export default function FiturDmove() {
     }
   }
 
-  // Close pop up & route
   function closeSuccess() {
     setShowSuccess(false);
-    window.location.href = "/HalamanUtama/hal-utamauser"; // atau pakai router push
+    window.location.href = "/HalamanUtama/hal-utamauser";
   }
 
   return (
@@ -156,9 +174,61 @@ export default function FiturDmove() {
             <div className={styles.logoDmoveWrapper}>
               <Image src="/assets/D'MOVE.png" alt="D'MOVE" width={120} height={85} className={styles.logoDmove} priority />
             </div>
+            {/* Availability */}
+            <div className={styles.availabilitySection}>
+              <div className={styles.availabilityLabel}>Availability</div>
+              <div className={styles.availabilityDropdownWrap} ref={availabilityRef}>
+                <button
+                  type="button"
+                  className={styles.availabilityDropdownBtn}
+                  onClick={() => setShowAvailability(v => !v)}
+                >
+                  Lihat Ketersediaan
+                  <span className={styles.availChevron}>▼</span>
+                </button>
+                {showAvailability && (
+                  <div className={styles.availabilityDropdown}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Jenis</th>
+                          <th>Jumlah</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {availabilityData.map(row => (
+                          <tr key={row.jenis}>
+                            <td>{row.jenis}</td>
+                            <td>{row.jumlah}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <form className={styles.formGrid} autoComplete="off" onSubmit={handleSubmit}>
+            {/* JUMALAH DRIVER */}
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label htmlFor="jumlahDriver">Jumlah Driver</label>
+                <input
+                  id="jumlahDriver"
+                  name="jumlahDriver"
+                  type="number"
+                  min={1}
+                  value={fields.jumlahDriver}
+                  onChange={handleChange}
+                  className={errors.jumlahDriver ? styles.errorInput : ''}
+                  placeholder="Masukkan jumlah driver"
+                />
+                {errors.jumlahDriver && <span className={styles.errorMsg}>{errors.jumlahDriver}</span>}
+              </div>
+            </div>
+
             {/* Jenis Kendaraan & Lokasi */}
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
@@ -209,47 +279,52 @@ export default function FiturDmove() {
                 {errors.jumlahKendaraan && <span className={styles.errorMsg}>{errors.jumlahKendaraan}</span>}
               </div>
               <div className={styles.formGroup}>
-                <label htmlFor="volumeBarang">Volume Barang</label>
+                <label htmlFor="volumeBarang">Volume Barang (Kg)</label>
                 <input id="volumeBarang" name="volumeBarang" type="text" value={fields.volumeBarang} onChange={handleChange} className={errors.volumeBarang ? styles.errorInput : ''} />
                 {errors.volumeBarang && <span className={styles.errorMsg}>{errors.volumeBarang}</span>}
               </div>
             </div>
-            {/* Durasi Pemesanan & No HP */}
+            {/* Start Date & End Date */}
             <div className={styles.formRow}>
-              <div className={styles.formGroup} style={{ position: 'relative' }}>
-                <label htmlFor="durasi">Durasi Pemesanan</label>
-                <input
-                  id="durasi"
-                  name="durasi"
-                  type="text"
-                  className={errors.durasi ? styles.errorInput : ''}
-                  value={
-                    dateRange[0].startDate && dateRange[0].endDate
-                      ? `${formatDateIndo(dateRange[0].startDate)} - ${formatDateIndo(dateRange[0].endDate)}`
-                      : ''
-                  }
-                  placeholder="Pilih tanggal..."
-                  readOnly
-                  onClick={() => setShowCalendar(true)}
-                  style={{ background: '#fff', cursor: 'pointer' }}
+              <div className={styles.formGroup}>
+                <label htmlFor="startDate">Start Date & Time</label>
+                <DatePicker
+                  id="startDate"
+                  selected={fields.startDate}
+                  onChange={(date) => handleDateChange(date, "startDate")}
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  dateFormat="dd MMMM yyyy HH:mm"
+                  timeCaption="Jam"
+                  className={errors.startDate ? styles.errorInput : ''}
+                  placeholderText="Pilih tanggal & jam mulai"
+                  minDate={new Date()}
+                  locale={idLocale}
                 />
-                {errors.durasi && <span className={styles.errorMsg}>{errors.durasi}</span>}
-                {showCalendar && (
-                  <div ref={calendarRef} style={{ position: 'absolute', zIndex: 20, top: 50, left: 0 }}>
-                    <DateRange
-                      editableDateInputs={true}
-                      onChange={item => {
-                        setDateRange([item.selection]);
-                        setShowCalendar(false);
-                      }}
-                      moveRangeOnFirstSelection={false}
-                      ranges={dateRange}
-                      locale={idLocale}
-                      minDate={new Date()}
-                    />
-                  </div>
-                )}
+                {errors.startDate && <span className={styles.errorMsg}>{errors.startDate}</span>}
               </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="endDate">End Date & Time</label>
+                <DatePicker
+                  id="endDate"
+                  selected={fields.endDate}
+                  onChange={(date) => handleDateChange(date, "endDate")}
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  dateFormat="dd MMMM yyyy HH:mm"
+                  timeCaption="Jam"
+                  className={errors.endDate ? styles.errorInput : ''}
+                  placeholderText="Pilih tanggal & jam selesai"
+                  minDate={fields.startDate}
+                  locale={idLocale}
+                />
+                {errors.endDate && <span className={styles.errorMsg}>{errors.endDate}</span>}
+              </div>
+            </div>
+            {/* No HP */}
+            <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label htmlFor="noHp">No HP</label>
                 <input id="noHp" name="noHp" type="text" value={fields.noHp} onChange={handleChange} className={errors.noHp ? styles.errorInput : ''} />
@@ -266,8 +341,20 @@ export default function FiturDmove() {
               <div className={styles.formGroup}>
                 <label htmlFor="attachment">Attachments</label>
                 <div className={styles.inputFileWrapper}>
-                  <input id="attachment" name="attachment" type="file" className={`${styles.inputFile} ${errors.attachment ? styles.errorInput : ''}`} onChange={handleChange} />
+                  <input
+                    id="attachment"
+                    name="attachment"
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className={`${styles.inputFile} ${errors.attachment ? styles.errorInput : ''}`}
+                    onChange={handleChange}
+                  />
                   <span className={styles.fileIcon}>📎</span>
+                  {fields.attachment && !errors.attachment && (
+                    <span style={{ marginLeft: 8, fontSize: 13, color: '#444' }}>
+                      {fields.attachment.name}
+                    </span>
+                  )}
                 </div>
                 {errors.attachment && <span className={styles.errorMsg}>{errors.attachment}</span>}
               </div>

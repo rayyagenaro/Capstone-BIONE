@@ -3,33 +3,43 @@ import styles from './persetujuanPopup.module.css';
 import { FaTimes } from 'react-icons/fa';
 
 export default function PersetujuanPopup({ show, onClose, onSubmit, detail }) {
-  const [driver, setDriver] = useState('');
-  const [noHp, setNoHp] = useState('');
+  const [selectedDrivers, setSelectedDrivers] = useState([]);
   const [keterangan, setKeterangan] = useState(detail?.keterangan || '');
 
-  // Dummy list driver
+  // Dummy 10 driver + no HP
   const driverList = [
     { id: 1, name: 'Fikri Ramadhan', hp: '089876543210' },
     { id: 2, name: 'Budi Santoso', hp: '081223344556' },
-    { id: 3, name: 'Dewi Lestari', hp: '082112223334' }
+    { id: 3, name: 'Dewi Lestari', hp: '082112223334' },
+    { id: 4, name: 'Aulia Ramdani', hp: '081278856743' },
+    { id: 5, name: 'Rahmat Hidayat', hp: '087812345677' },
+    { id: 6, name: 'Sari Puspita', hp: '082166781122' },
+    { id: 7, name: 'M. Yusuf', hp: '085612347799' },
+    { id: 8, name: 'Ahmad Fauzan', hp: '081312348899' },
+    { id: 9, name: 'Sri Wahyuni', hp: '087788990011' },
+    { id: 10, name: 'Rendi Saputra', hp: '085622331144' }
   ];
 
-  // Jika show: false, jangan tampilkan apapun
   if (!show) return null;
 
-  // Jika pilih driver, otomatis isi noHp
-  function handleDriverChange(e) {
-    setDriver(e.target.value);
-    const found = driverList.find(d => d.name === e.target.value);
-    setNoHp(found ? found.hp : '');
+  function handleDriverToggle(id) {
+    setSelectedDrivers(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
   }
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!driver || !noHp) return;
-    // Lakukan aksi submit data
-    onSubmit({ driver, noHp, keterangan });
+    if (!selectedDrivers.length) return;
+    const selectedObjs = driverList.filter(d => selectedDrivers.includes(d.id));
+    const drivers = selectedObjs.map(d => d.name);
+    const noHp = selectedObjs.map(d => d.hp); // tetap dikirim ke backend, walau tidak ditampilkan
+    onSubmit({ drivers, noHp, keterangan });
   }
+
+  // Nama driver terpilih saja
+  const selectedObjs = driverList.filter(d => selectedDrivers.includes(d.id));
+  const selectedNames = selectedObjs.map(d => d.name).join(', ');
 
   return (
     <div className={styles.popupOverlay}>
@@ -40,27 +50,28 @@ export default function PersetujuanPopup({ show, onClose, onSubmit, detail }) {
         </div>
         <form className={styles.popupForm} onSubmit={handleSubmit}>
           <label className={styles.formLabel}>Driver</label>
-          <select
-            className={styles.formInput}
-            value={driver}
-            onChange={handleDriverChange}
-            required
-          >
-            <option value="">Choose Driver</option>
+          <div className={styles.multipleChoiceWrap}>
             {driverList.map(driver => (
-              <option value={driver.name} key={driver.id}>{driver.name}</option>
+              <label key={driver.id} className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  value={driver.id}
+                  checked={selectedDrivers.includes(driver.id)}
+                  onChange={() => handleDriverToggle(driver.id)}
+                  className={styles.checkboxInput}
+                />
+                <span>{driver.name}</span>
+              </label>
             ))}
-          </select>
-
-          <label className={styles.formLabel}>No HP Driver</label>
+          </div>
+          <label className={styles.formLabel}>Nama Driver Terpilih</label>
           <input
             className={styles.formInput}
             type="text"
-            value={noHp}
+            value={selectedNames}
             readOnly
-            placeholder="No HP Driver"
+            placeholder="Nama driver"
           />
-
           <label className={styles.formLabel}>Keterangan</label>
           <input
             className={styles.formInput}
@@ -69,7 +80,6 @@ export default function PersetujuanPopup({ show, onClose, onSubmit, detail }) {
             onChange={e => setKeterangan(e.target.value)}
             placeholder="Keterangan"
           />
-
           <button type="submit" className={styles.submitBtn}>Submit</button>
         </form>
       </div>

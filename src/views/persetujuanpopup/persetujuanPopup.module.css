@@ -94,3 +94,31 @@
 .submitBtn:hover {
   background: #253e70;
 }
+.multipleChoiceWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+  max-height: 185px;
+  overflow-y: auto;
+  background: #f7faff;
+  padding: 10px 12px 7px 10px;
+  border-radius: 7px;
+  border: 1.1px solid #bcd0f0;
+}
+.checkboxLabel {
+  font-size: 15px;
+  color: #233e6b;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+.checkboxInput {
+  accent-color: #2f4d8e;
+  width: 17px;
+  height: 17px;
+  margin-right: 4px;
+}

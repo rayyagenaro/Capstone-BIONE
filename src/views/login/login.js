@@ -29,8 +29,8 @@ export default function Login() {
           <Image
             src="/assets/BI_Logo.png"
             alt="Bank Indonesia"
-            width={120}
-            height={44}
+            width={260}
+            height={60}
             className={styles.cardBankLogo}
             priority
           />
