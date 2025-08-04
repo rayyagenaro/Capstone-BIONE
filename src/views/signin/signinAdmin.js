@@ -11,14 +11,27 @@ export default function SignInAdmin() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!email.trim() || !password) {
-      setError('Email dan password wajib diisi.');
-      return;
+
+    try{
+      const res = await fetch('/api/loginAdmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('admin', JSON.stringify(data.admin));
+        alert('Login berhasil!');
+        window.location.href = '/HalamanUtama/hal-utamaAdmin';
+      } else {
+        setError(data.error || 'Login gagal.');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Terjadi kesalahan saat login.');
     }
-    setError('');
-    // Simulasi login sukses:
-    window.location.href = "/HalamanUtama/hal-utamaAdmin";
   }
+
 
   return (
     <div className={styles.background}>

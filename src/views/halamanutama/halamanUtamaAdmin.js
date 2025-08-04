@@ -15,12 +15,12 @@ export default function HalamanUtamaAdmin() {
     if (adminStr) {
       try {
         const admin = JSON.parse(adminStr);
-        setNamaAdmin(admin.nama || 'Admin');
+        setNamaAdmin(admin.nama || '');
       } catch {
-        setNamaAdmin('Admin');
+        setNamaAdmin('');
       }
     } else {
-      setNamaAdmin('Admin');
+      setNamaAdmin('');
     }
   }, []);
 
