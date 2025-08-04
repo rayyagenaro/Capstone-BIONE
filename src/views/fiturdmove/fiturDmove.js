@@ -32,13 +32,14 @@ export default function FiturDmove() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef();
 
-  // Availability dropdown
+  // Availability dropdown state
   const [showAvailability, setShowAvailability] = useState(false);
   const availabilityRef = useRef();
-  const availabilityData = [
-    { jenis: 'Driver', jumlah: 10 },
-    { jenis: 'Vehicles', jumlah: 20 }
-  ];
+
+  // State untuk fetch availability
+  const [availabilityData, setAvailabilityData] = useState(null);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [errorAvailability, setErrorAvailability] = useState('');
 
   // Error & success state
   const [errors, setErrors] = useState({});
@@ -53,6 +54,24 @@ export default function FiturDmove() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Fetch data availability ketika dropdown di klik (ONCE)
+  useEffect(() => {
+    if (showAvailability && !availabilityData && !loadingAvailability) {
+      setLoadingAvailability(true);
+      setErrorAvailability('');
+      fetch('/api/availability')
+        .then(res => res.json())
+        .then(data => {
+          setAvailabilityData(data);
+          setLoadingAvailability(false);
+        })
+        .catch(() => {
+          setErrorAvailability('Gagal load data.');
+          setLoadingAvailability(false);
+        });
+    }
+  }, [showAvailability]);
 
   // Handle input change
   function handleChange(e) {
@@ -188,22 +207,38 @@ export default function FiturDmove() {
                 </button>
                 {showAvailability && (
                   <div className={styles.availabilityDropdown}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Jenis</th>
-                          <th>Jumlah</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {availabilityData.map(row => (
-                          <tr key={row.jenis}>
-                            <td>{row.jenis}</td>
-                            <td>{row.jumlah}</td>
+                    {loadingAvailability && <div>Loading...</div>}
+                    {errorAvailability && <div style={{ color: 'red', padding: 4 }}>{errorAvailability}</div>}
+                    {availabilityData && (
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Jenis</th>
+                            <th>Jumlah</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>Driver</td>
+                            <td>{availabilityData?.drivers ?? '-'}</td>
+                          </tr>
+                          {availabilityData?.vehicles && Array.isArray(availabilityData.vehicles) && availabilityData.vehicles.length > 0 ? (
+                            availabilityData.vehicles.map(v => (
+                              <tr key={v.jenis}>
+                                <td>{v.jenis}</td>
+                                <td>{v.jumlah}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={2} style={{ textAlign: 'center', color: '#aaa', fontStyle: 'italic' }}>
+                                {availabilityData ? 'Tidak ada data kendaraan' : 'Memuat...'}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 )}
               </div>

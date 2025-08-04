@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "bootstrap": "^5.3.7",
     "date-fns": "^4.1.0",
+    "mysql2": "^3.14.3",
     "next": "^14.2.30",
     "react": "18.2.0",
     "react-date-range": "^2.0.1",

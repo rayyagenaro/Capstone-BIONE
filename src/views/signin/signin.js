@@ -9,15 +9,37 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+
     if (!email.trim() || !password) {
       setError('Email dan password wajib diisi.');
       return;
     }
+
     setError('');
-    // Simulasi login sukses:
-    window.location.href = "/HalamanUtama/hal-utamauser";
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Simpan user ke localStorage
+        localStorage.setItem('user', JSON.stringify(data.user));
+        alert('Login berhasil!');
+        window.location.href = '/HalamanUtama/hal-utamauser';
+      } else {
+        setError(data.error || 'Login gagal.');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Terjadi kesalahan saat login.');
+    }
   }
 
   return (
@@ -58,10 +80,10 @@ export default function SignIn() {
             <input
               id="email"
               type="email"
-              placeholder="rafief.chalvani8@gmail.com"
+              placeholder="contoh@email.com"
               className={styles.input}
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
               required
             />
@@ -70,18 +92,18 @@ export default function SignIn() {
             <div className={styles.passwordGroup}>
               <input
                 id="password"
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 placeholder="************"
                 className={styles.input}
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 required
               />
               <span
                 className={styles.eyeIcon}
                 onClick={() => setShowPassword((s) => !s)}
-                title={showPassword ? "Sembunyikan Password" : "Lihat Password"}
+                title={showPassword ? 'Sembunyikan Password' : 'Lihat Password'}
               >
                 {showPassword ? (
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -92,14 +114,7 @@ export default function SignIn() {
                       strokeWidth="2"
                       strokeLinecap="round"
                     />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="3"
-                      stroke="#bbb"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
+                    <circle cx="12" cy="12" r="3" stroke="#bbb" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 ) : (
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -108,13 +123,7 @@ export default function SignIn() {
                       stroke="#bbb"
                       strokeWidth="2"
                     />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="3"
-                      stroke="#bbb"
-                      strokeWidth="2"
-                    />
+                    <circle cx="12" cy="12" r="3" stroke="#bbb" strokeWidth="2" />
                   </svg>
                 )}
               </span>
@@ -138,7 +147,7 @@ export default function SignIn() {
               disabled={!email.trim() || !password}
               style={{
                 opacity: !email.trim() || !password ? 0.6 : 1,
-                cursor: !email.trim() || !password ? "not-allowed" : "pointer"
+                cursor: !email.trim() || !password ? 'not-allowed' : 'pointer',
               }}
             >
               Masuk

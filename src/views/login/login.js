@@ -18,8 +18,12 @@ export default function Login() {
           priority
         />
         <div className={styles.menu}>
-          <span className={styles.signIn}><Link href="/Signin/hal-sign" passHref legacyBehavior>Sign In</Link></span>
-          <span className={styles.signUp}><Link href="/Signup/hal-sign" passHref legacyBehavior>Sign Up</Link></span>
+          <span className={styles.signIn}>
+            <Link href="/Signin/hal-sign" passHref legacyBehavior>Sign In</Link>
+          </span>
+          <span className={styles.signUp}>
+            <Link href="/SignUp/hal-signup" passHref legacyBehavior>Sign Up</Link>
+          </span>
         </div>
       </div>
 
@@ -58,8 +62,14 @@ export default function Login() {
           <span className={styles.orLine}></span>
         </div>
         <Link href="/Signin/hal-signAdmin" passHref legacyBehavior>
-          <button className={styles.buttonAdmin}>Masuk Sebagai Admin</button>
+          <button className={styles.button}>Masuk Sebagai Admin</button>
         </Link>
+        <div className={styles.signupText}>
+          Belum punya akun?{' '}
+          <Link href="/SignUp/hal-signup" passHref legacyBehavior>
+            <span className={styles.signupLink}>Daftar di sini</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

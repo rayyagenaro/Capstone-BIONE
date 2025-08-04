@@ -1,10 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './halamanUtamaUser.module.css';
 import { FaHome, FaClipboardList, FaHistory, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
 export default function HalamanUtamaUser() {
+  // Tambahkan state untuk nama user
+  const [namaUser, setNamaUser] = useState('');
+
+  useEffect(() => {
+    // Ambil user dari localStorage saat halaman load
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setNamaUser(user.name || 'User');
+      } catch {
+        setNamaUser('User');
+      }
+    } else {
+      setNamaUser('User');
+    }
+  }, []);
+
   // Daftar semua fitur (8 fitur)
   const fiturLayanan = [
     {
@@ -31,7 +49,6 @@ export default function HalamanUtamaUser() {
       desc: "Pilih makanan dan jadwal yang sesuai untuk kebutuhan rapat anda.",
       link: "#"
     },
-    // Fitur tambahan
     {
       logo: "/assets/D'TRACK.png",
       title: "Digital Tracking & Numbering Letter System",
@@ -74,10 +91,22 @@ export default function HalamanUtamaUser() {
         </div>
         <nav className={styles.navMenu}>
           <ul>
-            <li className={styles.active}><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser'>Beranda</Link></li>
-            <li><FaClipboardList className={styles.menuIcon} /><Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link></li>
-            <li><FaHistory className={styles.menuIcon} /><Link href='/RiwayatPesanan/hal-riwayatPesanan'>Riwayat Pesanan</Link></li>
-            <li><FaCog className={styles.menuIcon} /><Link href='/EditProfile/hal-editprofile'>Pengaturan</Link></li>
+            <li className={styles.active}>
+              <FaHome className={styles.menuIcon} />
+              <Link href='/HalamanUtama/hal-utamauser'>Beranda</Link>
+            </li>
+            <li>
+              <FaClipboardList className={styles.menuIcon} />
+              <Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link>
+            </li>
+            <li>
+              <FaHistory className={styles.menuIcon} />
+              <Link href='/RiwayatPesanan/hal-riwayatPesanan'>Riwayat Pesanan</Link>
+            </li>
+            <li>
+              <FaCog className={styles.menuIcon} />
+              <Link href='/EditProfile/hal-editprofile'>Pengaturan</Link>
+            </li>
           </ul>
         </nav>
         <div className={styles.logout}>
@@ -116,7 +145,9 @@ export default function HalamanUtamaUser() {
 
         {/* WELCOME BOX */}
         <div className={styles.welcomeBox}>
-          <h2 className={styles.greeting}>Selamat Datang, Rafief Chalvani</h2>
+          <h2 className={styles.greeting}>
+            Selamat Datang, {namaUser}
+          </h2>
           <div className={styles.servicesBox}>
             <div className={styles.servicesTitle}>Pilih Layanan Sesuai Kebutuhan Anda</div>
             <div className={styles.servicesDesc}>

@@ -141,19 +141,21 @@
   border-radius: 36px;
   border: 1px solid #ececec;
   box-shadow: 0 1px 4px 0 rgba(47,77,142,0.03);
-  padding: 4px 28px;
-  min-width: 330px;
-  height: 48px;
-  gap: 14px;
+  padding: 2px 16px;      /* <--- LEBIH KECIL */
+  min-width: 180px;       /* <--- LEBAR MINIMAL */
+  max-width: 240px;       /* <--- MAKSIMAL (boleh adjust) */
+  width: 100%;            /* <--- Supaya responsif */
+  height: 36px;           /* <--- LEBIH PENDEK */
+  gap: 8px;               /* <--- Lebih rapat */
 }
 .searchBar input {
   border: none;
   background: transparent;
   outline: none;
   flex: 1;
-  font-size: 20px;
+  font-size: 15px;        /* <--- Font lebih kecil */
   color: #363958;
-  padding: 8px 6px;
+  padding: 6px 3px;
 }
 .searchBar button {
   background: none;
@@ -161,6 +163,7 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  padding: 0;
 }
 .searchLabel {
   font-size: 22px;

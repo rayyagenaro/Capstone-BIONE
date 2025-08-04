@@ -7,6 +7,7 @@
   justify-content: center;
   align-items: center;
 }
+
 /* BACKGROUND IMAGE */
 .bgImage {
   position: fixed;
@@ -20,6 +21,7 @@
   opacity: 0.38;
   pointer-events: none;
 }
+
 /* TOPBAR */
 .topbar {
   width: 100vw;
@@ -50,6 +52,7 @@
   color: #ffffff;
   font-size: 16px;
   cursor: pointer;
+  font-family: inherit;
 }
 .signUp {
   color: #DA3B3B;
@@ -57,8 +60,10 @@
   font-weight: bold;
   margin-left: 4px;
   cursor: pointer;
+  font-family: inherit;
 }
-/* CARD LOGIN TENGAH & BESAR */
+
+/* CARD LOGIN */
 .card {
   background: #fff;
   max-width: 600px;
@@ -91,6 +96,49 @@
     transform: scale(1) translateY(0);
   }
 }
+/* OR Section fix */
+.orSection {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* tambahkan ini supaya tengah */
+  width: 100%;
+  margin: 20px 0 20px 0;
+}
+.orLine {
+  flex: 1;
+  height: 2px;
+  background: #2F4D8E;
+  border-radius: 2px;
+  max-width: 120px;  /* opsional supaya tidak terlalu panjang */
+}
+.orText {
+  padding: 0 18px; /* lebih besar supaya jarak lebih proporsional */
+  color: #2F4D8E;
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0.7;
+  font-family: inherit;
+}
+
+/* Signup text bawah tombol admin */
+.signupText {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 15px;
+  color: #3a4e85;
+  font-family: inherit;
+  letter-spacing: 0.1px;
+}
+.signupLink {
+  color: #2F4D8E;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.18s;
+}
+.signupLink:hover {
+  color: #DA3B3B;
+}
 
 /* HEADER CARD */
 .cardHeader {
@@ -102,7 +150,7 @@
   margin-bottom: 6px;
 }
 .cardBankLogo {
-  width: 250px !important;      /* Lebar logo BI desktop */
+  width: 250px !important;
   max-width: 96vw;
   height: auto !important;
   object-fit: contain;
@@ -126,7 +174,7 @@
   margin: 20px 10px 10px 1px;
 }
 .logoLarge {
-  width: 130px !important;     /* Logo D'ONE LEBIH KECIL dari BI */
+  width: 130px !important;
   max-width: 75vw;
   height: auto !important;
   object-fit: contain;
@@ -142,6 +190,8 @@
   letter-spacing: 0.5px;
   font-family: inherit;
 }
+
+/* BUTTON UTAMA - digunakan untuk semua tombol */
 .button {
   background: #2F4D8E;
   color: #ffffff;
@@ -149,17 +199,21 @@
   border-radius: 30px;
   padding: 13px 0;
   font-size: 18px;
+  font-family: inherit;
   width: 100%;
   max-width: 370px;
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: 22px;
   cursor: pointer;
   box-shadow: 0 4px 14px 0 rgba(70,90,150,0.18);
   transition: background 0.2s;
+  letter-spacing: 0.2px;
 }
 .button:hover {
   background: #243768;
 }
+
+/* OR Section */
 .orSection {
   display: flex;
   align-items: center;
@@ -178,23 +232,7 @@
   font-size: 15px;
   font-weight: 500;
   opacity: 0.7;
-}
-.buttonAdmin {
-  background: #2F4D8E;
-  color: #ffffff;
-  border: none;
-  border-radius: 30px;
-  padding: 13px 0;
-  font-size: 20px;
-  width: 100%;
-  max-width: 370px;
-  font-weight: 500;
-  box-shadow: 0 4px 14px 0 rgba(70,90,150,0.18);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.buttonAdmin:hover {
-  background: #25386b;
+  font-family: inherit;
 }
 
 /* RESPONSIVE */
@@ -214,7 +252,7 @@
     top: 16px;
   }
   .cardBankLogo {
-    width: 120px !important;     /* Logo BI tetap LEBIH LEBAR dari D'ONE di mobile */
+    width: 120px !important;
     max-width: 92vw;
     height: auto !important;
     margin-bottom: 4px;

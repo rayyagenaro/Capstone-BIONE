@@ -1,27 +1,21 @@
 .background {
   min-height: 100vh;
-  /* Pakai posisi relative untuk overlay */
   position: relative;
   z-index: 0;
-  /* Tetap gunakan gradient agar efeknya sama */
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
   overflow: hidden;
 }
-
-/* Tambahkan ini di akhir file css kamu */
 .background::before {
   content: "";
-  position: fixed; /* Supaya gambar tetap dan full */
+  position: fixed;
   left: 0; top: 0; right: 0; bottom: 0;
   width: 100vw;
   height: 100vh;
   z-index: -2;
   background: url('/assets/bankindonesia.png') center center / cover no-repeat;
-  opacity: 0.35;      /* Atur transparansi gambar biar tidak terlalu gelap/terang */
-  pointer-events: none; /* Supaya ga ganggu klik apapun */
+  opacity: 0.35;
+  pointer-events: none;
 }
-
-/* Supaya gradient tetap terlihat di atas gambar */
 .background::after {
   content: "";
   position: fixed;
@@ -30,7 +24,7 @@
   height: 100vh;
   z-index: -1;
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
-  opacity: 0.7;      /* atur sesuai kebutuhan supaya gabungannya halus */
+  opacity: 0.7;
   pointer-events: none;
 }
 .sidebar {
@@ -189,21 +183,61 @@
   flex-direction: column;
   align-items: stretch;
 }
+
+/* ====== RESPONSIVE ROW BARU ====== */
 .topRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;  /* was flex-start */
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
   margin-bottom: 20px;
+  width: 100%;
 }
+.logoDmoveWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1 1 160px;
+  min-width: 140px;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .availabilitySection {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  margin-left: 36px;
-  min-width: 210px;
+  min-width: 180px;
+  margin-left: 0;
   position: relative;
   z-index: 11;
 }
+.backBtn {
+  background: #f5f8ff;
+  color: #2F4D8E;
+  border: none;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 17px;
+  border-radius: 21px;
+  padding: 8px 27px 8px 17px;
+  cursor: pointer;
+  box-shadow: 0 1px 6px 0 rgba(47,77,142,0.10);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.14s, color 0.14s;
+  margin-bottom: 0;
+  outline: none;
+}
+.backBtn:hover, .backBtn:focus {
+  background: #d8e2fc;
+  color: #233969;
+}
+
+/* ================================= */
+
 .availabilityLabel {
   font-size: 15px;
   font-weight: 600;
@@ -226,6 +260,7 @@
   font-size: 16px;
   color: #2f4d8e;
   font-weight: 600;
+  font-family: inherit;   /* konsistensi font */
   cursor: pointer;
   text-align: left;
   display: flex;
@@ -281,53 +316,84 @@
 .availabilityDropdown tr:nth-child(even) {
   background: #f8fafd;
 }
+
+/* RESPONSIVE */
+@media (max-width: 1000px) {
+  .header {
+    padding: 0 16px 0 255px;
+  }
+  .formBox {
+    padding: 20px 8vw 16px 8vw;
+    margin: 26px auto;
+  }
+  .formRow, .formRow3 {
+    gap: 12px;
+  }
+}
 @media (max-width: 900px) {
+  .topRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .logoDmoveWrapper {
+    justify-content: center;
+    margin-bottom: 7px;
+    min-width: 0;
+  }
   .availabilitySection {
-    min-width: 120px;
-    margin-left: 10px;
-    font-size: 13px;
-    color: #9aa8c4;
-  }
-  .availabilityDropdownBtn {
-    font-size: 13px;
-    min-width: 95px;
-    padding: 6px 8px;
-  }
-  .availabilityDropdown {
-    min-width: 105px;
-    padding: 7px 7px 7px 8px;
+    align-items: flex-end;
+    width: 100%;
+    margin-top: 6px;
+    margin-left: 0;
+    min-width: 0;
   }
 }
-.backBtn {
-  background: #fff;
-  color: #2F4D8E;
-  border: none;
-  font-weight: 600;
-  font-size: 17px;
-  border-radius: 21px;
-  padding: 8px 27px 8px 17px;
-  cursor: pointer;
-  box-shadow: 0 1px 6px 0 rgba(47,77,142,0.10);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: background 0.14s, color 0.14s;
-  margin-bottom: 8px;
+@media (max-width: 720px) {
+  .sidebar {
+    display: none;
+  }
+  .header {
+    left: 0;
+    padding: 0 4px 0 4px;
+    height: 60px;
+  }
+  .formBox {
+    padding: 10px 2vw 12px 2vw;
+    border-radius: 10px;
+    margin: 12px 0;
+    min-width: 0;
+  }
+  .formGrid {
+    gap: 13px;
+  }
+  .formRow, .formRow3 {
+    flex-direction: column;
+    gap: 7px;
+  }
+  .logoDmoveWrapper {
+    margin-bottom: 5px;
+  }
+  .bookingBtn {
+    width: 100%;
+    padding: 11px 0;
+    font-size: 18px;
+  }
+  .buttonWrapper {
+    justify-content: center;
+    margin-top: 9px;
+  }
 }
-.backBtn:hover {
-  background: #e8f0fe;
-  color: #1c295a;
-}
-.logoDmoveWrapper {
-  flex: 1;
-  display: flex;
-  margin-left: 270px;
-  align-items: flex-start;
-}
-.logoDmove {
-  width: 120px !important;
-  height: 75px !important;
-  object-fit: contain;
+@media (max-width: 600px) {
+  .availabilitySection {
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+    text-align: right;
+  }
+  .logoDmoveWrapper {
+    min-width: 0;
+  }
 }
 .formGrid {
   width: 100%;
@@ -430,67 +496,6 @@
 .bookingBtn:hover {
   background: #233969;
 }
-
-/* Responsive */
-@media (max-width: 1000px) {
-  .header {
-    padding: 0 16px 0 255px;
-  }
-  .formBox {
-    padding: 20px 8vw 16px 8vw;
-    margin: 26px auto;
-  }
-  .formRow, .formRow3 {
-    gap: 12px;
-  }
-}
-@media (max-width: 720px) {
-  .sidebar {
-    display: none;
-  }
-  .header {
-    left: 0;
-    padding: 0 4px 0 4px;
-    height: 60px;
-  }
-  .formBox {
-    padding: 10px 2vw 12px 2vw;
-    border-radius: 10px;
-    margin: 12px 0;
-    min-width: 0;
-  }
-  .formGrid {
-    gap: 13px;
-  }
-  .formRow, .formRow3 {
-    flex-direction: column;
-    gap: 7px;
-  }
-  .logoDmoveWrapper {
-    margin-bottom: 5px;
-  }
-  .bookingBtn {
-    width: 100%;
-    padding: 11px 0;
-    font-size: 18px;
-  }
-  .buttonWrapper {
-    justify-content: center;
-    margin-top: 9px;
-  }
-}
-.errorInput {
-  border-color: #e74c3c !important;
-  background: #fff9f8 !important;
-}
-.errorMsg {
-  font-size: 13px;
-  color: #e74c3c;
-  margin-top: 1px;
-  font-weight: 500;
-  min-height: 18px;
-  line-height: 1.2;
-}
 .errorInput {
   border-color: #e74c3c !important;
   background: #fff9f8 !important;
@@ -569,16 +574,14 @@
   height: 17px;
   margin-right: 6px;
 }
-/* ...[css kamu sebelumnya]... */
 .popupOverlay {
   position: fixed;
   z-index: 1001;
   left: 0; top: 0; right: 0; bottom: 0;
-  background: rgba(20,30,50,0.09); /* transparan, BUKAN hitam solid! */
+  background: rgba(20,30,50,0.09);
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Modal overlay DI ATAS SEMUA KONTEN */
 }
 .popupBox {
   background: #fff;
