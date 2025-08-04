@@ -1,5 +1,4 @@
-// pages/api/register.js
-import { db } from '@/lib/db';
+import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(req, res) {
@@ -24,7 +23,7 @@ export default async function handler(req, res) {
     // Simpan ke database
     await db.query(
       `INSERT INTO users (name, email, phone, nip, password) VALUES (?, ?, ?, ?, ?)`,
-      [nama, email, hp, nim, hashedPassword]
+      [nama, email, hp, nim, hashedPassword] // GUNAKAN nim
     );
 
     return res.status(201).json({ message: 'Registrasi berhasil' });
