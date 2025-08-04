@@ -6,6 +6,7 @@ import { FaHome, FaClipboardList, FaHistory, FaCog, FaSignOutAlt, FaArrowLeft } 
 
 export default function EditProfile() {
   // Example initial profile (bisa diganti dengan fetch user profile)
+  const [showSuccess, setShowSuccess] = useState(false);
   const [profile, setProfile] = useState({
     email: '',
     name: '',
@@ -30,6 +31,11 @@ export default function EditProfile() {
   function handleChange(e) {
     setProfile({ ...profile, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: undefined });
+  }
+
+  function closeSuccess() {
+    setShowSuccess(false);
+    window.location.href = "/HalamanUtama/hal-utamauser"; // Redirect setelah popup ditutup
   }
 
   function validate() {
@@ -57,7 +63,7 @@ export default function EditProfile() {
       });
 
       if (response.ok) {
-        alert('Profil berhasil diperbarui');
+        setShowSuccess(true);
         // Optionally update localStorage
         const updatedUser = { ...JSON.parse(localStorage.getItem('user')), name: profile.name, phone: profile.hp };
         localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -172,6 +178,20 @@ export default function EditProfile() {
             <div className={styles.buttonWrapper}>
               <button type="submit" className={styles.saveBtn}>Update</button>
             </div>
+            {showSuccess && (
+              <div className={styles.popupOverlay}>
+                <div className={styles.popupBox}>
+                  <button className={styles.popupClose} onClick={closeSuccess} title="Tutup">&times;</button>
+                  <div className={styles.popupIcon}>
+                    <svg width="70" height="70" viewBox="0 0 70 70">
+                      <circle cx="35" cy="35" r="35" fill="#7EDC89" />
+                      <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div className={styles.popupMsg}><b>Data berhasil diupdate!</b></div>
+                </div>
+              </div>
+            )}
           </form>
         </div>
       </main>
