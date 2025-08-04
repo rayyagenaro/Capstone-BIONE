@@ -9,7 +9,7 @@ export default function SignInAdmin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!email.trim() || !password) {
       setError('Email dan password wajib diisi.');
@@ -56,7 +56,7 @@ export default function SignInAdmin() {
             <input
               id="email"
               type="email"
-              placeholder="rafief.chalvani8@gmail.com"
+              placeholder="Masukkan Email Anda"
               className={styles.input}
               value={email}
               onChange={e => { setEmail(e.target.value); if (error) setError(''); }}
@@ -68,7 +68,7 @@ export default function SignInAdmin() {
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="************"
+                placeholder="Password"
                 className={styles.input}
                 value={password}
                 onChange={e => { setPassword(e.target.value); if (error) setError(''); }}

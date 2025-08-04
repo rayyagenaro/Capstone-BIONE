@@ -18,7 +18,16 @@ export default async function handler(req, res) {
     const match = await bcrypt.compare(password, admin.password);
     if (!match) return res.status(401).json({ error: 'Password salah' });
 
-    return res.status(200).json({ message: 'Login admin berhasil' });
+    // Kirimkan kembali data admin yang relevan, jangan kirim password.
+    return res.status(200).json({
+      message: 'Login admin berhasil',
+      admin: {
+        id: admin.id,
+        nama: admin.nama,
+        email: admin.email
+      }
+    });
+
   } catch (err) {
     console.error('Login Admin Error:', err);
     return res.status(500).json({ error: 'Terjadi kesalahan server' });
