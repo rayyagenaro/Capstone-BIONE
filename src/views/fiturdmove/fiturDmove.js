@@ -189,7 +189,9 @@ export default function FiturDmove() {
         {/* D'MOVE FORM BOX */}
         <div className={styles.formBox}>
           <div className={styles.topRow}>
-            <button className={styles.backBtn}><FaArrowLeft /> <Link href="/HalamanUtama/hal-utamauser" passHref legacyBehavior>Kembali</Link></button>
+            <Link href="/HalamanUtama/hal-utamauser" passHref legacyBehavior>
+              <button className={styles.backBtn}><FaArrowLeft /> Kembali</button>
+            </Link>
             <div className={styles.logoDmoveWrapper}>
               <Image src="/assets/D'MOVE.png" alt="D'MOVE" width={120} height={85} className={styles.logoDmove} priority />
             </div>
