@@ -71,7 +71,7 @@ export default function SignIn() {
               className={styles.cardBankLogo}
               priority
             />
-            <span className={styles.welcome}>Selamat Datang</span>
+            <span className={styles.welcome}>Selamat Datang!</span>
           </div>
           <div className={styles.cardTitle}>Login</div>
 
