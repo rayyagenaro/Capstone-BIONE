@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './editProfile.module.css';
@@ -7,10 +7,23 @@ import { FaHome, FaClipboardList, FaHistory, FaCog, FaSignOutAlt, FaArrowLeft } 
 export default function EditProfile() {
   // Example initial profile (bisa diganti dengan fetch user profile)
   const [profile, setProfile] = useState({
-    email: 'rafief.chalvani08@gmail.com',
-    nama: 'Rafief Chalvani',
-    hp: '0812345678910',
+    email: '',
+    name: '',
+    hp: ''
   });
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setProfile({
+        email: user.email ?? '',
+        name: user.name ?? '',
+        hp: user.phone ?? '', // Kalau phone belum ada, fallback ke ''
+      });
+    }
+  }, []);
+
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -21,21 +34,41 @@ export default function EditProfile() {
 
   function validate() {
     const err = {};
-    if (!profile.nama) err.nama = 'Nama wajib diisi';
+    if (!profile.name) err.name = 'Nama wajib diisi';
     if (!profile.hp) err.hp = 'No Handphone wajib diisi';
     return err;
   }
 
-  function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     const err = validate();
     setErrors(err);
     setSubmitted(true);
-    if (Object.keys(err).length === 0) {
-      alert('Profile berhasil disimpan!\n' + JSON.stringify(profile, null, 2));
-      // Submit ke backend...
+    if (Object.keys(err).length > 0) return;
+
+    try {
+      const response = await fetch('/api/updateProfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profile),
+      });
+
+      if (response.ok) {
+        alert('Profil berhasil diperbarui');
+        // Optionally update localStorage
+        const updatedUser = { ...JSON.parse(localStorage.getItem('user')), name: profile.name, phone: profile.hp };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      } else {
+        alert('Gagal memperbarui profil');
+      }
+    } catch (error) {
+      console.error('Gagal mengirim data ke API:', error);
+      alert('Terjadi kesalahan saat mengupdate profil');
     }
-  }
+  };
 
   return (
     <div className={styles.background}>
@@ -113,16 +146,16 @@ export default function EditProfile() {
               />
             </div>
             <div className={styles.formGroup}>
-              <label htmlFor="nama">Nama Lengkap</label>
+              <label htmlFor="name">Nama Lengkap</label>
               <input
                 className={styles.input}
                 type="text"
-                name="nama"
-                id="nama"
-                value={profile.nama}
+                name="name"
+                id="name"
+                value={profile.name}
                 onChange={handleChange}
               />
-              {submitted && errors.nama && <span className={styles.errorMsg}>{errors.nama}</span>}
+              {submitted && errors.name && <span className={styles.errorMsg}>{errors.name}</span>}
             </div>
             <div className={styles.formGroup}>
               <label htmlFor="hp">No Handphone</label>
@@ -137,7 +170,7 @@ export default function EditProfile() {
               {submitted && errors.hp && <span className={styles.errorMsg}>{errors.hp}</span>}
             </div>
             <div className={styles.buttonWrapper}>
-              <button type="submit" className={styles.saveBtn}>Simpan</button>
+              <button type="submit" className={styles.saveBtn}>Update</button>
             </div>
           </form>
         </div>
