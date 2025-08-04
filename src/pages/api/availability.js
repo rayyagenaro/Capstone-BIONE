@@ -1,25 +1,26 @@
 // pages/api/availability.js
-import db from '@/lib/db'; // Pastikan import koneksi database MySQL-mu
+import db from "@/lib/db";
 
 export default async function handler(req, res) {
   try {
     // Hitung jumlah driver
-    const [driversRows] = await db.query('SELECT COUNT(*) as total FROM drivers');
-    const totalDrivers = driversRows[0]?.total ?? 0;
+    const [driversRows] = await db.query("SELECT COUNT(*) as total FROM drivers");
+    const totalDrivers = driversRows[0].total;
 
-    // Hitung jumlah kendaraan per jenis
-    // Misal fieldnya: jenis (ubah kalau di DB kamu beda)
-    const [vehicleRows] = await db.query(
-      'SELECT jenis, COUNT(*) as jumlah FROM vehicles GROUP BY jenis'
-    );
+    // Hitung jumlah kendaraan per tipe
+    const [vehicleTypes] = await db.query(`
+      SELECT vt.name as jenis, COUNT(v.id) as jumlah
+      FROM vehicle_types vt
+      LEFT JOIN vehicles v ON v.vehicle_type_id = vt.id
+      GROUP BY vt.id
+    `);
 
-    // Format hasil
     res.status(200).json({
       drivers: totalDrivers,
-      vehicles: vehicleRows, // [{jenis: 'SUV', jumlah: 3}, ...]
+      vehicles: vehicleTypes, // [{ jenis: "Mobil SUV", jumlah: 2 }, ...]
     });
   } catch (err) {
-    console.error('Error fetch availability:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("API Error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 }

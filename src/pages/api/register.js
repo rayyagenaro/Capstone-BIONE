@@ -1,4 +1,5 @@
-import db from '@/lib/db';
+// pages/api/register.js
+import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(req, res) {
@@ -20,15 +21,15 @@ export default async function handler(req, res) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Simpan ke database (pastikan urutan sesuai tabel)
+    // Simpan ke database
     await db.query(
-      `INSERT INTO users (name, nip, phone, email, password) VALUES (?, ?, ?, ?, ?)`,
-      [nama, nim, hp, email, hashedPassword]
+      `INSERT INTO users (name, email, phone, nip, password) VALUES (?, ?, ?, ?, ?)`,
+      [nama, email, hp, nim, hashedPassword]
     );
 
     return res.status(201).json({ message: 'Registrasi berhasil' });
   } catch (err) {
-    console.error('Register error:', err);  // lihat log ini untuk debug error berikutnya
+    console.error('Register error:', err);
     return res.status(500).json({ error: 'Terjadi kesalahan di server' });
   }
 }
