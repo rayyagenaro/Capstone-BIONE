@@ -110,10 +110,12 @@ export default function HalamanUtamaUser() {
           </ul>
         </nav>
         <div className={styles.logout}>
-          <Link href="/Login/hal-login" passHref legacyBehavior>
-            <FaSignOutAlt className={styles.logoutIcon} />
+          <Link href="/" passHref legacyBehavior>
+            <FaSignOutAlt className={styles.logoutIcon}/>
           </Link>
-          Logout
+          <Link href="/" passHref legacyBehavior>
+            Logout
+          </Link>
         </div>
       </aside>
 
