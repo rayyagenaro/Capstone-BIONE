@@ -2,41 +2,41 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './statusBooking.module.css';
-import { FaHome, FaClipboardList, FaHistory, FaCog, FaSignOutAlt, FaArrowLeft } from 'react-icons/fa';
+import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaArrowLeft } from 'react-icons/fa';
 
 const bookingsData = [
   // PROCESS
   {
     id: 1,
-    status: "Process",
+    status: "Pending",
     logo: "/assets/D'MOVE.png",
     title: "Booking D'MOVE | Malang",
     sub: "12 Hari",
-    desc: "Process"
+    desc: "Pending"
   },
   {
     id: 2,
-    status: "Process",
+    status: "Pending",
     logo: "/assets/D'REST.png",
     title: "Booking D'REST | Trawas",
     sub: "3 Hari",
-    desc: "Process"
+    desc: "Pending"
   },
   {
     id: 3,
-    status: "Process",
+    status: "Pending",
     logo: "/assets/D'MEAL.png",
     title: "Booking D'MEAL | Ruang Rapat Lt 4",
     sub: "07 July 2025 | 10.00",
-    desc: "Process"
+    desc: "Pending"
   },
   {
     id: 4,
-    status: "Process",
+    status: "Pending",
     logo: "/assets/D'CARE.png",
     title: "Booking D'CARE | dr. Rafief Chalvani S.Ked.",
     sub: "08 July 2025 | Sesi 1 (10.00 - 11.00)",
-    desc: "Process"
+    desc: "Pending"
   },
   // APPROVED
   {
@@ -59,10 +59,11 @@ const bookingsData = [
 ];
 
 export default function StatusBooking() {
+  // Add "All" as default tab
   const [tab, setTab] = useState("Process");
 
-  // Filter bookings by status
-  const bookings = bookingsData.filter(item => item.status === tab);
+  // Update filtering logic for "All"
+  const bookings = tab === "All" ? bookingsData : bookingsData.filter(item => item.status === tab);
 
   return (
     <div className={styles.background}>
@@ -82,7 +83,6 @@ export default function StatusBooking() {
           <ul>
             <li><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser'>Beranda</Link></li>
             <li className={styles.active}><FaClipboardList className={styles.menuIcon} /><Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link></li>
-            <li><FaHistory className={styles.menuIcon} /><Link href='/RiwayatPesanan/hal-riwayatPesanan'>Riwayat Pesanan</Link></li>
             <li><FaCog className={styles.menuIcon} /><Link href='/EditProfile/hal-editprofile'>Pengaturan</Link></li>
           </ul>
         </nav>
@@ -129,10 +129,16 @@ export default function StatusBooking() {
           {/* TAB FILTER */}
           <div className={styles.tabRow}>
             <button
-              className={`${styles.tabBtn} ${tab === "Process" ? styles.tabActive : ""}`}
-              onClick={() => setTab("Process")}
+              className={`${styles.tabBtn} ${tab === "All" ? styles.tabActive : ""}`}
+              onClick={() => setTab("All")}
             >
-              Process
+              All
+            </button>
+            <button
+              className={`${styles.tabBtn} ${tab === "Pending" ? styles.tabActive : ""}`}
+              onClick={() => setTab("Pending")}
+            >
+              Pending
             </button>
             <button
               className={`${styles.tabBtn} ${tab === "Approved" ? styles.tabActive : ""}`}

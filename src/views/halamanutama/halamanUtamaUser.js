@@ -100,10 +100,6 @@ export default function HalamanUtamaUser() {
               <Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link>
             </li>
             <li>
-              <FaHistory className={styles.menuIcon} />
-              <Link href='/RiwayatPesanan/hal-riwayatPesanan'>Riwayat Pesanan</Link>
-            </li>
-            <li>
               <FaCog className={styles.menuIcon} />
               <Link href='/EditProfile/hal-editprofile'>Pengaturan</Link>
             </li>
