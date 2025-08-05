@@ -219,17 +219,37 @@ export default function FiturDmove() {
                           </tr>
                         </thead>
                         <tbody>
+                          {/* TAMPILKAN DRIVER */}
                           <tr>
                             <td>Driver</td>
-                            <td>{availabilityData?.drivers ?? '-'}</td>
+                            <td>
+                              {availabilityData?.drivers === 0
+                                ? <span style={{ color: 'red', fontWeight: 'bold' }}>Tidak tersedia</span>
+                                : availabilityData?.drivers}
+                            </td>
                           </tr>
-                          {availabilityData?.vehicles && Array.isArray(availabilityData.vehicles) && availabilityData.vehicles.length > 0 ? (
-                            availabilityData.vehicles.map(v => (
-                              <tr key={v.jenis}>
-                                <td>{v.jenis}</td>
-                                <td>{v.jumlah}</td>
+                          {/* TAMPILKAN KENDARAAN */}
+                          {availabilityData?.vehicles &&
+                            Array.isArray(availabilityData.vehicles) &&
+                            availabilityData.vehicles.length > 0 ? (
+                            availabilityData.vehicles.every(v => v.jumlah === 0) ? (
+                              <tr>
+                                <td colSpan={2} style={{ textAlign: 'center', color: 'red', fontWeight: 'bold' }}>
+                                  ❗ Semua kendaraan tidak tersedia
+                                </td>
                               </tr>
-                            ))
+                            ) : (
+                              availabilityData.vehicles.map(v => (
+                                <tr key={v.jenis}>
+                                  <td>{v.jenis}</td>
+                                  <td>
+                                    {v.jumlah === 0
+                                      ? <span style={{ color: 'red', fontWeight: 'bold' }}>Tidak tersedia</span>
+                                      : v.jumlah}
+                                  </td>
+                                </tr>
+                              ))
+                            )
                           ) : (
                             <tr>
                               <td colSpan={2} style={{ textAlign: 'center', color: '#aaa', fontStyle: 'italic' }}>
