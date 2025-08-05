@@ -7,7 +7,6 @@ export default function LandingPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect ke halaman login D'ONE setelah 3 detik
     const timer = setTimeout(() => {
       router.push('/Login/hal-login')
     }, 3000)
@@ -21,13 +20,21 @@ export default function LandingPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <div className="lp-root">
-        {/* Background Image */}
+        {/* Background */}
         <div className="lp-bgimg" />
-        {/* Overlay */}
         <div className="lp-overlay" />
-        {/* Center Card */}
+        {/* Card */}
         <div className="lp-card">
-          <Image src="/assets/D'ONE.png" alt="D'ONE Logo" width={150} height={90} priority />
+          <div className="logo-landing-wrapper">
+            <Image
+              src="/assets/D'ONE.png"
+              alt="D'ONE Logo"
+              fill
+              style={{ objectFit: 'contain' }}
+              sizes="170px"
+              priority
+            />
+          </div>
           <h1>
             <span className="lp-welcome">Selamat Datang di</span><br />
             <span className="lp-brand">D&#39;ONE</span>
@@ -61,8 +68,9 @@ export default function LandingPage() {
           inset: 0;
           width: 100vw;
           height: 100vh;
-          background: rgba(235, 241, 255, 0.43);
+          background: linear-gradient(115deg,rgba(47,77,142,0.11) 0%,rgba(234,241,253,0.7) 100%);
           z-index: 1;
+          pointer-events: none;
         }
         .lp-card {
           position: relative;
@@ -75,8 +83,14 @@ export default function LandingPage() {
           animation: popin 1.1s cubic-bezier(.39,1.53,.56,.91);
           transition: box-shadow .3s;
         }
-        .lp-card img {
-          margin-bottom: 16px;
+        .logo-landing-wrapper {
+          width: 150px;
+          height: 82px;
+          margin: 0 auto 18px auto;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
         }
         .lp-welcome {
           color: #465a96;
@@ -110,6 +124,12 @@ export default function LandingPage() {
           .lp-card {
             padding: 32px 6vw 24px 6vw;
             border-radius: 14px;
+          }
+          .logo-landing-wrapper {
+            width: 90vw;
+            max-width: 180px;
+            height: 16vw;
+            max-height: 70px;
           }
           .lp-welcome { font-size: 1.14rem;}
           .lp-brand { font-size: 1.44rem;}
