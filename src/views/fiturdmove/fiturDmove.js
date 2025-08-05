@@ -23,7 +23,7 @@ export default function FiturDmove() {
     volumeBarang: '5 Kg',
     noHp: '0812345678910',
     keterangan: 'Kebutuhan Dinas di Kota Malang',
-    attachment: null,
+    attachment: '', // sekarang jadi string (link)
     startDate: new Date(),
     endDate: addDays(new Date(), 2),
   });
@@ -75,25 +75,9 @@ export default function FiturDmove() {
 
   // Handle input change
   function handleChange(e) {
-    const { name, value, files } = e.target;
-    if (name === "attachment" && files && files[0]) {
-      const file = files[0];
-      if (
-        !(file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))
-      ) {
-        setErrors((prev) => ({
-          ...prev,
-          attachment: "Hanya file PDF yang diperbolehkan"
-        }));
-        setFields((prev) => ({ ...prev, attachment: null }));
-        return;
-      }
-      setFields((prev) => ({ ...prev, [name]: file }));
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    } else {
-      setFields({ ...fields, [name]: files ? files[0] : value });
-      setErrors({ ...errors, [name]: undefined });
-    }
+    const { name, value } = e.target;
+    setFields({ ...fields, [name]: value });
+    setErrors({ ...errors, [name]: undefined });
   }
 
   function handleJenisKendaraanChange(option) {
@@ -126,7 +110,7 @@ export default function FiturDmove() {
     if (fields.endDate && fields.startDate && fields.endDate < fields.startDate) err.endDate = 'End Date harus setelah Start Date';
     if (!fields.noHp) err.noHp = 'Isi nomor HP';
     if (!fields.keterangan) err.keterangan = 'Isi keterangan booking';
-    if (!fields.attachment) err.attachment = 'Lampirkan file';
+    if (!fields.attachment) err.attachment = 'Isi link file';
     return err;
   }
 
@@ -136,6 +120,7 @@ export default function FiturDmove() {
     setErrors(err);
     if (Object.keys(err).length === 0) {
       setShowSuccess(true);
+      // Kirim data booking ke backend di sini (jika diperlukan)
     }
   }
 
@@ -219,7 +204,6 @@ export default function FiturDmove() {
                           </tr>
                         </thead>
                         <tbody>
-                          {/* TAMPILKAN DRIVER */}
                           <tr>
                             <td>Driver</td>
                             <td>
@@ -228,7 +212,6 @@ export default function FiturDmove() {
                                 : availabilityData?.drivers}
                             </td>
                           </tr>
-                          {/* TAMPILKAN KENDARAAN */}
                           {availabilityData?.vehicles &&
                             Array.isArray(availabilityData.vehicles) &&
                             availabilityData.vehicles.length > 0 ? (
@@ -395,23 +378,27 @@ export default function FiturDmove() {
                 {errors.keterangan && <span className={styles.errorMsg}>{errors.keterangan}</span>}
               </div>
               <div className={styles.formGroup}>
-                <label htmlFor="attachment">Attachments</label>
-                <div className={styles.inputFileWrapper}>
-                  <input
-                    id="attachment"
-                    name="attachment"
-                    type="file"
-                    accept=".pdf,application/pdf"
-                    className={`${styles.inputFile} ${errors.attachment ? styles.errorInput : ''}`}
-                    onChange={handleChange}
-                  />
-                  <span className={styles.fileIcon}>📎</span>
-                  {fields.attachment && !errors.attachment && (
-                    <span style={{ marginLeft: 8, fontSize: 13, color: '#444' }}>
-                      {fields.attachment.name}
-                    </span>
-                  )}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <label htmlFor="attachment" style={{ marginBottom: 0 }}>Link File</label>
+                  <a
+                    href="https://drive.google.com/drive/u/0/folders/1gB0vvv6Bbl7Kc_mX_Nsuywk6BNeyI55k"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#2667c7", fontWeight: 500, fontSize: 15, marginLeft: 15, textDecoration: "underline", cursor: "pointer" }}
+                  >
+                    Upload di Sini
+                  </a>
                 </div>
+                <input
+                  id="attachment"
+                  name="attachment"
+                  type="text"
+                  placeholder="Masukkan link file di OneDrive"
+                  value={fields.attachment}
+                  onChange={handleChange}
+                  className={errors.attachment ? styles.errorInput : ''}
+                  autoComplete="off"
+                />
                 {errors.attachment && <span className={styles.errorMsg}>{errors.attachment}</span>}
               </div>
             </div>
