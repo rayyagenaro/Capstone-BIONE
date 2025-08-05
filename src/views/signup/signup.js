@@ -6,7 +6,7 @@ import styles from './signup.module.css';
 export default function Signup() {
   const [fields, setFields] = useState({
     nama: '',
-    nim: '',
+    nip: '',
     hp: '',
     email: '',
     password: '',
@@ -21,7 +21,7 @@ export default function Signup() {
   function validate() {
     const e = {};
     if (!fields.nama) e.nama = "Nama wajib diisi";
-    if (!fields.nim) e.nim = "NIM wajib diisi";
+    if (!fields.nip) e.nip = "NIP wajib diisi";
     if (!fields.hp) e.hp = "No HP wajib diisi";
     if (!fields.email) e.email = "Email wajib diisi";
     if (!fields.password) e.password = "Kata sandi wajib diisi";
@@ -50,7 +50,7 @@ export default function Signup() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             nama: fields.nama,
-            nim: fields.nim,
+            nip: fields.nip,
             hp: fields.hp,
             email: fields.email,
             password: fields.password,
@@ -123,17 +123,17 @@ export default function Signup() {
               {submitted && errors.nama && <div className={styles.errorMsg}>{errors.nama}</div>}
             </div>
 
-            {/* NIM */}
+            {/* NIP */}
             <div className={styles.formGroup}>
               <input
                 className={styles.input}
-                name="nim"
+                name="nip"
                 type="text"
-                placeholder="NIM"
-                value={fields.nim}
+                placeholder="NIP"
+                value={fields.nip}
                 onChange={handleChange}
               />
-              {submitted && errors.nim && <div className={styles.errorMsg}>{errors.nim}</div>}
+              {submitted && errors.nip && <div className={styles.errorMsg}>{errors.nip}</div>}
             </div>
 
             {/* HP */}

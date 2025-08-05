@@ -4,9 +4,9 @@ import bcrypt from 'bcryptjs';
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { nama, nim, hp, email, password } = req.body;
+  const { nama, nip, hp, email, password } = req.body;
 
-  if (!nama || !nim || !hp || !email || !password) {
+  if (!nama || !nip || !hp || !email || !password) {
     return res.status(400).json({ error: 'Semua field wajib diisi' });
   }
 
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     // Simpan ke database
     await db.query(
       `INSERT INTO users (name, email, phone, nip, password) VALUES (?, ?, ?, ?, ?)`,
-      [nama, email, hp, nim, hashedPassword] // GUNAKAN nim
+      [nama, email, hp, nip, hashedPassword] // GUNAKAN nim
     );
 
     return res.status(201).json({ message: 'Registrasi berhasil' });
