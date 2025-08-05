@@ -16,6 +16,7 @@ export default function Signup() {
   const [showConf, setShowConf] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Validasi wajib isi & password sama
   function validate() {
@@ -60,7 +61,7 @@ export default function Signup() {
         const data = await res.json();
 
         if (res.ok) {
-          alert('Registrasi berhasil!');
+          setShowSuccess(true);
           // Redirect ke halaman login jika mau
           window.location.href = '/Signin/hal-sign';
         } else {
@@ -204,6 +205,20 @@ export default function Signup() {
               Daftar
             </button>
           </form>
+
+            {showSuccess && (
+              <div className={styles.popupOverlay}>
+                <div className={styles.popupBox}>
+                  <div className={styles.popupIcon}>
+                    <svg width="70" height="70" viewBox="0 0 70 70">
+                      <circle cx="35" cy="35" r="35" fill="#7EDC89" />
+                      <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div className={styles.popupMsg}><b>Berhasil Sign Up</b></div>
+                </div>
+              </div>
+            )}
 
           <div className={styles.registerArea}>
             Punya Akun? <Link href="/Signin/hal-sign" className={styles.registerLink}>Masuk ke Akunmu</Link>

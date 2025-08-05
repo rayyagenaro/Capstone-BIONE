@@ -15,6 +15,7 @@ export default function SignupAdmin() {
   const [showConf, setShowConf] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   function validate() {
     const e = {};
@@ -54,7 +55,7 @@ export default function SignupAdmin() {
         const data = await res.json();
 
         if (res.ok) {
-          alert('Admin berhasil terdaftar!');
+          setShowSuccess(true);
           window.location.href = '/Signin/hal-signAdmin';
         } else {
           alert(data.error || 'Terjadi kesalahan saat mendaftar admin');
@@ -161,6 +162,20 @@ export default function SignupAdmin() {
               Daftar Admin
             </button>
           </form>
+
+          {showSuccess && (
+            <div className={styles.popupOverlay}>
+              <div className={styles.popupBox}>
+                <div className={styles.popupIcon}>
+                  <svg width="70" height="70" viewBox="0 0 70 70">
+                    <circle cx="35" cy="35" r="35" fill="#7EDC89" />
+                    <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className={styles.popupMsg}><b>Berhasil Sign Up</b></div>
+              </div>
+            </div>
+          )}
 
           <div className={styles.registerArea}>
             Sudah punya akun admin?

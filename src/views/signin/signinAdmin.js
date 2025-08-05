@@ -8,6 +8,7 @@ export default function SignInAdmin() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -21,7 +22,7 @@ export default function SignInAdmin() {
       const data = await res.json();
       if (res.ok) {
         localStorage.setItem('admin', JSON.stringify(data.admin));
-        alert('Login berhasil!');
+        setShowSuccess(true);
         window.location.href = '/HalamanUtama/hal-utamaAdmin';
       } else {
         setError(data.error || 'Login gagal.');
@@ -151,6 +152,21 @@ export default function SignInAdmin() {
               Masuk
             </button>
           </form>
+
+          {showSuccess && (
+            <div className={styles.popupOverlay}>
+              <div className={styles.popupBox}>
+                <div className={styles.popupIcon}>
+                  <svg width="70" height="70" viewBox="0 0 70 70">
+                    <circle cx="35" cy="35" r="35" fill="#7EDC89" />
+                    <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className={styles.popupMsg}><b>Berhasil Sign In</b></div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
