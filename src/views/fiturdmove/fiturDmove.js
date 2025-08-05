@@ -71,7 +71,7 @@ export default function FiturDmove() {
           setLoadingAvailability(false);
         });
     }
-  }, [showAvailability]);
+  }, [availabilityData, loadingAvailability, showAvailability]);
 
   // Handle input change
   function handleChange(e) {

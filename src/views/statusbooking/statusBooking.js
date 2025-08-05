@@ -158,6 +158,7 @@ export default function StatusBooking() {
                 const statusInfo = Object.values(STATUS_CONFIG).find(s => s.id === item.status_id) || { text: 'Unknown', className: styles.statusProcess };
 
                 return (
+                  // eslint-disable-next-line react/jsx-key
                   <div className={styles.bookingCard}>
                     <Image
                       src={"/assets/D'MOVE.png"} // Gunakan logo default untuk sementara
