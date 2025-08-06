@@ -90,16 +90,6 @@ export default function Ketersediaan() {
               priority
             />
           </div>
-          <form className={styles.searchBar} onSubmit={e => e.preventDefault()}>
-            <input type="text" placeholder="Search" />
-            <button type="submit">
-              <svg width="20" height="20" fill="#2F4D8E">
-                <circle cx="9" cy="9" r="8" stroke="#2F4D8E" strokeWidth="2" fill="none" />
-                <line x1="15" y1="15" x2="19" y2="19" stroke="#2F4D8E" strokeWidth="2" />
-              </svg>
-            </button>
-            <span className={styles.searchLabel}></span>
-          </form>
         </div>
 
         {/* CARD UTAMA */}
