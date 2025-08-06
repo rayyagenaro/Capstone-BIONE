@@ -291,6 +291,11 @@
   color: #858ba1;
   margin-bottom: 4px;
 }
+.cardVehicles {
+  font-size: 0.95rem;
+  color: #6c7a8a;
+  margin-bottom: 8px;
+}
 .statusProcess {
   color: #848484;
   font-size: 15px;
@@ -312,6 +317,11 @@
   font-weight: 600;
   text-align: center;
   margin-top: 28px;
+}
+.cardVehicles {
+    color: #848484;
+  font-size: 15px;
+  font-weight: 600;
 }
 /* Responsive */
 @media (max-width: 1100px) {
