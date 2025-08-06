@@ -128,7 +128,7 @@ export default function DetailsLaporan() {
                     <button className={styles.backBtn} onClick={() => router.back()}>
                         <FaArrowLeft style={{ marginRight: 7, fontSize: 18 }} /> Kembali
                     </button>
-                    <div className={styles.pageTitle}>DETAIL LAPORAN BOOKING</div>
+                    <div className={styles.title}>DETAIL LAPORAN BOOKING</div>
                 </div>
 
                 <div className={styles.detailCard}>

@@ -103,6 +103,16 @@
 .logoutIcon {
   font-size: 20px;
 }
+.title {
+  color: #fff;
+  font-weight: 700;
+  font-size: 32px;
+  text-align: center;
+  margin-top: 50px;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+  text-shadow: 0 2px 6px rgba(60,60,120,0.07);
+}
 .header {
   position: fixed;
   top: 0;
