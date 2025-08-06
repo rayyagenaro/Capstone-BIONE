@@ -342,7 +342,6 @@ export default function FiturDmove() {
             {/* JUMLAH ORANG, KENDARAAN, VOLUME */}
             <div className={styles.formRow3}>
               <div className={styles.formGroup}><label htmlFor="jumlahOrang">Jumlah Orang</label><input id="jumlahOrang" name="jumlahOrang" type="text" value={fields.jumlahOrang} onChange={handleChange} className={errors.jumlahOrang ? styles.errorInput : ''} />{errors.jumlahOrang && <span className={styles.errorMsg}>{errors.jumlahOrang}</span>}</div>
-              <div className={styles.formGroup}><label htmlFor="jumlahKendaraan">Jumlah Kendaraan</label><input id="jumlahKendaraan" name="jumlahKendaraan" type="number" min="1" value={fields.jumlahKendaraan} onChange={handleChange} className={errors.jumlahKendaraan ? styles.errorInput : ''} />{errors.jumlahKendaraan && <span className={styles.errorMsg}>{errors.jumlahKendaraan}</span>}</div>
               <div className={styles.formGroup}><label htmlFor="volumeBarang">Volume Barang (Kg)</label><input id="volumeBarang" name="volumeBarang" type="text" value={fields.volumeBarang} onChange={handleChange} className={errors.volumeBarang ? styles.errorInput : ''} />{errors.volumeBarang && <span className={styles.errorMsg}>{errors.volumeBarang}</span>}</div>
             </div>
 
@@ -352,21 +351,12 @@ export default function FiturDmove() {
               <div className={styles.formGroup}><label htmlFor="endDate">End Date & Time</label><DatePicker id="endDate" selected={fields.endDate} onChange={(date) => handleDateChange(date, "endDate")} showTimeSelect timeFormat="HH:mm" timeIntervals={15} dateFormat="dd MMMM yyyy HH:mm" timeCaption="Jam" className={errors.endDate ? styles.errorInput : ''} minDate={fields.startDate} locale={idLocale} />{errors.endDate && <span className={styles.errorMsg}>{errors.endDate}</span>}</div>
             </div>
 
-            {/* NO HP */}
+            {/* KETERANGAN & ATTACHMENT */}
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label htmlFor="noHp">No HP</label>
                 <input id="noHp" name="noHp" type="text" value={fields.noHp} onChange={handleChange} className={errors.noHp ? styles.errorInput : ''} />
                 {errors.noHp && <span className={styles.errorMsg}>{errors.noHp}</span>}
-              </div>
-            </div>
-
-            {/* KETERANGAN & ATTACHMENT */}
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label htmlFor="keterangan">Keterangan Booking</label>
-                <textarea id="keterangan" name="keterangan" rows={2} value={fields.keterangan} onChange={handleChange} className={errors.keterangan ? styles.errorInput : ''} />
-                {errors.keterangan && <span className={styles.errorMsg}>{errors.keterangan}</span>}
               </div>
               <div className={styles.formGroup}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -393,6 +383,16 @@ export default function FiturDmove() {
                 {errors.attachment && <span className={styles.errorMsg}>{errors.attachment}</span>}
               </div>
             </div>
+
+            {/* NO HP */}
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label htmlFor="keterangan">Keterangan Booking</label>
+                <textarea id="keterangan" name="keterangan" rows={2} value={fields.keterangan} onChange={handleChange} className={errors.keterangan ? styles.errorInput : ''} />
+                {errors.keterangan && <span className={styles.errorMsg}>{errors.keterangan}</span>}
+              </div>
+            </div>
+
 
             {/* TOMBOL SUBMIT */}
             <div className={styles.buttonWrapper}>

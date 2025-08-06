@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       drivers: totalDrivers,
-      vehicles: vehicleTypes, // [{ jenis: "Mobil SUV", jumlah: 2 }, ...]
+      vehicles: vehicleTypes, 
     });
   } catch (err) {
     console.error("API Error:", err);
