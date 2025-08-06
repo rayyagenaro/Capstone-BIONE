@@ -10,6 +10,9 @@ export default function SignIn() {
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Tambahkan state untuk popup lupa password
+  const [showForgotPopup, setShowForgotPopup] = useState(false);
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -41,6 +44,16 @@ export default function SignIn() {
       console.error('Error:', err);
       setError('Terjadi kesalahan saat login.');
     }
+  }
+
+  // Fungsi untuk buka dan tutup popup lupa password
+  function handleForgotPassword(e) {
+    e.preventDefault();
+    setShowForgotPopup(true);
+  }
+
+  function handleCloseForgotPopup() {
+    setShowForgotPopup(false);
   }
 
   return (
@@ -129,7 +142,7 @@ export default function SignIn() {
                 )}
               </span>
             </div>
-
+            
             {showSuccess && (
               <div className={styles.popupOverlay}>
                 <div className={styles.popupBox}>
@@ -144,14 +157,64 @@ export default function SignIn() {
               </div>
             )}
 
+            {showForgotPopup && (
+              <div className={styles.popupOverlay} onClick={handleCloseForgotPopup}>
+                <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
+                  <div className={styles.popupIcon}>
+                    <svg width="62" height="62" viewBox="0 0 70 70" style={{ filter: "drop-shadow(0 2px 8px rgba(255,200,0,0.12))" }}>
+                      <circle cx="35" cy="35" r="30" fill="#FFE066" />
+                      <text
+                        x="35" y="44"
+                        textAnchor="middle"
+                        fontSize="34"
+                        fontFamily="'Segoe UI', Arial, sans-serif"
+                        fill="#fff"
+                        fontWeight="bold"
+                        dominantBaseline="middle"
+                        style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.09))" }}
+                      >?</text>
+                    </svg>
+                  </div>
+                  <div className={styles.popupMsg}>
+                    Jika anda melupakan password anda,<br />
+                    silahkan hubungi admin dengan nomor berikut:<br />
+                    <span style={{ color:'#184b8c', fontWeight:'bold', fontSize: '1.13em', letterSpacing: '1px', display:'block', marginTop:'4px' }}>
+                      0812812812
+                    </span>
+                  </div>
+                  <button className={styles.button}
+                    style={{
+                      marginTop: 4,
+                      fontWeight: 'bold',
+                      fontSize: '16.5px',
+                      borderRadius: '16px',
+                      width: '100%',
+                      maxWidth: 320,
+                      marginInline: 'auto',
+                      padding: '10px 0'
+                    }}
+                    onClick={handleCloseForgotPopup}
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            )}
+
+
+
             <div className={styles.optionsRow}>
               <label className={styles.checkboxLabel}>
                 <input type="checkbox" className={styles.checkbox} />
                 Ingat Saya
               </label>
-              <a className={styles.forgotLink} href="#">
+              <span
+                className={styles.forgotLink}
+                style={{ cursor: 'pointer' }}
+                onClick={handleForgotPassword}
+              >
                 Lupa Kata Sandi?
-              </a>
+              </span>
             </div>
 
             {error && <div className={styles.errorMsgBlue}>{error}</div>}
