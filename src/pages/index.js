@@ -16,7 +16,7 @@ export default function LandingPage() {
   return (
     <>
       <Head>
-        <title>B&#39;ONE - One Ordering System By KPw BI Provinsi Jawa Timur</title>
+        <title>BI&#39;ONE - One Ordering System By KPw BI Provinsi Jawa Timur</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <div className="lp-root">
@@ -37,7 +37,7 @@ export default function LandingPage() {
           </div>
           <h1>
             <span className="lp-welcome">Selamat Datang di</span><br />
-            <span className="lp-brand">B&#39;ONE</span>
+            <span className="lp-brand">BI&#39;ONE</span>
           </h1>
           <p className="lp-desc">
              One Ordering System<br />By KPw BI Provinsi Jawa Timur

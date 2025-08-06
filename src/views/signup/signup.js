@@ -82,8 +82,8 @@ export default function Signup() {
       <div className={styles.topbar}>
         <div className={styles.logoWrap}>
           <Image
-            src="/assets/D'ONE Putih.png"
-            alt="D'ONE"
+            src="/assets/Logo BI Putih.png"
+            alt="Logo BI Putih"
             width={75}
             height={40}
             className={styles.logoDone}
@@ -99,8 +99,8 @@ export default function Signup() {
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
           <Image
-            src="/assets/BI_Logo.png"
-            alt="Bank Indonesia"
+            src="/assets/Logo D'ONE.png"
+            alt="Logo D'ONE"
             width={120}
             height={34}
             className={styles.logoBI}
