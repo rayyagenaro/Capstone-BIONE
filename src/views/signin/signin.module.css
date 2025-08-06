@@ -32,12 +32,12 @@
 }
 .topbar {
   width: 100vw;
-  height: 65px;
+  height: 68px;
   background: #2F4D8E;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 38px;
   box-sizing: border-box;
   position: fixed;
   top: 0;
@@ -53,8 +53,8 @@
   justify-content: flex-start;
 }
 .logoOnly {
-  width: 68px !important;
-  height: 68px !important;
+  width: 75px !important;
+  height: 40px !important;
   object-fit: contain;
   margin-left: 2px;
 }
@@ -66,11 +66,10 @@
 .signIn {
   color: #ffffff;
   font-size: 16px;
-  font-weight: bold;
   cursor: pointer;
 }
 .signUp {
-  color: #DA3B3B;
+  color: #FFFFFF;
   font-size: 16px;
   font-weight: bold;
   margin-left: 4px;
