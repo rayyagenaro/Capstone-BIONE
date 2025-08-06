@@ -1,12 +1,12 @@
-// pages/api/booking.js
+// /pages/api/booking.js
 import db from "@/lib/db";
 
-// Helper function ini tidak berubah
 function formatInsertBookingVehicleTypes(bookingId, vehicleTypeIds) {
     if (!Array.isArray(vehicleTypeIds) || vehicleTypeIds.length === 0) {
         return { query: "", values: [] };
     }
     const placeholder = vehicleTypeIds.map(() => "(?, ?)").join(", ");
+    // Pastikan nama tabel 'booking_vehicle_types' ini sama dengan di database Anda
     const query = `INSERT INTO booking_vehicle_types (booking_id, vehicle_type_id) VALUES ${placeholder}`;
     const values = vehicleTypeIds.flatMap(typeId => [bookingId, typeId]);
     return { query, values };
@@ -16,27 +16,26 @@ export default async function handler(req, res) {
     
     // --- Method GET (Mengambil Data) ---
     if (req.method === "GET") {
-        const { userId, bookingId } = req.query; // Tambahkan bookingId
+        const { userId, bookingId, status } = req.query;
 
         try {
             let whereClause = '';
             const queryParams = [];
 
-            // --- LOGIKA BARU UNTUK MENGAMBIL DATA ---
             if (bookingId) {
-                // Prioritas: Jika ada bookingId, ambil satu data spesifik
+                // Prioritas 1: Ambil satu booking spesifik
                 whereClause = 'WHERE b.id = ?';
                 queryParams.push(bookingId);
             } else if (userId) {
-                // Jika ada userId, ambil booking untuk user tersebut
+                // Prioritas 2: Ambil semua booking milik user
                 whereClause = 'WHERE b.user_id = ?';
                 queryParams.push(userId);
-            } else {
-                // Jika tidak ada keduanya (request dari admin), ambil booking yang 'Pending'
+            } else if (status === 'pending') {
+                // Prioritas 3: Ambil hanya booking pending (untuk dashboard admin)
                 whereClause = 'WHERE b.status_id = 1';
             }
-            // --- AKHIR LOGIKA BARU ---
-
+            // Prioritas 4: Jika tanpa parameter, ambil semua booking (untuk halaman persetujuan)
+            
             const query = `
                 SELECT 
                     b.*,
@@ -55,12 +54,10 @@ export default async function handler(req, res) {
 
             const [results] = await db.query(query, queryParams);
 
-            // Jika mencari berdasarkan bookingId dan tidak ditemukan, kirim 404
             if (bookingId && results.length === 0) {
                 return res.status(404).json({ error: "Booking tidak ditemukan." });
             }
 
-            // Proses data untuk mengubah string vehicle_types menjadi array JSON
             const processedResults = results.map(booking => {
                 let parsedVehicleTypes = [];
                 try {
@@ -74,7 +71,6 @@ export default async function handler(req, res) {
                 };
             });
             
-            // Jika mencari satu booking, kembalikan objek. Jika list, kembalikan array.
             const responseData = bookingId ? processedResults[0] : processedResults;
             return res.status(200).json(responseData);
 
@@ -84,27 +80,60 @@ export default async function handler(req, res) {
         }
     }
 
-    // --- Method PUT (Update Status Booking) BARU ---
+    // --- Method PUT (Update Status Booking) ---
     if (req.method === "PUT") {
         const { bookingId, newStatusId } = req.body;
-
         if (!bookingId || !newStatusId) {
             return res.status(400).json({ error: "Booking ID dan Status baru diperlukan." });
         }
-
         try {
             const query = "UPDATE bookings SET status_id = ? WHERE id = ?";
             const [result] = await db.query(query, [newStatusId, bookingId]);
-
             if (result.affectedRows === 0) {
                 return res.status(404).json({ error: "Booking tidak ditemukan untuk diupdate." });
             }
-
             return res.status(200).json({ message: "Status booking berhasil diperbarui." });
-
         } catch (error) {
             console.error("Update Booking Status Error:", error);
             return res.status(500).json({ error: "Gagal memperbarui status booking.", details: error.message });
+        }
+    }
+    
+    // --- Method POST (Menyimpan Data Booking) ---
+    if (req.method === "POST") {
+        const {
+            user_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg,
+            start_date, end_date, phone, keterangan, vehicle_type_ids, attachment
+        } = req.body;
+
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
+            const bookingQuery = `
+                INSERT INTO bookings 
+                  (user_id, status_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg, start_date, end_date, phone, keterangan, file_link) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            const bookingValues = [
+                user_id, 1, tujuan, jumlah_orang, jumlah_kendaraan, 
+                volume_kg, start_date, end_date, phone, keterangan, attachment
+            ];
+            const [result] = await connection.query(bookingQuery, bookingValues);
+            const newBookingId = result.insertId;
+
+            const { query: typesQuery, values: typesValues } = formatInsertBookingVehicleTypes(newBookingId, vehicle_type_ids);
+            if (typesQuery) {
+                await connection.query(typesQuery, typesValues);
+            }
+            
+            await connection.commit();
+            return res.status(201).json({ id: newBookingId, message: "Booking berhasil dibuat." });
+        } catch (error) {
+            await connection.rollback();
+            console.error("Booking API Error (Transaction):", error); 
+            return res.status(500).json({ error: "Gagal menyimpan data booking.", details: error.message });
+        } finally {
+            connection.release();
         }
     }
 
