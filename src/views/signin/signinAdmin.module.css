@@ -129,6 +129,7 @@
   margin-top: 8px;
   margin-bottom: 24px;
   line-height: 1.2;
+  font-family: inherit;
 }
 .adminText {
   color: #555;
@@ -136,12 +137,14 @@
   font-weight: 400;
   margin-top: 0;
   letter-spacing: 0.2px;
+  font-family: inherit;
 }
 .form {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  font-family: inherit;
 }
 .input {
   width: 100%;
@@ -154,6 +157,7 @@
   transition: border 0.18s;
   color: #253e70;
   font-weight: 600;
+  font-family: inherit;
 }
 .input:focus {
   border: 1.7px solid #253e70;
@@ -190,6 +194,7 @@
   gap: 7px;
   user-select: none;
   font-weight: 600;
+  font-family: inherit;
 }
 .checkbox {
   accent-color: #2F4D8E;
@@ -224,6 +229,7 @@
   cursor: pointer;
   box-shadow: 0 4px 16px 0 rgba(70,90,150,0.14);
   transition: background 0.2s;
+  font-family: inherit;
 }
 .button:hover {
   background: #253e70;
@@ -234,6 +240,7 @@
   color: #878787;
   text-align: center;
   letter-spacing: 0.2px;
+  font-family: inherit;
 }
 .registerLink {
   color: #253e70;
@@ -242,6 +249,7 @@
   font-weight: bold;
   letter-spacing: 0.3px;
   font-size: 13px;
+  font-family: inherit;
 }
 .registerLink:hover {
   text-decoration: underline;
@@ -301,4 +309,73 @@
 .popupMsg {
   font-size: 18px;
   color: #2F4D8E;
+}
+/* Tambahan: untuk row header baru */
+.cardHeaderRowMod {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  margin-top: 0;
+  gap: 0;
+  min-height: 44px;
+}
+
+/* Tombol kembali (styling elegan & responsive) */
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #f3f6fa;
+  border: 1.2px solid #bcd0f0;
+  color: #2F4D8E;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 7px 15px 7px 11px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(70,90,150,0.08);
+  transition: background 0.15s, color 0.15s, border 0.15s;
+  font-family: inherit;
+}
+.backBtn:hover {
+  background: #e3eaf7;
+  color: #253e70;
+  border: 1.2px solid #253e70;
+}
+.backBtn svg {
+  margin-right: 2px;
+}
+
+/* Membuat logo tetap center pada row baru */
+.headerLogoWrapper {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  margin-right: 50px;
+  min-width: 80px;
+}
+
+/* Spacer kanan supaya logo tetap center (kosong aja, ikut lebar tombol kembali) */
+.backBtnSpacer {
+  width: 88px;  /* Sesuaikan dengan lebar .backBtn agar center */
+}
+
+/* Responsive untuk row baru */
+@media (max-width: 600px) {
+  .cardHeaderRowMod {
+    min-height: 30px;
+  }
+  .backBtn {
+    font-size: 12px;
+    padding: 6px 10px 6px 0px;
+  }
+  .headerLogoWrapper {
+    min-width: 60px;
+  }
+  .backBtnSpacer {
+    width: 20px;
+  }
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import styles from './signinAdmin.module.css';
 
 export default function SignInAdmin() {
@@ -9,11 +10,12 @@ export default function SignInAdmin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e) {
     e.preventDefault();
 
-    try{
+    try {
       const res = await fetch('/api/loginAdmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,6 +35,12 @@ export default function SignInAdmin() {
     }
   }
 
+  // Tombol kembali: kembali ke halaman sebelumnya
+  function handleBack() {
+    router.back();
+    // atau jika ingin redirect ke page tertentu:
+    // router.push('/');
+  }
 
   return (
     <div className={styles.background}>
@@ -50,16 +58,33 @@ export default function SignInAdmin() {
 
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
-          <div className={styles.cardHeaderRow}>
-            <Image
-              src="/assets/BI_Logo.png"
-              alt="Bank Indonesia"
-              width={110}
-              height={42}
-              className={styles.cardBankLogo}
-              priority
-            />
+          {/* ROW: Button kembali & Logo Bank Indonesia center */}
+          <div className={styles.cardHeaderRowMod}>
+            <button
+              className={styles.backBtn}
+              type="button"
+              onClick={handleBack}
+            >
+              {/* Ikon panah kiri SVG (bisa diganti FaArrowLeft dari react-icons juga) */}
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Kembali</span>
+            </button>
+            <div className={styles.headerLogoWrapper}>
+              <Image
+                src="/assets/BI_Logo.png"
+                alt="Bank Indonesia"
+                width={110}
+                height={42}
+                className={styles.cardBankLogo}
+                priority
+              />
+            </div>
+            {/* Spacer kanan supaya logo tetap center */}
+            <div className={styles.backBtnSpacer} />
           </div>
+
           <div className={styles.cardTitle}>Login</div>
           <div className={styles.subGreeting}>
             Selamat Datang
