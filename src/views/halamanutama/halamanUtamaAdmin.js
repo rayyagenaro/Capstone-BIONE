@@ -83,7 +83,7 @@ export default function HalamanUtamaAdmin() {
               <div
                 key={item.id}
                 className={styles.cardLayanan}
-                onClick={() => router.push(`/DetailsLaporan/detailsLaporan?id=${item.id}`)}
+                onClick={() => router.push(`/DetailsLaporan/hal-detailslaporan?id=${item.id}`)}
                 style={{ cursor: 'pointer' }}
               >
                 <Image src={item.logo} alt="D'MOVE" width={70} height={70} className={styles.cardLogo} priority />
