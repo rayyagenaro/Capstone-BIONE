@@ -21,20 +21,80 @@ const formatDate = (dateString) => {
     });
 };
 
-// --- SUB-KOMPONEN ---
+// --- POPUP LOGOUT KOMPONEN ---
+function LogoutPopup({ open, onClose, onLogout }) {
+    if (!open) return null;
+    return (
+        <div className={styles.popupOverlay}>
+            <div className={styles.popupBox}>
+                <div className={styles.popupIcon}>
+                    <svg width="54" height="54" viewBox="0 0 54 54">
+                        <defs>
+                            <radialGradient id="logograd" cx="50%" cy="50%" r="60%">
+                                <stop offset="0%" stopColor="#ffe77a" />
+                                <stop offset="100%" stopColor="#ffd23f" />
+                            </radialGradient>
+                        </defs>
+                        <circle cx="27" cy="27" r="25" fill="url(#logograd)"/>
+                        <path d="M32 27H16m0 0l5-5m-5 5l5 5" stroke="#253e70" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <rect x="29" y="19" width="9" height="16" rx="3.2" stroke="#253e70" strokeWidth="2" fill="none"/>
+                    </svg>
+                </div>
+                <div className={styles.popupMsg}>
+                    Apakah Anda yakin ingin logout?
+                </div>
+                <div className={styles.popupButtonRow}>
+                    <button
+                        type="button"
+                        className={styles.cancelButton}
+                        onClick={onClose}
+                    >
+                        Batal
+                    </button>
+                    <button
+                        type="button"
+                        className={styles.logoutButton}  // <- PENTING!
+                        onClick={onLogout}
+                    >
+                        Ya, Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
-const Sidebar = React.memo(({ onLogout }) => (
+
+// --- SUB-KOMPONEN ---
+const Sidebar = React.memo(({ onLogoutClick }) => (
     <aside className={styles.sidebar}>
-        <div className={styles.logoSidebar}><Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={110} height={36} priority /></div>
+        <div className={styles.logoSidebar}>
+            <Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={110} height={36} priority />
+        </div>
         <nav className={styles.navMenu}>
             <ul>
-                <li><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser'>Beranda</Link></li>
-                <li className={styles.active}><FaClipboardList className={styles.menuIcon} /><Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link></li>
-                <li><FaCog className={styles.menuIcon} /><Link href='/EditProfile/hal-editprofile'>Pengaturan</Link></li>
+                <li>
+                    <FaHome className={styles.menuIcon} />
+                    <Link href='/HalamanUtama/hal-utamauser'>Beranda</Link>
+                </li>
+                <li className={styles.active}>
+                    <FaClipboardList className={styles.menuIcon} />
+                    <Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link>
+                </li>
+                <li>
+                    <FaCog className={styles.menuIcon} />
+                    <Link href='/EditProfile/hal-editprofile'>Pengaturan</Link>
+                </li>
             </ul>
         </nav>
-        <div className={styles.logout} onClick={onLogout} onKeyDown={(e) => e.key === 'Enter' && onLogout()} role="button" tabIndex={0}>
-            <FaSignOutAlt className={styles.logoutIcon}/>Logout
+        <div
+            className={styles.logout}
+            onClick={onLogoutClick}
+            onKeyDown={(e) => e.key === 'Enter' && onLogoutClick()}
+            role="button"
+            tabIndex={0}
+        >
+            <FaSignOutAlt className={styles.logoutIcon} />Logout
         </div>
     </aside>
 ));
@@ -42,7 +102,6 @@ Sidebar.displayName = 'Sidebar';
 
 const BookingCard = React.memo(({ booking, onClick }) => {
     const statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
-    
     return (
         <div className={styles.bookingCard} onClick={onClick} onKeyDown={(e) => e.key === 'Enter' && onClick()} role="button" tabIndex={0}>
             <Image src={"/assets/D'MOVE.png"} alt="logo" width={60} height={60} className={styles.cardLogo} />
@@ -75,7 +134,6 @@ TabFilter.displayName = 'TabFilter';
 const BookingDetailModal = ({ booking, onClose }) => {
     if (!booking) return null;
     const statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
-
     return (
         <div className={styles.modalOverlay} onClick={onClose}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -106,7 +164,10 @@ export default function StatusBooking() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState("All");
-    const [selectedBooking, setSelectedBooking] = useState(null); // State untuk modal
+    const [selectedBooking, setSelectedBooking] = useState(null);
+
+    // --- State untuk Popup Logout
+    const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
     useEffect(() => {
         const userDataStr = localStorage.getItem('user');
@@ -136,13 +197,16 @@ export default function StatusBooking() {
         fetchBookings();
     }, []);
 
+    // Handler untuk buka/tutup popup logout
+    const openLogoutPopup = useCallback(() => setShowLogoutPopup(true), []);
+    const closeLogoutPopup = useCallback(() => setShowLogoutPopup(false), []);
     const handleLogout = useCallback(() => {
         localStorage.removeItem('user');
+        setShowLogoutPopup(false);
         router.push('/Login/hal-login');
     }, [router]);
-    
+
     const handleTabChange = useCallback((tabName) => setActiveTab(tabName), []);
-    
     const handleCardClick = useCallback((booking) => setSelectedBooking(booking), []);
     const closeModal = useCallback(() => setSelectedBooking(null), []);
 
@@ -154,35 +218,39 @@ export default function StatusBooking() {
 
     return (
         <div className={styles.background}>
-            <Sidebar onLogout={handleLogout} />
-
+            <Sidebar onLogoutClick={openLogoutPopup} />
             <main className={styles.mainContent}>
                 <div className={styles.header}>
-                    <div className={styles.logoBIWrapper}><Image src="/assets/D'ONE.png" alt="D'ONE" width={170} height={34} priority /></div>
+                    <div className={styles.logoBIWrapper}>
+                        <Image src="/assets/D'ONE.png" alt="D'ONE" width={170} height={34} priority />
+                    </div>
                     <form className={styles.searchBar}>
                         <input type="text" placeholder="Search" />
-                        <button type="submit"><svg width="20" height="20" fill="#2F4D8E"><circle cx="9" cy="9" r="8" stroke="#2F4D8E" strokeWidth="2" fill="none" /><line x1="15" y1="15" x2="19" y2="19" stroke="#2F4D8E" strokeWidth="2" /></svg></button>
+                        <button type="submit">
+                            <svg width="20" height="20" fill="#2F4D8E">
+                                <circle cx="9" cy="9" r="8" stroke="#2F4D8E" strokeWidth="2" fill="none" />
+                                <line x1="15" y1="15" x2="19" y2="19" stroke="#2F4D8E" strokeWidth="2" />
+                            </svg>
+                        </button>
                     </form>
                 </div>
-                
                 <div className={styles.bookingBox}>
                     <div className={styles.topRow}>
                         <button className={styles.backBtn} onClick={() => router.back()}><FaArrowLeft /> Kembali</button>
                         <div className={styles.title}>STATUS BOOKING</div>
                     </div>
-
                     <TabFilter currentTab={activeTab} onTabChange={handleTabChange} />
-
                     <div className={styles.listArea}>
                         {isLoading && <div className={styles.emptyState}>Memuat booking...</div>}
-                        {error && <div className={styles.emptyState} style={{color: 'red'}}>{error}</div>}
+                        {error && <div className={styles.emptyState} style={{ color: 'red' }}>{error}</div>}
                         {!isLoading && !error && filteredBookings.length === 0 && <div className={styles.emptyState}>Tidak ada booking dengan status ini.</div>}
                         {!isLoading && !error && filteredBookings.map(item => <BookingCard key={item.id} booking={item} onClick={() => handleCardClick(item)} />)}
                     </div>
                 </div>
             </main>
-
             <BookingDetailModal booking={selectedBooking} onClose={closeModal} />
+            {/* POPUP LOGOUT */}
+            <LogoutPopup open={showLogoutPopup} onClose={closeLogoutPopup} onLogout={handleLogout} />
         </div>
     );
 }

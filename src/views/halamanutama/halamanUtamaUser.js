@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/router'; // Tambahkan import ini!
 import styles from './halamanUtamaUser.module.css';
-import { FaHome, FaClipboardList, FaHistory, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaClipboardList, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
 export default function HalamanUtamaUser() {
-  // Tambahkan state untuk nama user
+  // State untuk nama user & popup logout
   const [namaUser, setNamaUser] = useState('');
+  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    // Ambil user dari localStorage saat halaman load
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -35,7 +37,7 @@ export default function HalamanUtamaUser() {
       logo: "/assets/D'REST.png",
       title: "Digital Residence Booking System",
       desc: "Pilih rumah dinas dan jadwal yang sesuai untuk kebutuhan penginapan anda.",
-      link: "#" // ganti jika sudah ada page
+      link: "#"
     },
     {
       logo: "/assets/D'CARE.png",
@@ -75,6 +77,12 @@ export default function HalamanUtamaUser() {
     }
   ];
 
+  // Fungsi logout
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/Login/hal-login');
+  };
+
   return (
     <div className={styles.background}>
       {/* SIDEBAR */}
@@ -105,15 +113,43 @@ export default function HalamanUtamaUser() {
             </li>
           </ul>
         </nav>
-        <div className={styles.logout}>
-          <Link href="/" passHref legacyBehavior>
-            <FaSignOutAlt className={styles.logoutIcon}/>
-          </Link>
-          <Link href="/" passHref legacyBehavior>
-            Logout
-          </Link>
+        {/* Tombol logout diubah jadi trigger popup */}
+        <div
+          className={styles.logout}
+          onClick={() => setShowLogoutPopup(true)}
+          style={{ cursor: 'pointer' }}
+        >
+          <FaSignOutAlt className={styles.logoutIcon} />
+          Logout
         </div>
       </aside>
+
+      {/* POPUP LOGOUT */}
+      {showLogoutPopup && (
+        <div className={styles.popupOverlay} onClick={() => setShowLogoutPopup(false)}>
+          <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
+            <div className={styles.popupIcon}>
+              <svg width="54" height="54" viewBox="0 0 54 54">
+                <defs>
+                  <radialGradient id="logograd" cx="50%" cy="50%" r="60%">
+                    <stop offset="0%" stopColor="#ffe77a" />
+                    <stop offset="100%" stopColor="#ffd23f" />
+                  </radialGradient>
+                </defs>
+                <circle cx="27" cy="27" r="25" fill="url(#logograd)"/>
+                <path d="M32 27H16m0 0l5-5m-5 5l5 5" stroke="#253e70" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <rect x="29" y="19" width="9" height="16" rx="3.2" stroke="#253e70" strokeWidth="2" fill="none"/>
+              </svg>
+            </div>
+            <div className={styles.popupMsg}>Apakah Anda yakin ingin logout?</div>
+            <div className={styles.popupButtonRow}>
+              <button className={styles.cancelButton} onClick={() => setShowLogoutPopup(false)}>Batal</button>
+              <button className={styles.logoutButton} onClick={handleLogout}>Ya, Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* MAIN CONTENT */}
       <main className={styles.mainContent}>
