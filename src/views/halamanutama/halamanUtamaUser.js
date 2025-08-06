@@ -89,10 +89,10 @@ export default function HalamanUtamaUser() {
       <aside className={styles.sidebar}>
         <div className={styles.logoSidebar}>
           <Image
-            src="/assets/BI_Logo.png"
-            alt="Bank Indonesia"
-            width={110}
-            height={36}
+            src="/assets/Logo D'ONE.png"
+            alt="D'ONE"
+            width={160}
+            height={160}
             className={styles.logoDone}
             priority
           />
@@ -156,14 +156,6 @@ export default function HalamanUtamaUser() {
         {/* HEADER/NAVBAR ATAS */}
         <div className={styles.header}>
           <div className={styles.logoBIWrapper}>
-            <Image
-              src="/assets/D'ONE.png"
-              alt="D'ONE"
-              width={170}
-              height={34}
-              className={styles.logoBI}
-              priority
-            />
           </div>
         </div>
 

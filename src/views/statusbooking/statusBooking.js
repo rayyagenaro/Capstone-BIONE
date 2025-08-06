@@ -66,39 +66,6 @@ function LogoutPopup({ open, onClose, onLogout }) {
 
 
 // --- SUB-KOMPONEN ---
-const Sidebar = React.memo(({ onLogoutClick }) => (
-    <aside className={styles.sidebar}>
-        <div className={styles.logoSidebar}>
-            <Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={110} height={36} priority />
-        </div>
-        <nav className={styles.navMenu}>
-            <ul>
-                <li>
-                    <FaHome className={styles.menuIcon} />
-                    <Link href='/HalamanUtama/hal-utamauser'>Beranda</Link>
-                </li>
-                <li className={styles.active}>
-                    <FaClipboardList className={styles.menuIcon} />
-                    <Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link>
-                </li>
-                <li>
-                    <FaCog className={styles.menuIcon} />
-                    <Link href='/EditProfile/hal-editprofile'>Pengaturan</Link>
-                </li>
-            </ul>
-        </nav>
-        <div
-            className={styles.logout}
-            onClick={onLogoutClick}
-            onKeyDown={(e) => e.key === 'Enter' && onLogoutClick()}
-            role="button"
-            tabIndex={0}
-        >
-            <FaSignOutAlt className={styles.logoutIcon} />Logout
-        </div>
-    </aside>
-));
-Sidebar.displayName = 'Sidebar';
 
 const BookingCard = React.memo(({ booking, onClick }) => {
     const statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
@@ -218,22 +185,44 @@ export default function StatusBooking() {
 
     return (
         <div className={styles.background}>
-            <Sidebar onLogoutClick={openLogoutPopup} />
-            <main className={styles.mainContent}>
-                <div className={styles.header}>
-                    <div className={styles.logoBIWrapper}>
-                        <Image src="/assets/D'ONE.png" alt="D'ONE" width={170} height={34} priority />
-                    </div>
-                    <form className={styles.searchBar}>
-                        <input type="text" placeholder="Search" />
-                        <button type="submit">
-                            <svg width="20" height="20" fill="#2F4D8E">
-                                <circle cx="9" cy="9" r="8" stroke="#2F4D8E" strokeWidth="2" fill="none" />
-                                <line x1="15" y1="15" x2="19" y2="19" stroke="#2F4D8E" strokeWidth="2" />
-                            </svg>
-                        </button>
-                    </form>
+            <aside className={styles.sidebar}>
+                <div className={styles.logoSidebar}>
+                <Image
+                    src="/assets/Logo D'ONE.png"
+                    alt="D'ONE"
+                    width={160}
+                    height={160}
+                    className={styles.logoDone}
+                    priority
+                />
                 </div>
+                <nav className={styles.navMenu}>
+                <ul>
+                    <li>
+                    <FaHome className={styles.menuIcon} />
+                    <Link href='/HalamanUtama/hal-utamauser'>Beranda</Link>
+                    </li>
+                    <li className={styles.active}>
+                    <FaClipboardList className={styles.menuIcon} />
+                    <Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link>
+                    </li>
+                    <li>
+                    <FaCog className={styles.menuIcon} />
+                    <Link href='/EditProfile/hal-editprofile'>Pengaturan</Link>
+                    </li>
+                </ul>
+                </nav>
+                {/* Tombol logout diubah jadi trigger popup */}
+                <div
+                className={styles.logout}
+                onClick={() => setShowLogoutPopup(true)}
+                style={{ cursor: 'pointer' }}
+                >
+                <FaSignOutAlt className={styles.logoutIcon} />
+                Logout
+                </div>
+            </aside>
+            <main className={styles.mainContent}>
                 <div className={styles.bookingBox}>
                     <div className={styles.topRow}>
                         <button className={styles.backBtn} onClick={() => router.back()}><FaArrowLeft /> Kembali</button>

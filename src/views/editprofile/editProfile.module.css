@@ -59,8 +59,8 @@
   border-bottom: 1px solid #ececec;
 }
 .logoDone {
-  width: 110px !important;
-  height: 36px !important;
+  width: 160px !important;
+  height: 160px !important;
   object-fit: contain;
 }
 .navMenu {
@@ -109,21 +109,6 @@
 .logoutIcon {
   font-size: 20px;
 }
-.header {
-  position: fixed;
-  top: 0;
-  left: 255px;
-  right: 0;
-  height: 92px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 60px 0 38px;
-  box-sizing: border-box;
-  box-shadow: 0 1px 4px 0 rgba(47,77,142,0.04);
-  z-index: 10;
-}
 .logoBIWrapper {
   display: flex;
   align-items: center;
@@ -142,7 +127,7 @@
   background: #2f4d8e;
   min-height: 100vh;
   margin-left: 255px;
-  padding-top: 92px;
+  /* padding-top: 92px; */
 }
 .formBox {
   background: #fff;
