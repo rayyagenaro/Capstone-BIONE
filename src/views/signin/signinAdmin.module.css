@@ -106,8 +106,8 @@
   gap: 16px;
 }
 .cardBankLogo {
-  width: 120px !important;
-  height: 44px !important;
+  width: 100px !important;
+  height: 40px !important;
   object-fit: contain;
 }
 .cardTitle {
@@ -273,8 +273,9 @@
     height: 54px;
   }
   .logoOnly {
-    width: 44px !important;
-    height: 44px !important;
+  width: 100px !important;
+  height: 40px !important;
+  object-fit: contain;
   }
   .cardBankLogo {
     width: 60px !important;

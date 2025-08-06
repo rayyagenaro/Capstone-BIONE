@@ -51,7 +51,7 @@ export default function SignInAdmin() {
           alt="D'ONE Logo Putih"
           width={100}
           height={40}
-          className={styles.cardBankLogo}
+          className={styles.logoOnly}
           priority
         />
       </div>
