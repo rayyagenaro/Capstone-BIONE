@@ -47,11 +47,11 @@ export default function SignInAdmin() {
       {/* TOPBAR */}
       <div className={styles.topbar}>
         <Image
-          src="/assets/D'ONE Putih.png"
+          src="/assets/Logo BI Putih.png"
           alt="D'ONE Logo Putih"
-          width={68}
-          height={68}
-          className={styles.logoOnly}
+          width={100}
+          height={40}
+          className={styles.cardBankLogo}
           priority
         />
       </div>
