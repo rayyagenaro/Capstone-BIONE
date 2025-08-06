@@ -61,10 +61,10 @@ export default function SignIn() {
       {/* TOPBAR */}
       <div className={styles.topbar}>
         <Image
-          src="/assets/D'ONE Putih.png"
-          alt="D'ONE Logo Putih"
-          width={68}
-          height={68}
+          src="/assets/Logo BI Putih.png"
+          alt="Logo BI Putih"
+          width={220}
+          height={110}
           className={styles.logoOnly}
           priority
         />
@@ -78,17 +78,16 @@ export default function SignIn() {
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <Image
-              src="/assets/BI_Logo.png"
-              alt="Bank Indonesia"
-              width={100}
-              height={40}
+              src="/assets/Logo D'ONE.png"
+              alt="Logo D'ONE"
+              width={220}
+              height={110}
               className={styles.cardBankLogo}
               priority
             />
             <span className={styles.welcome}>Selamat Datang!</span>
           </div>
-          <div className={styles.cardTitle}>Login</div>
-
+          
           <form className={styles.form} autoComplete="off" onSubmit={handleSubmit}>
             <label htmlFor="email" className={styles.inputLabel}>Email</label>
             <input
@@ -200,8 +199,6 @@ export default function SignIn() {
                 </div>
               </div>
             )}
-
-
 
             <div className={styles.optionsRow}>
               <label className={styles.checkboxLabel}>
