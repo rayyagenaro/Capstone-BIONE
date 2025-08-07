@@ -1,4 +1,3 @@
-// pages/Pengaturan/pengaturan.js
 import React, { useEffect, useState } from 'react';
 import styles from './pengaturan.module.css';
 import Image from 'next/image';
