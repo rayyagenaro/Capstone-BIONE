@@ -1,7 +1,7 @@
 // /pages/Persetujuan/hal-persetujuan.js
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+import SidebarAdmin from '@/components/sidebarAdmin';
 import { useRouter } from 'next/router';
 import styles from './persetujuan.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaArrowLeft, FaUsers } from 'react-icons/fa';
@@ -21,27 +21,6 @@ const calculateDuration = (start, end) => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return `${diffDays} Hari`;
 };
-
-// --- SUB-KOMPONEN ---
-const Sidebar = React.memo(() => (
-    <aside className={styles.sidebar}>
-        <div className={styles.logoSidebar}>
-            <Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={110} height={36} priority />
-        </div>
-        <nav className={styles.navMenu}>
-            <ul>
-                <li><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamaAdmin'>Beranda</Link></li>
-                <li className={styles.active}><FaClipboardList className={styles.menuIcon} /><Link href='/Persetujuan/hal-persetujuan'>Persetujuan Booking</Link></li>
-                <li><FaUsers className={styles.menuIcon} /><Link href='/Ketersediaan/hal-ketersediaan'>Ketersediaan</Link></li>
-                <li><FaCog className={styles.menuIcon} /><Link href='/Pengaturan/hal-pengaturan'>Pengaturan</Link></li>
-            </ul>
-        </nav>
-        <div className={styles.logout}>
-            <Link href="/Login/hal-login"><FaSignOutAlt className={styles.logoutIcon} /> Logout</Link>
-        </div>
-    </aside>
-));
-Sidebar.displayName = 'Sidebar';
 
 const TabFilter = React.memo(({ currentTab, onTabChange }) => (
     <div className={styles.tabRow}>
@@ -112,7 +91,7 @@ export default function PersetujuanBooking() {
 
     return (
         <div className={styles.background}>
-            <Sidebar />
+            <SidebarAdmin />
             <main className={styles.mainContent}>
                 <div className={styles.header}>
                     <div className={styles.logoBIWrapper}><Image src="/assets/D'ONE.png" alt="D'ONE" width={170} height={34} className={styles.logoBI} priority/></div>
