@@ -291,7 +291,7 @@ export default function FiturDmove() {
                 <div className={styles.formBox}>
                     <div className={styles.topRow}>
                         <Link href="/HalamanUtama/hal-utamauser"><button className={styles.backBtn}><FaArrowLeft /> Kembali</button></Link>
-                        <div className={styles.logoDmoveWrapper}><Image src="/assets/D'MOVE.png" alt="D'MOVE" width={120} height={85} priority /></div>
+                        <div className={styles.logoDmoveWrapper}><Image src="/assets/D'MOVE.svg" alt="BI.DRIVE" width={180} height={85} priority /></div>
                         <AvailabilitySection />
                     </div>
                     <form className={styles.formGrid} autoComplete="off" onSubmit={handleSubmit}>
