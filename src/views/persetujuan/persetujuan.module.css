@@ -142,7 +142,6 @@
   background: #2f4d8e;
   min-height: 100vh;
   margin-left: 255px;
-  padding-top: 92px;
 }
 .greeting {
   color: #fff;
@@ -237,6 +236,9 @@
 }
 .statusRejected {
   color: #ed6257;
+}
+.statusPending {
+  color: #338ef7;
 }
 .tabRow {
   display: flex;

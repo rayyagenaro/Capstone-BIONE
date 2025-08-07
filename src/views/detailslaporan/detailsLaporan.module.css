@@ -118,7 +118,7 @@
   top: 0;
   left: 255px;
   right: 0;
-  height: 92px;
+  /* height: 92px; */
   background: #fff;
   display: flex;
   align-items: center;
@@ -179,7 +179,7 @@
   background: #2f4d8e;
   min-height: 100vh;
   margin-left: 255px;
-  padding-top: 92px;
+  /* padding-top: 92px; */
 }
 
 .titleBox {
@@ -278,6 +278,26 @@
   gap: 4px;
   margin-left: 12px;
 }
+.statusApproved {
+  color: #22a455;
+  background: none;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+}
+.statusRejected {
+  color: #ed6257;
+  background: none;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+}
 .dotPending {
   width: 10px;
   height: 10px;
@@ -285,7 +305,20 @@
   border-radius: 50%;
   display: inline-block;
 }
-
+.dotApproved {
+  width: 10px;
+  height: 10px;
+  background: #22a455;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dotRejected {
+  width: 10px;
+  height: 10px;
+  background: #ed6257;
+  border-radius: 50%;
+  display: inline-block;
+}
 .detailRow {
   display: flex;
   flex-direction: row;

@@ -1,8 +1,9 @@
-// pages/Pengaturan/pengaturan.js
 import React, { useEffect, useState } from 'react';
 import styles from './pengaturan.module.css';
 import Image from 'next/image';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
+import Router from 'next/router';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaEdit, FaCarAlt, FaCheck, FaTimes, FaLock } from 'react-icons/fa';
 
 export default function Pengaturan() {
@@ -122,19 +123,15 @@ export default function Pengaturan() {
 
   const handleLogout = () => {
     localStorage.removeItem('admin');
-    setShowLogoutPopup(false);
-    window.location.href = '/Login/hal-login';
+    Router.push('/Login/hal-login');
   };
 
   return (
     <div className={styles.background}>
       {/* SIDEBAR */}
-      <SidebarAdmin />
-
+      <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
+        {/* Main Content */}
       <main className={styles.mainContent}>
-        <div className={styles.header}>
-          <div className={styles.logoBIWrapper}><Image src="/assets/BI-One-Blue.png" alt="BI-One" width={130} height={50} priority/></div>
-        </div>
         <div className={styles.tableBox}>
           <div className={styles.tableTopRow}>
             <div className={styles.tableTitle}>PENGATURAN USER</div>
@@ -180,6 +177,11 @@ export default function Pengaturan() {
           </div>
         </div>
       </main>
+      <LogoutPopup
+        open={showLogoutPopup}
+        onCancel={() => setShowLogoutPopup(false)}
+        onLogout={handleLogout}
+      />
 
       {/* POPUP EDIT USER */}
       {showEditPopup && (
@@ -233,19 +235,6 @@ export default function Pengaturan() {
                 <button className={styles.cancelBtn} type="button" onClick={() => setShowEditPasswordPopup(false)}><FaTimes /> Batal</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* POPUP LOGOUT */}
-      {showLogoutPopup && (
-        <div className={styles.popupOverlay} onClick={() => setShowLogoutPopup(false)}>
-          <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
-            <div className={styles.popupMsg}>Apakah Anda yakin ingin logout?</div>
-            <div className={styles.popupActionRow}>
-              <button className={styles.cancelBtn} onClick={() => setShowLogoutPopup(false)}><FaTimes /> Batal</button>
-              <button className={styles.saveBtn} onClick={handleLogout}><FaSignOutAlt /> Ya, Logout</button>
-            </div>
           </div>
         </div>
       )}

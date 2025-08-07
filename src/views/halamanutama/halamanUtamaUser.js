@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/router'; // Tambahkan import ini!
+import { useRouter } from 'next/router';
 import styles from './halamanUtamaUser.module.css';
-import { FaHome, FaClipboardList, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import SidebarUser from '@/components/SidebarUser/SidebarUser';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 
 export default function HalamanUtamaUser() {
   // State untuk nama user & popup logout
@@ -79,71 +80,9 @@ export default function HalamanUtamaUser() {
 
   return (
     <div className={styles.background}>
-      {/* SIDEBAR */}
-      <aside className={styles.sidebar}>
-        <div className={styles.logoSidebar}>
-          <Image
-            src="/assets/Logo D'ONE.png"
-            alt="D'ONE"
-            width={160}
-            height={160}
-            className={styles.logoDone}
-            priority
-          />
-        </div>
-        <nav className={styles.navMenu}>
-          <ul>
-            <li className={styles.active}>
-              <FaHome className={styles.menuIcon} />
-              <Link href='/HalamanUtama/hal-utamauser'>Beranda</Link>
-            </li>
-            <li>
-              <FaClipboardList className={styles.menuIcon} />
-              <Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link>
-            </li>
-            <li>
-              <FaCog className={styles.menuIcon} />
-              <Link href='/EditProfile/hal-editprofile'>Pengaturan</Link>
-            </li>
-          </ul>
-        </nav>
-        {/* Tombol logout diubah jadi trigger popup */}
-        <div
-          className={styles.logout}
-          onClick={() => setShowLogoutPopup(true)}
-          style={{ cursor: 'pointer' }}
-        >
-          <FaSignOutAlt className={styles.logoutIcon} />
-          Logout
-        </div>
-      </aside>
 
-      {/* POPUP LOGOUT */}
-      {showLogoutPopup && (
-        <div className={styles.popupOverlay} onClick={() => setShowLogoutPopup(false)}>
-          <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
-            <div className={styles.popupIcon}>
-              <svg width="54" height="54" viewBox="0 0 54 54">
-                <defs>
-                  <radialGradient id="logograd" cx="50%" cy="50%" r="60%">
-                    <stop offset="0%" stopColor="#ffe77a" />
-                    <stop offset="100%" stopColor="#ffd23f" />
-                  </radialGradient>
-                </defs>
-                <circle cx="27" cy="27" r="25" fill="url(#logograd)"/>
-                <path d="M32 27H16m0 0l5-5m-5 5l5 5" stroke="#253e70" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                <rect x="29" y="19" width="9" height="16" rx="3.2" stroke="#253e70" strokeWidth="2" fill="none"/>
-              </svg>
-            </div>
-            <div className={styles.popupMsg}>Apakah Anda yakin ingin logout?</div>
-            <div className={styles.popupButtonRow}>
-              <button className={styles.cancelButton} onClick={() => setShowLogoutPopup(false)}>Batal</button>
-              <button className={styles.logoutButton} onClick={handleLogout}>Ya, Logout</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* SIDEBAR USER */}
+      <SidebarUser onLogoutClick={() => setShowLogoutPopup(true)} />
 
       {/* MAIN CONTENT */}
       <main className={styles.mainContent}>
@@ -189,6 +128,10 @@ export default function HalamanUtamaUser() {
           </div>
         </div>
       </main>
+      <LogoutPopup 
+      open={showLogoutPopup} 
+      onCancel={() => setShowLogoutPopup(false)} 
+      onLogout={handleLogout} />
     </div>
   );
 }

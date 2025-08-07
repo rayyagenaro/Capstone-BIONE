@@ -3,6 +3,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './statusBooking.module.css';
+import SidebarUser from '@/components/SidebarUser/SidebarUser';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaArrowLeft, FaTimes } from 'react-icons/fa';
 
 // --- KONFIGURASI & HELPER ---
@@ -20,50 +22,6 @@ const formatDate = (dateString) => {
         day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
 };
-
-// --- POPUP LOGOUT KOMPONEN ---
-function LogoutPopup({ open, onClose, onLogout }) {
-    if (!open) return null;
-    return (
-        <div className={styles.popupOverlay}>
-            <div className={styles.popupBox}>
-                <div className={styles.popupIcon}>
-                    <svg width="54" height="54" viewBox="0 0 54 54">
-                        <defs>
-                            <radialGradient id="logograd" cx="50%" cy="50%" r="60%">
-                                <stop offset="0%" stopColor="#ffe77a" />
-                                <stop offset="100%" stopColor="#ffd23f" />
-                            </radialGradient>
-                        </defs>
-                        <circle cx="27" cy="27" r="25" fill="url(#logograd)"/>
-                        <path d="M32 27H16m0 0l5-5m-5 5l5 5" stroke="#253e70" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                        <rect x="29" y="19" width="9" height="16" rx="3.2" stroke="#253e70" strokeWidth="2" fill="none"/>
-                    </svg>
-                </div>
-                <div className={styles.popupMsg}>
-                    Apakah Anda yakin ingin logout?
-                </div>
-                <div className={styles.popupButtonRow}>
-                    <button
-                        type="button"
-                        className={styles.cancelButton}
-                        onClick={onClose}
-                    >
-                        Batal
-                    </button>
-                    <button
-                        type="button"
-                        className={styles.logoutButton}  // <- PENTING!
-                        onClick={onLogout}
-                    >
-                        Ya, Logout
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 
 // --- SUB-KOMPONEN ---
 
@@ -132,6 +90,10 @@ export default function StatusBooking() {
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState("All");
     const [selectedBooking, setSelectedBooking] = useState(null);
+    const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/Login/hal-login');
+    }
 
     // --- State untuk Popup Logout
     const [showLogoutPopup, setShowLogoutPopup] = useState(false);
@@ -164,14 +126,6 @@ export default function StatusBooking() {
         fetchBookings();
     }, []);
 
-    // Handler untuk buka/tutup popup logout
-    const openLogoutPopup = useCallback(() => setShowLogoutPopup(true), []);
-    const closeLogoutPopup = useCallback(() => setShowLogoutPopup(false), []);
-    const handleLogout = useCallback(() => {
-        localStorage.removeItem('user');
-        setShowLogoutPopup(false);
-        router.push('/Login/hal-login');
-    }, [router]);
 
     const handleTabChange = useCallback((tabName) => setActiveTab(tabName), []);
     const handleCardClick = useCallback((booking) => setSelectedBooking(booking), []);
@@ -185,43 +139,7 @@ export default function StatusBooking() {
 
     return (
         <div className={styles.background}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logoSidebar}>
-                <Image
-                    src="/assets/Logo D'ONE.png"
-                    alt="D'ONE"
-                    width={160}
-                    height={160}
-                    className={styles.logoDone}
-                    priority
-                />
-                </div>
-                <nav className={styles.navMenu}>
-                <ul>
-                    <li>
-                    <FaHome className={styles.menuIcon} />
-                    <Link href='/HalamanUtama/hal-utamauser'>Beranda</Link>
-                    </li>
-                    <li className={styles.active}>
-                    <FaClipboardList className={styles.menuIcon} />
-                    <Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link>
-                    </li>
-                    <li>
-                    <FaCog className={styles.menuIcon} />
-                    <Link href='/EditProfile/hal-editprofile'>Pengaturan</Link>
-                    </li>
-                </ul>
-                </nav>
-                {/* Tombol logout diubah jadi trigger popup */}
-                <div
-                className={styles.logout}
-                onClick={() => setShowLogoutPopup(true)}
-                style={{ cursor: 'pointer' }}
-                >
-                <FaSignOutAlt className={styles.logoutIcon} />
-                Logout
-                </div>
-            </aside>
+            <SidebarUser onLogoutClick={() => setShowLogoutPopup(true)} />
             <main className={styles.mainContent}>
                 <div className={styles.bookingBox}>
                     <div className={styles.topRow}>
@@ -239,7 +157,11 @@ export default function StatusBooking() {
             </main>
             <BookingDetailModal booking={selectedBooking} onClose={closeModal} />
             {/* POPUP LOGOUT */}
-            <LogoutPopup open={showLogoutPopup} onClose={closeLogoutPopup} onLogout={handleLogout} />
+            <LogoutPopup 
+            open={showLogoutPopup} 
+            onCancel={() => setShowLogoutPopup(false)}
+            onLogout={handleLogout} 
+            /> 
         </div>
     );
 }
