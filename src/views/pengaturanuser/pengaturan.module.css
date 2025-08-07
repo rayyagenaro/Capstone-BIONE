@@ -21,11 +21,12 @@
 .logoSidebar {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   height: 92px;
   padding-left: 28px;
-  padding-top: 14px;
+  padding-top: 18px;
+  padding-bottom: 14px;
   border-bottom: 1px solid #ececec;
-  gap: 12px;
 }
 .navMenu {
   flex: 1;
@@ -94,8 +95,8 @@
   gap: 16px;
 }
 .logoBI {
-  width: 110px !important;
-  height: 36px !important;
+  width: 170px !important;
+  height: 34px !important;
   object-fit: contain;
 }
 .mainContent {

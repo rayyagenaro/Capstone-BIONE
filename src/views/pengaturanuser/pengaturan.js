@@ -138,7 +138,7 @@ export default function Pengaturan() {
       {/* SIDEBAR */}
       <aside className={styles.sidebar}>
         <div className={styles.logoSidebar}>
-          <Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={95} height={31} priority />
+          <Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={200} height={70} priority />
         </div>
         <nav className={styles.navMenu}>
           <ul>
@@ -160,7 +160,7 @@ export default function Pengaturan() {
 
       <main className={styles.mainContent}>
         <div className={styles.header}>
-          <Image src="/assets/D'ONE.png" alt="D'ONE" width={120} height={30} priority />
+          <div className={styles.logoBIWrapper}><Image src="/assets/BI-One-Blue.png" alt="BI-One" width={130} height={50} priority/></div>
         </div>
         <div className={styles.tableBox}>
           <div className={styles.tableTopRow}>
