@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import styles from './halamanUtamaAdmin.module.css'; // pastikan path CSS module benar
-import SidebarAdmin from '@/components/sidebarAdmin';
+import SidebarAdmin from '@/components/SidebarAdmin';
 
 const calculateDuration = (start, end) => {
     if (!start || !end) return 'N/A';

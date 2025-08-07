@@ -39,11 +39,12 @@ function Modal({ editMode, modalType, formData, handleChange, handleCloseModal, 
   return (
     <div className={styles.modalBackdrop}>
       <div className={styles.modalContent}>
-        <h3 style={{ marginBottom: 20 }}>
+        <h3 className={styles.modalTitle}>
           {editMode
             ? `Edit ${modalType === 'drivers' ? 'Driver' : 'Vehicle'}`
             : `Tambah ${modalType === 'drivers' ? 'Driver' : 'Vehicle'}`}
         </h3>
+
         <form onSubmit={handleSubmit} autoComplete="off">
           {modalType === 'drivers' ? (
             <>

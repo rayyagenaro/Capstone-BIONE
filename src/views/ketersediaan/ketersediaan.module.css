@@ -386,3 +386,10 @@
   }
   .modalContent { padding: 18px 8px 14px 8px; }
 }
+.modalTitle {
+  color: #2F4D8E;    /* Atau warna biru tua lain yang sesuai brand kamu */
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  letter-spacing: 0.04em;
+}
