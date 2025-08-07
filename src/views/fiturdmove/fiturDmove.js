@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, use } from 'react';
+import React, { useState, useRef, useEffect, useCallback} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -67,8 +67,21 @@ const SuccessPopup = ({ onClose }) => (
 
 // --- KOMPONEN UTAMA ---
 export default function FiturDmove() {
+    const [availabilityData, setAvailabilityData] = useState(null);
+    useEffect(() => {
+    fetch('/api/availability')
+        .then(res => res.ok ? res.json() : Promise.reject('Gagal ambil data availability'))
+        .then(setAvailabilityData)
+        .catch(err => console.error('Error availability:', err));
+    }, []);
     const router = useRouter();
     const { isOpen: isVehicleDropdownOpen, setIsOpen: setVehicleDropdownOpen, ref: vehicleDropdownRef } = useDropdown();
+
+    const getMaxQuantity = (vehicleName) => {
+    if (!availabilityData || !availabilityData.vehicles) return Infinity;
+    const vehicle = availabilityData.vehicles.find(v => v.jenis === vehicleName);
+    return vehicle ? vehicle.jumlah : Infinity;
+    };
 
     const [fields, setFields] = useState({
         jumlahDriver: '',
@@ -150,6 +163,25 @@ export default function FiturDmove() {
         if (!fields.startDate) err.startDate = 'Tanggal mulai wajib diisi';
         if (!fields.endDate) err.endDate = 'Tanggal selesai wajib diisi';
         if (fields.endDate <= fields.startDate) err.endDate = 'Tanggal selesai harus setelah tanggal mulai';
+
+        // Validasi jumlah driver
+        const maxDrivers = availabilityData?.drivers ?? Infinity;
+        const jumlahDriver = parseInt(fields.jumlahDriver, 10);
+        if (!jumlahDriver || jumlahDriver <= 0) {
+            err.jumlahDriver = 'Jumlah driver wajib diisi';
+        } else if (jumlahDriver > maxDrivers) {
+            err.jumlahDriver = `Jumlah driver melebihi batas. Maksimal ${maxDrivers} tersedia.`;
+        }
+
+        // Validasi jenis kendaraan tidak melebihi jumlah yang tersedia
+        if (availabilityData?.vehicles?.length > 0) {
+            fields.jenisKendaraan.forEach(vehicle => {
+                const avail = availabilityData.vehicles.find(v => v.jenis === vehicle.name);
+                if (avail && vehicle.quantity > avail.jumlah) {
+                    err.jenisKendaraan = `Jumlah ${vehicle.name} melebihi stok (maks ${avail.jumlah})`;
+                }
+            });
+        }
         return err;
     };
 
@@ -296,7 +328,20 @@ export default function FiturDmove() {
                     </div>
                     <form className={styles.formGrid} autoComplete="off" onSubmit={handleSubmit}>
                         <div className={styles.formRow}>
-                          <div className={styles.formGroup}><label htmlFor="jumlahDriver">Jumlah Driver</label><input id="jumlahDriver" name="jumlahDriver" type="number" min="1" value={fields.jumlahDriver} onChange={handleChange} className={errors.jumlahDriver ? styles.errorInput : ''} placeholder="Masukkan jumlah driver" />{errors.jumlahDriver && <span className={styles.errorMsg}>{errors.jumlahDriver}</span>}</div>
+                          <div className={styles.formGroup}><label htmlFor="jumlahDriver">Jumlah Driver</label>
+                            <input
+                            id="jumlahDriver"
+                            name="jumlahDriver"
+                            type="number"
+                            min="1"
+                            max={availabilityData?.drivers || undefined}
+                            value={fields.jumlahDriver}
+                            onChange={handleChange}
+                            className={errors.jumlahDriver ? styles.errorInput : ''}
+                            placeholder="Masukkan jumlah driver"
+                            />
+                            {errors.jumlahDriver && <span className={styles.errorMsg}>{errors.jumlahDriver}</span>}
+                          </div>
                             <div className={styles.formGroup}>
                                 <label htmlFor="jenisKendaraan">Jenis Kendaraan</label>
                                 <div className={`${styles.multiSelectBox} ${errors.jenisKendaraan ? styles.errorInput : ''}`} ref={vehicleDropdownRef} onClick={() => setVehicleDropdownOpen(open => !open)}>
@@ -315,7 +360,8 @@ export default function FiturDmove() {
                                                         <div className={styles.quantityControl}>
                                                             <button type="button" onClick={(e) => { e.stopPropagation(); handleQuantityChange(option, -1); }} disabled={quantity === 0}>-</button>
                                                             <span>{quantity}</span>
-                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleQuantityChange(option, +1); }}>+</button>
+                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleQuantityChange(option, +1); }}
+                                                            disabled={quantity >= getMaxQuantity(option.name)}>+</button>
                                                         </div>
                                                     </div>
                                                 );
