@@ -119,8 +119,9 @@ export default function PersetujuanBooking() {
                 </div>
 
                 <div className={styles.topRowPersetujuan}>
-                    <button className={styles.backBtn} onClick={() => router.back()}>
-                        <FaArrowLeft style={{ marginRight: 7, fontSize: 18 }} /> Kembali
+                    <button className={styles.backBtn}>
+                        <FaArrowLeft />
+                        <Link href="/HalamanUtama/hal-utamaAdmin" passHref legacyBehavior>Kembali</Link>
                     </button>
                 </div>
 

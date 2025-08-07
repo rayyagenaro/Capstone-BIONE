@@ -1,3 +1,4 @@
+/* --- Background & Layout --- */
 .background {
   min-height: 100vh;
   position: relative;
@@ -27,6 +28,8 @@
   opacity: 0.7;
   pointer-events: none;
 }
+
+/* --- Sidebar --- */
 .sidebar {
   width: 255px;
   background: #fff;
@@ -102,6 +105,8 @@
 .logoutIcon {
   font-size: 20px;
 }
+
+/* --- Header --- */
 .header {
   position: fixed;
   top: 0;
@@ -127,6 +132,8 @@
   height: 34px !important;
   object-fit: contain;
 }
+
+/* --- Main Content --- */
 .mainContent {
   flex: 1;
   min-width: 0;
@@ -213,41 +220,6 @@
   color: #ed6257;
   font-weight: bold;
 }
-@media (max-width: 900px) {
-  .mainContent {
-    margin-left: 0;
-    padding-top: 92px;
-  }
-  .sidebar {
-    display: none;
-  }
-  .header {
-    left: 0;
-    padding: 0 8px 0 8px;
-  }
-  .cardContainer {
-    width: 98vw;
-    padding: 18px 4vw 14px 4vw;
-    border-radius: 12px;
-  }
-  .tabBtn {
-    padding: 10px 18px;
-    font-size: 15px;
-  }
-}
-@media (max-width: 600px) {
-  .cardContainer {
-    padding: 7vw 2vw 8vw 2vw;
-  }
-  .tabBtn {
-    font-size: 13px;
-    padding: 7px 10px;
-  }
-  .dataTable th, .dataTable td {
-    padding: 7px 5px;
-    font-size: 12px;
-  }
-}
 .addRow {
   width: 100%;
   display: flex;
@@ -290,4 +262,127 @@
 }
 .btnActionDelete:hover {
   background: #ffeaea;
+}
+
+/* --- Modal --- */
+.modalBackdrop {
+  position: fixed;
+  z-index: 9000;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(48,58,92,0.23);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modalContent {
+  width: 400px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px 26px 22px 26px;
+  box-shadow: 0 8px 42px 0 rgba(47,77,142,0.14);
+  position: relative;
+  animation: modalpop .19s cubic-bezier(.42,0,.58,1.0);
+}
+@keyframes modalpop {
+  0% { transform: translateY(60px) scale(.96); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+.formGroup {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.formGroup label {
+  font-size: 15px;
+  color: #2F4D8E;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.input {
+  border: 1.2px solid #bcd0f0;
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+  color: #22335e;
+  transition: border .14s;
+  background: #f4f7fb;
+}
+.input:focus {
+  border: 1.7px solid #2F4D8E;
+  background: #f0f7ff;
+}
+.modalBtnGroup {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+.btnCancel {
+  background: #e4e7f5;
+  color: #22335e;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.btnCancel:hover {
+  background: #d3d8ea;
+}
+.btnSave {
+  background: #2F4D8E;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.btnSave:hover {
+  background: #233969;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .mainContent {
+    margin-left: 0;
+    padding-top: 92px;
+  }
+  .sidebar {
+    display: none;
+  }
+  .header {
+    left: 0;
+    padding: 0 8px 0 8px;
+  }
+  .cardContainer {
+    width: 98vw;
+    padding: 18px 4vw 14px 4vw;
+    border-radius: 12px;
+  }
+  .tabBtn {
+    padding: 10px 18px;
+    font-size: 15px;
+  }
+  .modalContent { width: 96vw; min-width: unset; }
+}
+@media (max-width: 600px) {
+  .cardContainer {
+    padding: 7vw 2vw 8vw 2vw;
+  }
+  .tabBtn {
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+  .dataTable th, .dataTable td {
+    padding: 7px 5px;
+    font-size: 12px;
+  }
+  .modalContent { padding: 18px 8px 14px 8px; }
 }
