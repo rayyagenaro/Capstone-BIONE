@@ -4,6 +4,7 @@ import Link from 'next/link';
 import styles from './ketersediaan.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaCar, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 
+
 export default function Ketersediaan() {
   const [activeTab, setActiveTab] = useState('driver');
 
@@ -37,44 +38,7 @@ export default function Ketersediaan() {
   return (
     <div className={styles.background}>
       {/* SIDEBAR */}
-      <aside className={styles.sidebar}>
-        <div className={styles.logoSidebar}>
-          <Image
-            src="/assets/BI_Logo.png"
-            alt="Bank Indonesia"
-            width={110}
-            height={36}
-            className={styles.logoDone}
-            priority
-          />
-        </div>
-        <nav className={styles.navMenu}>
-          <ul>
-            <li>
-              <FaHome className={styles.menuIcon} />
-              <Link href='/HalamanUtama/hal-utamaAdmin'>Beranda</Link>
-            </li>
-            <li>
-              <FaClipboardList className={styles.menuIcon} />
-              <Link href='/Persetujuan/hal-persetujuan'>Persetujuan Booking</Link>
-            </li>
-            <li className={styles.active}>
-              <FaUsers className={styles.menuIcon} />
-              <Link href='/Ketersediaan/hal-ketersediaan'>Ketersediaan</Link>
-            </li>
-            <li>
-              <FaCog className={styles.menuIcon} />
-              <Link href='/Pengaturan/hal-pengaturan'>Pengaturan</Link>
-            </li>
-          </ul>
-        </nav>
-        <div className={styles.logout}>
-          <Link href="/Login/hal-login" passHref legacyBehavior>
-            <FaSignOutAlt className={styles.logoutIcon} />
-          </Link>
-          Logout
-        </div>
-      </aside>
+      <SidebarAdmin />
 
       {/* MAIN CONTENT */}
       <main className={styles.mainContent}>
