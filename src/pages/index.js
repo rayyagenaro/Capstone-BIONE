@@ -41,7 +41,7 @@ export default function LandingPage() {
           </div>
 
           <p className="lp-desc">
-            One Ordering System<br />By KPw BI Provinsi Jawa Timur
+            <b>One Ordering System<br />By KPw BI Provinsi Jawa Timur</b>
           </p>
         </div>
       </div>
