@@ -28,39 +28,33 @@ export default function HalamanUtamaUser() {
   // Daftar semua fitur (8 fitur)
   const fiturLayanan = [
     {
-      logo: "/assets/D'MOVE.png",
-      title: "Digital Driver Booking System",
+      logo: "/assets/D'MOVE.svg",   
       desc: "Pilih driver dan jadwal yang sesuai untuk kebutuhan dinas dan rapat anda.",
       link: "/FiturDmove/hal-dmove"
     },
     {
-      logo: "/assets/D'REST.png",
-      title: "Digital Residence Booking System",
+      logo: "/assets/D'REST.svg",
       desc: "Pilih rumah dinas dan jadwal yang sesuai untuk kebutuhan penginapan anda.",
       link: "#"
     },
     {
-      logo: "/assets/D'CARE.png",
-      title: "Digital Clinic Appointment & Reservation System",
+      logo: "/assets/D'CARE.svg",
       desc: "Pilih dokter dan jadwal yang sesuai untuk kebutuhan kesehatan anda.",
+      link: "#"
+    },
+        {
+      logo: "/assets/D'ROOM.svg",
+      desc: "Pilih rumah dinas dan jadwal yang sesuai untuk kebutuhan penginapan anda.",
       link: "#"
     },
     {
       logo: "/assets/D'MEAL.png",
-      title: "Digital Meal Booking System",
       desc: "Pilih makanan dan jadwal yang sesuai untuk kebutuhan rapat anda.",
       link: "#"
     },
     {
       logo: "/assets/D'TRACK.png",
-      title: "Digital Tracking & Numbering Letter System",
       desc: "Pilih driver dan jadwal yang sesuai untuk kebutuhan dinas dan rapat anda.",
-      link: "#"
-    },
-    {
-      logo: "/assets/D'ROOM.png",
-      title: "Digital Reservation Meeting Room System",
-      desc: "Pilih rumah dinas dan jadwal yang sesuai untuk kebutuhan penginapan anda.",
       link: "#"
     },
     {

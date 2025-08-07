@@ -201,8 +201,8 @@
   min-width: 0;
 }
 .cardLogo {
-  width: 48px !important;
-  height: 48px !important;
+  width: 500px !important;
+  height: 100px !important;
   margin-bottom: 12px;
   object-fit: contain;
 }
