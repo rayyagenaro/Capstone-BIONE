@@ -3,16 +3,15 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import styles from './SidebarAdmin.module.css';
+import styles from './SidebarUser.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers } from 'react-icons/fa';
 
 export default function SidebarAdmin({ onLogoutClick }) {
     const router = useRouter();
     const menuItems = [
-        { href: '/HalamanUtama/hal-utamaAdmin', text: 'Beranda', icon: FaHome },
-        { href: '/Persetujuan/hal-persetujuan', text: 'Persetujuan Booking', icon: FaClipboardList },
-        { href: '/Ketersediaan/hal-ketersediaan', text: 'Ketersediaan', icon: FaUsers },
-        { href: '/Pengaturan/hal-pengaturan', text: 'Pengaturan', icon: FaCog },
+        { href: '/HalamanUtama/hal-utamauser', text: 'Beranda', icon: FaHome },
+        { href: '/StatusBooking/hal-statusBooking', text: 'Status Booking', icon: FaClipboardList },
+        { href: '/EditProfile/hal-editprofile', text: 'Pengaturan', icon: FaCog },
     ];
 
     return (

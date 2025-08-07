@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './detailsLaporan.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaFilePdf, FaArrowLeft, FaUsers } from 'react-icons/fa';
+import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 
 // --- Helper Functions ---
 const formatDate = (dateString) => {
@@ -42,6 +44,7 @@ export default function DetailsLaporan() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
     // Fetch data booking spesifik saat komponen dimuat atau ID berubah
     useEffect(() => {
@@ -99,23 +102,7 @@ export default function DetailsLaporan() {
     return (
         <div className={styles.background}>
             {/* SIDEBAR (tetap sama) */}
-            <aside className={styles.sidebar}>
-                 <div className={styles.logoSidebar}>
-                     <Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={110} height={36} className={styles.logoDone} priority />
-                 </div>
-                 <nav className={styles.navMenu}>
-                     <ul>
-                         <li className={styles.active}><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamaAdmin'>Beranda</Link></li>
-                         <li><FaClipboardList className={styles.menuIcon} /><Link href='/Persetujuan/hal-persetujuan'>Persetujuan Booking</Link></li>
-                         <li><FaUsers className={styles.menuIcon} /><Link href='/Ketersediaan/hal-ketersediaan'>Ketersediaan</Link></li>
-                         <li><FaCog className={styles.menuIcon} /><Link href='/Pengaturan/hal-pengaturan'>Pengaturan</Link></li>
-                     </ul>
-                 </nav>
-                 <div className={styles.logout} onClick={handleLogout} role="button" tabIndex={0} style={{cursor: 'pointer'}}>
-                     <FaSignOutAlt className={styles.logoutIcon} />
-                     Logout
-                 </div>
-            </aside>
+            <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
 
             {/* MAIN CONTENT */}
             <main className={styles.mainContent}>
@@ -209,6 +196,11 @@ export default function DetailsLaporan() {
                     )}
                 </div>
             </main>
+            <LogoutPopup
+                open={showLogoutPopup}
+                onCancel={() => setShowLogoutPopup(false)}
+                onLogout={handleLogout}
+            />
         </div>
     );
 }

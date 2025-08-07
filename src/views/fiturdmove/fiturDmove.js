@@ -8,6 +8,8 @@ import { addDays } from 'date-fns';
 import idLocale from 'date-fns/locale/id';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import SidebarUser from '@/components/SidebarUser/SidebarUser';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 
 // --- CUSTOM HOOKS ---
 const useDropdown = (initialState = false) => {
@@ -22,38 +24,6 @@ const useDropdown = (initialState = false) => {
     }, [handleClickOutside]);
     return { isOpen, setIsOpen, ref };
 };
-
-// --- SUB-KOMPONEN ---
-function LogoutPopup({ open, onCancel, onLogout }) {
-    if (!open) return null;
-    return (
-        <div className={styles.popupOverlay} onClick={onCancel}>
-            <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
-                <div className={styles.popupMsg}>Apakah Anda yakin ingin logout?</div>
-                <div className={styles.popupButtonRow}>
-                    <button className={styles.cancelButton} onClick={onCancel}>Batal</button>
-                    <button className={styles.logoutButton} onClick={onLogout}>Ya, Logout</button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-const Sidebar = ({ onLogoutClick }) => (
-    <aside className={styles.sidebar}>
-        <div className={styles.logoSidebar}><Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={110} height={36} priority /></div>
-        <nav className={styles.navMenu}>
-            <ul>
-                <li className={styles.active}><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamauser'>Beranda</Link></li>
-                <li><FaClipboardList className={styles.menuIcon} /><Link href='/StatusBooking/hal-statusBooking'>Status Booking</Link></li>
-                <li><FaCog className={styles.menuIcon} /><Link href='/EditProfile/hal-editprofile'>Pengaturan</Link></li>
-            </ul>
-        </nav>
-        <div className={styles.logout} onClick={onLogoutClick} role="button" tabIndex={0} style={{ cursor: 'pointer' }}>
-            <FaSignOutAlt className={styles.logoutIcon} />Logout
-        </div>
-    </aside>
-);
 
 const SuccessPopup = ({ onClose }) => (
     <div className={styles.popupOverlay}>
@@ -283,11 +253,8 @@ export default function FiturDmove() {
 
     return (
         <div className={styles.background}>
-            <Sidebar onLogoutClick={() => setShowLogoutPopup(true)} />
+            <SidebarUser onLogoutClick={() => setShowLogoutPopup(true)} />
             <main className={styles.mainContent}>
-                <div className={styles.header}>
-                    <div className={styles.logoBIWrapper}><Image src="/assets/D'ONE.png" alt="D'ONE" width={170} height={34} priority /></div>
-                </div>
                 <div className={styles.formBox}>
                     <div className={styles.topRow}>
                         <Link href="/HalamanUtama/hal-utamauser"><button className={styles.backBtn}><FaArrowLeft /> Kembali</button></Link>
@@ -391,7 +358,10 @@ export default function FiturDmove() {
                 </div>
                 {showSuccess && <SuccessPopup onClose={closeSuccess} />}
             </main>
-            <LogoutPopup open={showLogoutPopup} onCancel={() => setShowLogoutPopup(false)} onLogout={handleLogout} />
+            <LogoutPopup 
+            open={showLogoutPopup} 
+            onCancel={() => setShowLogoutPopup(false)} 
+            onLogout={handleLogout} />
         </div>
     );
 }

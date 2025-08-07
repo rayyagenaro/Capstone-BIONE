@@ -2,10 +2,11 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import { useRouter } from 'next/router';
 import styles from './persetujuan.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaArrowLeft, FaUsers } from 'react-icons/fa';
+import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 
 // --- KONFIGURASI & HELPER ---
 const STATUS_CONFIG = {
@@ -60,6 +61,11 @@ export default function PersetujuanBooking() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState("All");
+    const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+    const handleLogout = () => {
+        localStorage.removeItem('admin');
+        router.push('/Login/hal-login');
+    };
 
     useEffect(() => {
         const fetchAllBookings = async () => {
@@ -92,19 +98,8 @@ export default function PersetujuanBooking() {
 
     return (
         <div className={styles.background}>
-            <SidebarAdmin />
+            <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
             <main className={styles.mainContent}>
-                <div className={styles.header}>
-                    <div className={styles.logoBIWrapper}><Image src="/assets/D'ONE.png" alt="D'ONE" width={170} height={34} className={styles.logoBI} priority/></div>
-                </div>
-
-                <div className={styles.topRowPersetujuan}>
-                    <button className={styles.backBtn}>
-                        <FaArrowLeft />
-                        <Link href="/HalamanUtama/hal-utamaAdmin" passHref legacyBehavior>Kembali</Link>
-                    </button>
-                </div>
-
                 <div className={styles.boxLayanan}>
                     <div className={styles.titleLayanan}>PERSETUJUAN BOOKING</div>
                     
@@ -123,6 +118,11 @@ export default function PersetujuanBooking() {
                     </div>
                 </div>
             </main>
+            <LogoutPopup
+                open={showLogoutPopup}
+                onCancel={() => setShowLogoutPopup(false)}
+                onLogout={handleLogout}
+            />
         </div>
     );
 }

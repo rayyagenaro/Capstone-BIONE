@@ -78,9 +78,6 @@ export default function HalamanUtamaAdmin() {
         <div className={styles.background}>
             <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
             <main className={styles.mainContent}>
-                <div className={styles.header}>
-                    <div className={styles.logoBIWrapper}><Image src="/assets/D'ONE.png" alt="D'ONE" width={170} height={34} priority/></div>
-                </div>
                 <div className={styles.greeting}>
                     Selamat datang, {namaAdmin}
                     <div className={styles.adminText}>Admin</div>

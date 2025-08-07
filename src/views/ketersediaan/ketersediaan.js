@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './ketersediaan.module.css';
+import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaCar, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 
 // Mapping untuk menampilkan label pada tabel dan form select
@@ -174,6 +176,11 @@ export default function Ketersediaan() {
   const [editMode, setEditMode] = useState(false);
   const [modalType, setModalType] = useState('drivers');
   const [formData, setFormData] = useState(initialDriver);
+  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+  const handleLogout = () => {
+    localStorage.removeItem('admin');
+    window.location.href = '/Login/hal-login';
+  } 
 
   useEffect(() => {
     fetchData();
@@ -270,61 +277,10 @@ export default function Ketersediaan() {
     <>
       <div className={styles.background}>
         {/* SIDEBAR */}
-        <aside className={styles.sidebar}>
-          <div className={styles.logoSidebar}>
-            <Image
-              src="/assets/BI_Logo.png"
-              alt="Bank Indonesia"
-              width={110}
-              height={36}
-              className={styles.logoDone}
-              priority
-            />
-          </div>
-          <nav className={styles.navMenu}>
-            <ul>
-              <li>
-                <FaHome className={styles.menuIcon} />
-                <Link href='/HalamanUtama/hal-utamaAdmin'>Beranda</Link>
-              </li>
-              <li>
-                <FaClipboardList className={styles.menuIcon} />
-                <Link href='/Persetujuan/hal-persetujuan'>Persetujuan Booking</Link>
-              </li>
-              <li className={styles.active}>
-                <FaUsers className={styles.menuIcon} />
-                <Link href='/Ketersediaan/hal-ketersediaan'>Ketersediaan</Link>
-              </li>
-              <li>
-                <FaCog className={styles.menuIcon} />
-                <Link href='/Pengaturan/hal-pengaturan'>Pengaturan</Link>
-              </li>
-            </ul>
-          </nav>
-          <div className={styles.logout}>
-            <Link href="/Login/hal-login" passHref legacyBehavior>
-              <FaSignOutAlt className={styles.logoutIcon} />
-            </Link>
-            Logout
-          </div>
-        </aside>
+        <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
 
         {/* MAIN CONTENT */}
         <main className={styles.mainContent}>
-          {/* HEADER/NAVBAR */}
-          <div className={styles.header}>
-            <div className={styles.logoBIWrapper}>
-              <Image
-                src="/assets/D'ONE.png"
-                alt="D'ONE"
-                width={170}
-                height={34}
-                className={styles.logoBI}
-                priority
-              />
-            </div>
-          </div>
-
           {/* CARD UTAMA */}
           <div className={styles.cardContainer}>
             <div className={styles.tabButtons}>
@@ -428,6 +384,11 @@ export default function Ketersediaan() {
             </div>
           </div>
         </main>
+        <LogoutPopup
+          open={showLogoutPopup}
+          onCancel={() => setShowLogoutPopup(false)}
+          onLogout={handleLogout}
+        />
         {modalOpen && (
           <Modal
             editMode={editMode}

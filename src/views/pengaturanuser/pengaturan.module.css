@@ -109,7 +109,7 @@
   background: #2f4d8e;
   min-height: 100vh;
   margin-left: 255px;
-  padding-top: 92px;
+  /* padding-top: 92px; */
 }
 .tableBox {
   background: #fff;
