@@ -1,14 +1,22 @@
 // /pages/api/booking.js
 import db from "@/lib/db";
 
-function formatInsertBookingVehicleTypes(bookingId, vehicleTypeIds) {
-    if (!Array.isArray(vehicleTypeIds) || vehicleTypeIds.length === 0) {
+// --- PERUBAHAN 1: Update helper function ---
+// Sekarang menerima 'vehicleDetails' dan memasukkan 3 nilai (termasuk quantity)
+function formatInsertBookingVehicleTypes(bookingId, vehicleDetails) {
+    if (!Array.isArray(vehicleDetails) || vehicleDetails.length === 0) {
         return { query: "", values: [] };
     }
-    const placeholder = vehicleTypeIds.map(() => "(?, ?)").join(", ");
-    // Pastikan nama tabel 'booking_vehicle_types' ini sama dengan di database Anda
-    const query = `INSERT INTO booking_vehicle_types (booking_id, vehicle_type_id) VALUES ${placeholder}`;
-    const values = vehicleTypeIds.flatMap(typeId => [bookingId, typeId]);
+    // Placeholder sekarang untuk 3 kolom: (?, ?, ?)
+    const placeholder = vehicleDetails.map(() => "(?, ?, ?)").join(", ");
+    
+    // Query INSERT sekarang menyertakan kolom 'quantity'
+    // Pastikan tabel Anda bernama 'booking_vehicle_types' dan memiliki kolom 'quantity'
+    const query = `INSERT INTO booking_vehicle_types (booking_id, vehicle_type_id, quantity) VALUES ${placeholder}`;
+    
+    // Values sekarang mengambil id dan quantity dari setiap objek detail
+    const values = vehicleDetails.flatMap(detail => [bookingId, detail.id, detail.quantity]);
+    
     return { query, values };
 }
 
@@ -23,25 +31,21 @@ export default async function handler(req, res) {
             const queryParams = [];
 
             if (bookingId) {
-                // Prioritas 1: Ambil satu booking spesifik
                 whereClause = 'WHERE b.id = ?';
                 queryParams.push(bookingId);
             } else if (userId) {
-                // Prioritas 2: Ambil semua booking milik user
                 whereClause = 'WHERE b.user_id = ?';
                 queryParams.push(userId);
             } else if (status === 'pending') {
-                // Prioritas 3: Ambil hanya booking pending (untuk dashboard admin)
                 whereClause = 'WHERE b.status_id = 1';
             }
-            // Prioritas 4: Jika tanpa parameter, ambil semua booking (untuk halaman persetujuan)
             
             const query = `
                 SELECT 
                     b.*,
                     u.name as user_name,
                     CONCAT('[', 
-                        IF(COUNT(vt.id) > 0, GROUP_CONCAT(DISTINCT JSON_OBJECT('id', vt.id, 'name', vt.name) SEPARATOR ','), '')
+                        IF(COUNT(vt.id) > 0, GROUP_CONCAT(DISTINCT JSON_OBJECT('id', vt.id, 'name', vt.name, 'quantity', bv.quantity)), '')
                     , ']') AS vehicle_types
                 FROM bookings b
                 LEFT JOIN users u ON b.user_id = u.id
@@ -101,14 +105,16 @@ export default async function handler(req, res) {
     
     // --- Method POST (Menyimpan Data Booking) ---
     if (req.method === "POST") {
+        // --- PERUBAHAN 2: Baca 'vehicle_details' dari body ---
         const {
             user_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg,
-            start_date, end_date, phone, keterangan, vehicle_type_ids, file_link
+            start_date, end_date, phone, keterangan, file_link, vehicle_details
         } = req.body;
 
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
+
             const bookingQuery = `
                 INSERT INTO bookings 
                   (user_id, status_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg, start_date, end_date, phone, keterangan, file_link) 
@@ -121,13 +127,16 @@ export default async function handler(req, res) {
             const [result] = await connection.query(bookingQuery, bookingValues);
             const newBookingId = result.insertId;
 
-            const { query: typesQuery, values: typesValues } = formatInsertBookingVehicleTypes(newBookingId, vehicle_type_ids);
+            // --- PERUBAHAN 3: Kirim 'vehicle_details' ke helper function ---
+            const { query: typesQuery, values: typesValues } = formatInsertBookingVehicleTypes(newBookingId, vehicle_details);
+            
             if (typesQuery) {
                 await connection.query(typesQuery, typesValues);
             }
             
             await connection.commit();
             return res.status(201).json({ id: newBookingId, message: "Booking berhasil dibuat." });
+
         } catch (error) {
             await connection.rollback();
             console.error("Booking API Error (Transaction):", error); 

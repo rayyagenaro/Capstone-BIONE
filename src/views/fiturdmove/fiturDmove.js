@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -220,6 +220,57 @@ export default function FiturDmove() {
         }
     };
 
+      const AvailabilitySection = () => {
+      const { isOpen, setIsOpen, ref } = useDropdown();
+      const [data, setData] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+
+      useEffect(() => {
+        if (isOpen && !data && !loading) {
+          setLoading(true);
+          setError('');
+          fetch('/api/availability')
+            .then(res => res.ok ? res.json() : Promise.reject('Gagal mengambil data.'))
+            .then(setData)
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+      }, [isOpen, data, loading]);
+
+      const renderStatus = (count) =>
+        count === 0 ? <span style={{ color: 'red', fontWeight: 'bold' }}>Tidak tersedia</span> : count;
+
+      return (
+        <div className={styles.availabilitySection}>
+          <div className={styles.availabilityLabel}>Availability</div>
+          <div className={styles.availabilityDropdownWrap} ref={ref}>
+            <button type="button" className={styles.availabilityDropdownBtn} onClick={() => setIsOpen(v => !v)}>
+              Lihat Ketersediaan <span className={styles.availChevron}>▼</span>
+            </button>
+            {isOpen && (
+              <div className={styles.availabilityDropdown}>
+                {loading && <div>Loading...</div>}
+                {error && <div style={{ color: 'red', padding: 4 }}>{error}</div>}
+                {data && (
+                  <table>
+                    <thead><tr><th>Jenis</th><th>Jumlah</th></tr></thead>
+                    <tbody>
+                      <tr><td>Driver</td><td>{renderStatus(data.drivers)}</td></tr>
+                      {Array.isArray(data.vehicles) && data.vehicles.map(v => (
+                        <tr key={v.jenis}><td>{v.jenis}</td><td>{renderStatus(v.jumlah)}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+
     const closeSuccess = () => {
         setShowSuccess(false);
         router.push("/StatusBooking/hal-statusBooking");
@@ -241,6 +292,7 @@ export default function FiturDmove() {
                     <div className={styles.topRow}>
                         <Link href="/HalamanUtama/hal-utamauser"><button className={styles.backBtn}><FaArrowLeft /> Kembali</button></Link>
                         <div className={styles.logoDmoveWrapper}><Image src="/assets/D'MOVE.png" alt="D'MOVE" width={120} height={85} priority /></div>
+                        <AvailabilitySection />
                     </div>
                     <form className={styles.formGrid} autoComplete="off" onSubmit={handleSubmit}>
                         <div className={styles.formRow}>
