@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import styles from './pengaturan.module.css';
 import Image from 'next/image';
-import SidebarAdmin from '@/components/SidebarAdmin';
+import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaEdit, FaCarAlt, FaCheck, FaTimes, FaLock } from 'react-icons/fa';
 
 export default function Pengaturan() {

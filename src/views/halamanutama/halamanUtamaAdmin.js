@@ -2,16 +2,22 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import styles from './halamanUtamaAdmin.module.css'; // pastikan path CSS module benar
-import SidebarAdmin from '@/components/SidebarAdmin';
+import styles from './halamanUtamaAdmin.module.css';
+import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 
+// Helper function untuk menghitung durasi
 const calculateDuration = (start, end) => {
     if (!start || !end) return 'N/A';
-    const diffTime = Math.abs(new Date(end) - new Date(start));
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate - startDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return `${diffDays} Hari`;
+    // Menambahkan penanganan jika durasi 0 hari, dianggap 1 hari
+    return `${diffDays === 0 ? 1 : diffDays} Hari`;
 };
 
+// Konfigurasi Status untuk tampilan
 const STATUS_CONFIG = {
     '1': { text: 'Pending', className: styles.layananStatusProcess },
 };
@@ -22,21 +28,31 @@ export default function HalamanUtamaAdmin() {
     const [incomingBookings, setIncomingBookings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
     useEffect(() => {
         const adminStr = localStorage.getItem('admin');
         if (adminStr) {
-            const admin = JSON.parse(adminStr);
-            setNamaAdmin(admin.nama || 'Admin');
+            try {
+                const admin = JSON.parse(adminStr);
+                setNamaAdmin(admin.nama || 'Admin');
+            } catch (e) {
+                // Jika data di localStorage tidak valid, hapus dan redirect
+                localStorage.removeItem('admin');
+                router.push('/Login/hal-login');
+                return;
+            }
         } else {
+            // Jika tidak ada data admin, langsung redirect
             router.push('/Login/hal-login');
-            return;
+            return; // Hentikan eksekusi useEffect
         }
 
         const fetchIncomingBookings = async () => {
             setIsLoading(true);
+            setError(null); // Reset error setiap kali fetch
             try {
-                const res = await fetch('/api/booking?status=pending'); 
+                const res = await fetch('/api/booking?status=pending');
                 if (!res.ok) {
                     const errorData = await res.json();
                     throw new Error(errorData.error || 'Gagal memuat data booking');
@@ -51,7 +67,7 @@ export default function HalamanUtamaAdmin() {
         };
 
         fetchIncomingBookings();
-    }, [router]);
+    }, [router]); // dependency array hanya perlu router
 
     const handleLogout = () => {
         localStorage.removeItem('admin');
@@ -60,9 +76,7 @@ export default function HalamanUtamaAdmin() {
 
     return (
         <div className={styles.background}>
-
-            <SidebarAdmin />
-
+            <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
             <main className={styles.mainContent}>
                 <div className={styles.header}>
                     <div className={styles.logoBIWrapper}><Image src="/assets/D'ONE.png" alt="D'ONE" width={170} height={34} priority/></div>
@@ -79,7 +93,10 @@ export default function HalamanUtamaAdmin() {
                         ) : error ? (
                             <p className={styles.errorText}>Error: {error}</p>
                         ) : incomingBookings.length === 0 ? (
-                            <p className={styles.emptyText}>Belum ada permintaan booking saat ini.</p>
+                            <div className={styles.emptyStateContainer}>
+                                <Image src="/assets/no-requests.svg" alt="Tidak ada permintaan" width={120} height={120} />
+                                <p className={styles.emptyText}>Belum ada permintaan booking baru.</p>
+                            </div>
                         ) : (
                             incomingBookings.map(booking => {
                                 const statusInfo = STATUS_CONFIG[booking.status_id];
@@ -104,6 +121,11 @@ export default function HalamanUtamaAdmin() {
                     </div>
                 </div>
             </main>
+            <LogoutPopup
+                open={showLogoutPopup}
+                onCancel={() => setShowLogoutPopup(false)}
+                onLogout={handleLogout}
+            />
         </div>
     );
 }

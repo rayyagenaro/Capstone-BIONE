@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import SidebarAdmin from '@/components/SidebarAdmin';
+import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import { useRouter } from 'next/router';
 import styles from './persetujuan.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaArrowLeft, FaUsers } from 'react-icons/fa';
