@@ -103,7 +103,7 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
         const {
             user_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg,
-            start_date, end_date, phone, keterangan, vehicle_type_ids, attachment
+            start_date, end_date, phone, keterangan, vehicle_type_ids, file_link
         } = req.body;
 
         const connection = await db.getConnection();
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
             `;
             const bookingValues = [
                 user_id, 1, tujuan, jumlah_orang, jumlah_kendaraan, 
-                volume_kg, start_date, end_date, phone, keterangan, attachment
+                volume_kg, start_date, end_date, phone, keterangan, file_link
             ];
             const [result] = await connection.query(bookingQuery, bookingValues);
             const newBookingId = result.insertId;
