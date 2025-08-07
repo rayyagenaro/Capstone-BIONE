@@ -1,10 +1,9 @@
 // /pages/HalamanUtama/hal-utamaAdmin.js
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './halamanUtamaAdmin.module.css'; // pastikan path CSS module benar
-import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers } from 'react-icons/fa';
+import SidebarAdmin from '@/components/sidebarAdmin';
 
 const calculateDuration = (start, end) => {
     if (!start || !end) return 'N/A';
@@ -61,22 +60,9 @@ export default function HalamanUtamaAdmin() {
 
     return (
         <div className={styles.background}>
-            <aside className={styles.sidebar}>
-                 <div className={styles.logoSidebar}>
-                     <Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={110} height={36} priority />
-                 </div>
-                 <nav className={styles.navMenu}>
-                     <ul>
-                         <li className={styles.active}><FaHome className={styles.menuIcon} /><Link href='/HalamanUtama/hal-utamaAdmin'>Beranda</Link></li>
-                         <li><FaClipboardList className={styles.menuIcon} /><Link href='/Persetujuan/hal-persetujuan'>Persetujuan Booking</Link></li>
-                         <li><FaUsers className={styles.menuIcon} /><Link href='/Ketersediaan/hal-ketersediaan'>Ketersediaan</Link></li>
-                         <li><FaCog className={styles.menuIcon} /><Link href='/Pengaturan/hal-pengaturan'>Pengaturan</Link></li>
-                     </ul>
-                 </nav>
-                 <div className={styles.logout} onClick={handleLogout} role="button" tabIndex={0}>
-                     <FaSignOutAlt className={styles.logoutIcon} />Logout
-                 </div>
-            </aside>
+
+            <SidebarAdmin />
+
             <main className={styles.mainContent}>
                 <div className={styles.header}>
                     <div className={styles.logoBIWrapper}><Image src="/assets/D'ONE.png" alt="D'ONE" width={170} height={34} priority/></div>

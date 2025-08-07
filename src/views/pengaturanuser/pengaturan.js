@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import styles from './pengaturan.module.css';
 import Image from 'next/image';
-import Link from 'next/link';
-import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaEdit, FaCarAlt, FaCheck, FaTimes, FaLock } from 'react-icons/fa';
+import SidebarAdmin from '@/components/sidebarAdmin';
+import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaEdit, FaCarAlt, FaCheck, FaTimes, FaLock } from 'react-icons/fa';
 
 export default function Pengaturan() {
   const [users, setUsers] = useState([]);
@@ -33,13 +33,6 @@ export default function Pengaturan() {
       .then(data => setUsers(Array.isArray(data) ? data : []))
       .catch(() => setUsers([]));
   }, []);
-
-  const menuItems = [
-    { name: 'Beranda', icon: <FaHome />, href: '/HalamanUtama/hal-utamaAdmin' },
-    { name: 'Persetujuan Booking', icon: <FaClipboardList />, href: '/Persetujuan/hal-persetujuan' },
-    { name: 'Ketersediaan', icon: <FaCarAlt />, href: '/Ketersediaan/hal-ketersediaan' },
-    { name: 'Pengaturan', icon: <FaCog />, href: '/Pengaturan/pengaturan', active: true },
-  ];
 
   function openEditPopup(user) {
     setSelectedUser(user);
@@ -136,27 +129,7 @@ export default function Pengaturan() {
   return (
     <div className={styles.background}>
       {/* SIDEBAR */}
-      <aside className={styles.sidebar}>
-        <div className={styles.logoSidebar}>
-          <Image src="/assets/BI_Logo.png" alt="Bank Indonesia" width={200} height={70} priority />
-        </div>
-        <nav className={styles.navMenu}>
-          <ul>
-            {menuItems.map(item => (
-              <li
-                key={item.name}
-                className={item.active ? styles.active : ''}
-              >
-                {item.icon}
-                <Link href={item.href}>{item.name}</Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className={styles.logout} onClick={() => setShowLogoutPopup(true)}>
-          <FaSignOutAlt className={styles.logoutIcon} /> Logout
-        </div>
-      </aside>
+      <SidebarAdmin />
 
       <main className={styles.mainContent}>
         <div className={styles.header}>
