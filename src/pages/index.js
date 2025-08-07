@@ -94,7 +94,7 @@ export default function LandingPage() {
           position: relative;
         }
         .lp-welcome {
-          color: #465a96;
+          color: #2F4D8E;
           font-weight: 600;
           font-size: 1.6rem;
           letter-spacing: 0.02em;
@@ -111,7 +111,7 @@ export default function LandingPage() {
         }
         .lp-desc {
           margin-top: 18px;
-          color: #516EB3;
+          color: #2F4D8E;
           font-weight: 500;
           font-size: 1rem;
           letter-spacing: 0.03em;
