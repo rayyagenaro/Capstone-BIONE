@@ -50,7 +50,7 @@ export default function DetailsLaporan() {
         const fetchBookingDetail = async () => {
             setIsLoading(true);
             try {
-                const res = await fetch(`/api/booking?bookingId=${id}`);
+                const res = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
                 if (!res.ok) {
                     const errData = await res.json();
                     throw new Error(errData.error || `Gagal memuat data booking.`);
@@ -174,7 +174,21 @@ export default function DetailsLaporan() {
                             <div className={styles.detailLabel}>JUMLAH ORANG</div>
                             <div className={styles.detailValue}>{booking.jumlah_orang || 'N/A'}</div>
                             <div className={styles.detailLabel}>JUMLAH KENDARAAN</div>
-                            <div className={styles.detailValue}>{booking.jumlah_kendaraan || 'N/A'}</div>
+                            <div className={styles.detailValue}>
+
+                            {booking.vehicle_types && booking.vehicle_types.length > 0 ? (
+                            <div>
+                                {booking.vehicle_types.map((v, index) => (
+                                <div key={index}>
+                                    {v.name}: {v.quantity}
+                                </div>
+                                ))}
+                            </div>
+                            ) : (
+                            'N/A'
+                            )}
+
+                            </div>
                             <div className={styles.detailLabel}>VOLUME BARANG</div>
                             <div className={styles.detailValue}>{booking.volume_kg ? `${booking.volume_kg} Kg` : 'N/A'}</div>
                              <div className={styles.detailLabel}>No HP</div>
