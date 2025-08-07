@@ -1,6 +1,7 @@
 // /pages/Persetujuan/hal-persetujuan.js
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import SidebarAdmin from '@/components/sidebarAdmin';
 import { useRouter } from 'next/router';
 import styles from './persetujuan.module.css';
