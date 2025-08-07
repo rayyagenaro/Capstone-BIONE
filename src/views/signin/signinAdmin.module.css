@@ -57,7 +57,7 @@
   justify-content: flex-start;
 }
 .logoOnly {
-  width: 68px !important;
+  width: 160px !important;
   height: 68px !important;
   object-fit: contain;
   margin-left: 2px;
@@ -106,8 +106,8 @@
   gap: 16px;
 }
 .cardBankLogo {
-  width: 100px !important;
-  height: 40px !important;
+  width: 180px !important;
+  height: 50px !important;
   object-fit: contain;
 }
 .cardTitle {
@@ -323,60 +323,47 @@
   min-height: 44px;
 }
 
-/* Tombol kembali (styling elegan & responsive) */
 .backBtn {
   display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
   background: #f3f6fa;
   border: 1.2px solid #bcd0f0;
   color: #2F4D8E;
-  font-size: 18px;
-  font-weight: 600;
   border-radius: 12px;
-  padding: 7px 15px 7px 11px;
+  padding: 7px 10px;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(70,90,150,0.08);
   transition: background 0.15s, color 0.15s, border 0.15s;
   font-family: inherit;
+  min-width: 45px;
+  min-height: 45px;
+  width: 45px;
+  height: 45px;
+  font-size: 0; /* supaya text hilang jika ada */
+  border: none;
 }
-.backBtn:hover {
+.backBtn:hover, .backBtn:focus {
   background: #e3eaf7;
   color: #253e70;
   border: 1.2px solid #253e70;
 }
 .backBtn svg {
-  margin-right: 2px;
+  display: block;
+  margin: 0 auto;
 }
 
-/* Membuat logo tetap center pada row baru */
-.headerLogoWrapper {
-  display: flex;
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-  margin-right: 50px;
-  min-width: 80px;
-}
-
-/* Spacer kanan supaya logo tetap center (kosong aja, ikut lebar tombol kembali) */
 .backBtnSpacer {
-  width: 88px;  /* Sesuaikan dengan lebar .backBtn agar center */
+  width: 50px;
+  min-width: 44px;
 }
 
-/* Responsive untuk row baru */
 @media (max-width: 600px) {
-  .cardHeaderRowMod {
-    min-height: 30px;
-  }
-  .backBtn {
-    font-size: 12px;
-    padding: 6px 10px 6px 0px;
-  }
-  .headerLogoWrapper {
-    min-width: 60px;
-  }
-  .backBtnSpacer {
-    width: 20px;
+  .backBtn, .backBtnSpacer {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 4px;
   }
 }

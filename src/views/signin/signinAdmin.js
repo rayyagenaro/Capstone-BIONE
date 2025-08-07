@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './signinAdmin.module.css';
 
@@ -30,16 +29,12 @@ export default function SignInAdmin() {
         setError(data.error || 'Login gagal.');
       }
     } catch (err) {
-      console.error('Error:', err);
       setError('Terjadi kesalahan saat login.');
     }
   }
 
-  // Tombol kembali: kembali ke halaman sebelumnya
   function handleBack() {
     router.back();
-    // atau jika ingin redirect ke page tertentu:
-    // router.push('/');
   }
 
   return (
@@ -64,24 +59,24 @@ export default function SignInAdmin() {
               className={styles.backBtn}
               type="button"
               onClick={handleBack}
+              aria-label="Kembali"
             >
-              {/* Ikon panah kiri SVG (bisa diganti FaArrowLeft dari react-icons juga) */}
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+              {/* Icon saja */}
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
+                <circle cx="14" cy="12" r="11" fill="#fff" />
                 <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <span>Kembali</span>
             </button>
             <div className={styles.headerLogoWrapper}>
               <Image
-                src="/assets/BI_Logo.png"
-                alt="Bank Indonesia"
+                src="/assets/BI-One-Blue.png"
+                alt="Logo BI.ONE"
                 width={110}
                 height={42}
                 className={styles.cardBankLogo}
                 priority
               />
             </div>
-            {/* Spacer kanan supaya logo tetap center */}
             <div className={styles.backBtnSpacer} />
           </div>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './signin.module.css';
+import { useRouter } from 'next/router';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -9,9 +10,8 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // Tambahkan state untuk popup lupa password
   const [showForgotPopup, setShowForgotPopup] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -33,7 +33,6 @@ export default function SignIn() {
       const data = await res.json();
 
       if (res.ok) {
-        // Simpan user ke localStorage
         localStorage.setItem('user', JSON.stringify(data.user));
         setShowSuccess(true);
         window.location.href = '/HalamanUtama/hal-utamauser';
@@ -41,19 +40,21 @@ export default function SignIn() {
         setError(data.error || 'Login gagal.');
       }
     } catch (err) {
-      console.error('Error:', err);
       setError('Terjadi kesalahan saat login.');
     }
   }
 
-  // Fungsi untuk buka dan tutup popup lupa password
   function handleForgotPassword(e) {
     e.preventDefault();
     setShowForgotPopup(true);
   }
-
   function handleCloseForgotPopup() {
     setShowForgotPopup(false);
+  }
+
+  // MODIFIKASI: langsung redirect ke halaman login
+  function handleBack() {
+    router.push('/Login/hal-login');
   }
 
   return (
@@ -76,17 +77,29 @@ export default function SignIn() {
 
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <Image
-              src="/assets/Logo D'ONE.png"
-              alt="Logo D'ONE"
-              width={220}
-              height={110}
-              className={styles.cardBankLogo}
-              priority
-            />
-            <span className={styles.welcome}>Selamat Datang!</span>
+          {/* HEADER CARD: Icon Kembali & Logo */}
+          <div className={styles.cardHeaderRowMod}>
+            <button className={styles.backBtn} type="button" onClick={handleBack} aria-label="Kembali">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
+                <circle cx="14" cy="12" r="11" fill="#fff" />
+                <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <div className={styles.headerLogoWrapper}>
+              <Image
+                src="/assets/Logo D'ONE.png"
+                alt="Logo D'ONE"
+                width={160}
+                height={44}
+                className={styles.cardBankLogo}
+                priority
+              />
+            </div>
+            <div className={styles.backBtnSpacer} />
           </div>
+          {/* END header row */}
+
+          <span className={styles.welcome}>Selamat Datang!</span>
           
           <form className={styles.form} autoComplete="off" onSubmit={handleSubmit}>
             <label htmlFor="email" className={styles.inputLabel}>Email</label>

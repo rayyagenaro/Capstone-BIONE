@@ -100,8 +100,8 @@
   gap: 14px;
 }
 .cardBankLogo {
-  width: 200px !important;
-  max-width: 75vw;
+  width: 160px !important;
+  max-width: 160px;
   height: auto !important;
   object-fit: contain;
   display: block;
@@ -347,5 +347,74 @@
   .popupBox {
     padding: 8px 2vw 10px 2vw;
     border-radius: 13px;
+  }
+}
+.cardHeaderRowMod {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  margin-top: 30px;
+  gap: 0;
+  min-height: 44px;
+}
+.backBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f6fa;
+  border: 1.2px solid #bcd0f0;
+  color: #2F4D8E;
+  border-radius: 12px;
+  padding: 7px 10px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  font-size: 0;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(70,90,150,0.08);
+  transition: background 0.15s, color 0.15s, border 0.15s;
+  border: none;
+  outline: none;
+}
+.backBtn:hover, .backBtn:focus {
+  background: #e3eaf7;
+  color: #253e70;
+  border: 1.2px solid #253e70;
+}
+.backBtn svg {
+  display: block;
+  margin: 0 auto;
+}
+.headerLogoWrapper {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  min-width: 80px;
+}
+.backBtnSpacer {
+  width: 44px;
+  min-width: 44px;
+}
+@media (max-width: 600px) {
+  .cardHeaderRowMod {
+    min-height: 30px;
+  }
+  .backBtn {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 3px;
+  }
+  .headerLogoWrapper {
+    min-width: 60px;
+  }
+  .backBtnSpacer {
+    width: 32px;
+    min-width: 32px;
   }
 }
