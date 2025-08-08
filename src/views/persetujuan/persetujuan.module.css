@@ -250,7 +250,8 @@
 .tabBtn {
   padding: 10px 32px;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: inherit;
   border: none;
   background: #f5f5fa;
   color: #777;

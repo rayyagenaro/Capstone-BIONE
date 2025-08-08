@@ -192,8 +192,9 @@
   background: #fff;
   color: #2F4D8E;
   border: none;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 19px;
+  font-family: inherit;
   border-radius: 21px;
   padding: 8px 27px 8px 17px;
   cursor: pointer;

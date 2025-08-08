@@ -239,6 +239,7 @@
 .popupTitle {
   font-size: 21px;
   font-weight: 700;
+  font-family: inherit;
   color: #253e70;
   margin-bottom: 16px;
   text-align: center;
@@ -252,6 +253,7 @@
 .popupForm label {
   font-size: 15px;
   font-weight: 600;
+  font-family: inherit;
   color: #222;
   margin-bottom: 2px;
 }
@@ -260,10 +262,10 @@
   border-radius: 8px;
   padding: 10px 13px;
   font-size: 15px;
+  font-family: inherit;
   color: #253e70;
   background: #f8fafd;
   transition: border .15s;
-  font-family: inherit;
   margin-bottom: 2px;
 }
 .popupForm input[type="text"]:focus {
@@ -278,6 +280,7 @@
   padding: 10px 38px;
   font-size: 16px;
   font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
   transition: background 0.18s;
   margin-top: 7px;
@@ -293,6 +296,7 @@
   padding: 10px 38px;
   font-size: 16px;
   font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
   transition: background 0.16s, color 0.16s;
   margin-top: 7px;
@@ -303,6 +307,7 @@
 }
 .popupMsg {
   font-size: 17px;
+  font-family: inherit;
   color: #253e70;
   text-align: center;
   margin-bottom: 24px;
@@ -317,6 +322,7 @@
 .errorMsg {
   color: #d63031;
   font-size: 13px;
+  font-family: inherit;
   margin-top: 1px;
   font-weight: 500;
   min-height: 16px;

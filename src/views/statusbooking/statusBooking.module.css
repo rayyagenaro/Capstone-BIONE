@@ -202,6 +202,7 @@
   border: none;
   font-weight: 600;
   font-size: 17px;
+  font-family: inherit;
   border-radius: 21px;
   padding: 8px 27px 8px 17px;
   cursor: pointer;
@@ -220,10 +221,11 @@
 .title {
   flex: 1;
   text-align: center;
-  font-size: 2.1rem;
   color: #2F4D8E;
+  font-size: 30px;
   font-weight: bold;
-  letter-spacing: 2px;
+  font-family: inherit;
+  letter-spacing: 0.8px;
   margin-right: 150px;
   margin-bottom: 3px;
   text-shadow: 0 2px 7px #f5f6fa42;
@@ -238,7 +240,8 @@
 .tabBtn {
   padding: 10px 32px;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: inherit;
   border: none;
   background: #f5f5fa;
   color: #777;

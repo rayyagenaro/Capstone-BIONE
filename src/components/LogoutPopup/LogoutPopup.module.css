@@ -36,6 +36,7 @@
 .popupMsg {
     font-size: 18px;
     font-weight: 500;
+    font-family: inherit;
     margin-bottom: 25px;
     color: #333;
 }
@@ -52,7 +53,8 @@
   border-radius: 18px;
   padding: 10px 28px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 1000;
+  font-family: inherit;
   cursor: pointer;
   min-width: 110px;
   box-shadow: 0 1.5px 6px 0 rgba(70,90,150,0.06);

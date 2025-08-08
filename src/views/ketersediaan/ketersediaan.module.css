@@ -170,6 +170,7 @@
   padding: 12px 36px;
   font-size: 17px;
   font-weight: 700;
+  font-family: inherit;
   border-radius: 16px 16px 0 0;
   cursor: pointer;
   outline: none;
@@ -233,6 +234,7 @@
   border-radius: 8px;
   font-size: 15px;
   font-weight: 700;
+  font-family: inherit;
   padding: 9px 18px;
   display: flex;
   align-items: center;

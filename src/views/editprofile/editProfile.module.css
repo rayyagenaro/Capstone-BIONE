@@ -154,6 +154,7 @@
   border: none;
   font-weight: 600;
   font-size: 17px;
+  font-family: inherit;
   border-radius: 21px;
   padding: 8px 27px 8px 17px;
   cursor: pointer;
@@ -173,8 +174,7 @@
   font-size: 30px;
   color: #2F4D8E;
   font-weight: bold;
-  letter-spacing: 2px;
-  text-shadow: 0 4px 8px #465b8d3d, 0 2px 2px #1d2a5038;
+  letter-spacing: 0.8px;
   margin-right: 155px;
 }
 .profileForm {
@@ -194,8 +194,9 @@
 }
 .formGroup label {
   font-size: 17px;
-  font-weight: bold;
-  color: #222;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #363958;
   margin-bottom: 2px;
 }
 .input {
@@ -204,11 +205,13 @@
   border-radius: 9px;
   border: 1.6px solid #cfd4dc;
   font-size: 1.05rem;
+  font-weight: bold;
   outline: none;
   background: #f7faff;
   transition: border 0.18s;
   color: #253e70;
-  font-weight: 500;
+  font-weight: 700;
+  font-family: inherit;
 }
 .input:focus {
   border: 1.6px solid #2F4D8E;
@@ -241,6 +244,7 @@
   padding: 13px 56px;
   font-size: 19px;
   font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
   transition: background 0.17s;
   box-shadow: 0 1px 8px 0 rgba(47,77,142,0.09);
