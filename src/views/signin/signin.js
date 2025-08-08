@@ -87,8 +87,8 @@ export default function SignIn() {
             </button>
             <div className={styles.headerLogoWrapper}>
               <Image
-                src="/assets/Logo D'ONE.png"
-                alt="Logo D'ONE"
+                src="/assets/BI-One-Blue.png"
+                alt="Logo BI-One"
                 width={160}
                 height={44}
                 className={styles.cardBankLogo}

@@ -476,3 +476,37 @@
   background: #ecf0fa;
   color: #18396b;
 }
+/* ========== PAGINATION ========== */
+
+.paginationControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding: 0 10px;
+}
+
+.resultsText {
+  font-size: 15px;
+  color: #555;
+  font-weight: 500;
+}
+
+.itemsPerPageDropdown {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #e0e0e0;
+  background-color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Penyesuaian untuk layar kecil */
+@media (max-width: 750px) {
+  .paginationControls {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+}

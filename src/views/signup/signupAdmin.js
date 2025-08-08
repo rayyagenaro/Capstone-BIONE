@@ -74,7 +74,7 @@ export default function SignupAdmin() {
       <div className={styles.topbar}>
         <div className={styles.logoWrap}>
           <Image
-            src="/assets/D'ONE Putih.png"
+            src="/assets/Logo BI Putih.png"
             alt="D'ONE"
             width={75}
             height={40}
@@ -87,7 +87,7 @@ export default function SignupAdmin() {
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
           <Image
-            src="/assets/BI_Logo.png"
+            src="/assets/BI-One-Blue.png"
             alt="Bank Indonesia"
             width={120}
             height={34}

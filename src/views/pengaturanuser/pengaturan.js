@@ -5,8 +5,10 @@ import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Router from 'next/router';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaEdit, FaCarAlt, FaCheck, FaTimes, FaLock } from 'react-icons/fa';
+import Pagination from '@/components/Pagination/Pagination'; // <-- 1. IMPORT KOMPONEN PAGINATION
 
 export default function Pengaturan() {
+  // --- STATE LAMA (TETAP DIPAKAI) ---
   const [users, setUsers] = useState([]);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
@@ -19,6 +21,15 @@ export default function Pengaturan() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [admin, setAdmin] = useState(null);
 
+  // --- 2. STATE BARU UNTUK PAGINATION ---
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+  });
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Default 10 item per halaman
+
   // Ambil data admin dari localStorage saat komponen mount
   useEffect(() => {
     const adminData = localStorage.getItem('admin');
@@ -27,14 +38,33 @@ export default function Pengaturan() {
     }
   }, []);
 
-  // Fetch users dari API
+  // --- 3. useEffect DIUBAH UNTUK MENGAMBIL DATA PER HALAMAN ---
   useEffect(() => {
-    fetch('/api/users')
-      .then(res => res.json())
-      .then(data => setUsers(Array.isArray(data) ? data : []))
-      .catch(() => setUsers([]));
-  }, []);
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        // Kirim parameter page dan limit ke API
+        const res = await fetch(`/api/users?page=${pagination.currentPage}&limit=${itemsPerPage}`);
+        const result = await res.json();
+        
+        if (res.ok) {
+          setUsers(result.data || []);
+          setPagination(result.pagination || { currentPage: 1, totalPages: 1, totalItems: 0 });
+        } else {
+          setUsers([]);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil data user:", error);
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchUsers();
+  }, [pagination.currentPage, itemsPerPage]); // Akan fetch ulang jika halaman atau itemsPerPage berubah
+
+  // --- FUNGSI POPUP (TIDAK ADA PERUBAHAN) ---
   function openEditPopup(user) {
     setSelectedUser(user);
     setEditForm({ id: user.id, name: user.name, email: user.email, phone: user.phone });
@@ -125,12 +155,20 @@ export default function Pengaturan() {
     localStorage.removeItem('admin');
     Router.push('/Login/hal-login');
   };
+  
+  // --- 4. FUNGSI HANDLER BARU UNTUK PAGINATION ---
+  const handlePageChange = (page) => {
+    setPagination(prev => ({ ...prev, currentPage: page }));
+  };
+
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setPagination(prev => ({ ...prev, currentPage: 1 })); // Reset ke halaman 1
+  };
 
   return (
     <div className={styles.background}>
-      {/* SIDEBAR */}
       <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
-        {/* Main Content */}
       <main className={styles.mainContent}>
         <div className={styles.tableBox}>
           <div className={styles.tableTopRow}>
@@ -149,25 +187,30 @@ export default function Pengaturan() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u, i) => (
-                  <tr key={u.id}>
-                    <td>{u.id}</td>
-                    <td style={{ fontWeight: 'bold' }}>{u.name}</td>
-                    <td>{u.email}</td>
-                    <td>{u.phone}</td>
-                    <td>
-                      <button className={styles.editBtn} onClick={() => openEditPasswordPopup(u)}>
-                        <FaLock style={{marginRight: 4}}/> Ganti Password
-                      </button>
-                    </td>
-                    <td>
-                      <button className={styles.editBtn} onClick={() => openEditPopup(u)}>
-                        <FaEdit style={{ marginRight: 5 }} /> Edit
-                      </button>
-                    </td>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', color: '#888' }}>Memuat data...</td>
                   </tr>
-                ))}
-                {users.length === 0 && (
+                ) : users.length > 0 ? (
+                  users.map((u) => (
+                    <tr key={u.id}>
+                      <td>{u.id}</td>
+                      <td style={{ fontWeight: 'bold' }}>{u.name}</td>
+                      <td>{u.email}</td>
+                      <td>{u.phone}</td>
+                      <td>
+                        <button className={styles.editBtn} onClick={() => openEditPasswordPopup(u)}>
+                          <FaLock style={{marginRight: 4}}/> Ganti Password
+                        </button>
+                      </td>
+                      <td>
+                        <button className={styles.editBtn} onClick={() => openEditPopup(u)}>
+                          <FaEdit style={{ marginRight: 5 }} /> Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', color: '#888' }}>Data user tidak ditemukan.</td>
                   </tr>
@@ -175,15 +218,39 @@ export default function Pengaturan() {
               </tbody>
             </table>
           </div>
+          
+          {/* --- 5. UI PAGINATION DITAMBAHKAN DI SINI --- */}
+          {pagination.totalItems > 0 && (
+            <>
+              <div className={styles.paginationControls}>
+                <span className={styles.resultsText}>
+                  Results: {((pagination.currentPage - 1) * itemsPerPage) + 1} - {Math.min(pagination.currentPage * itemsPerPage, pagination.totalItems)} of {pagination.totalItems}
+                </span>
+                <select value={itemsPerPage} onChange={handleItemsPerPageChange} className={styles.itemsPerPageDropdown}>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+              
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+              />
+            </>
+          )}
+
         </div>
       </main>
+      
+      {/* --- SEMUA POPUP TETAP SAMA --- */}
       <LogoutPopup
         open={showLogoutPopup}
         onCancel={() => setShowLogoutPopup(false)}
         onLogout={handleLogout}
       />
 
-      {/* POPUP EDIT USER */}
       {showEditPopup && (
         <div className={styles.popupOverlay} onClick={() => setShowEditPopup(false)}>
           <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
@@ -206,29 +273,16 @@ export default function Pengaturan() {
         </div>
       )}
 
-      {/* POPUP EDIT PASSWORD */}
       {showEditPasswordPopup && (
         <div className={styles.popupOverlay} onClick={() => setShowEditPasswordPopup(false)}>
           <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
             <div className={styles.popupTitle}><FaLock style={{marginRight:7}}/> Ganti Password User</div>
             <form className={styles.popupForm} onSubmit={handleEditPasswordSubmit} autoComplete="off">
               <label>Password Baru</label>
-              <input
-                name="password"
-                type="password"
-                value={editPasswordForm.password}
-                onChange={handleEditPasswordChange}
-                autoFocus
-              />
+              <input name="password" type="password" value={editPasswordForm.password} onChange={handleEditPasswordChange} autoFocus />
               {editPasswordErrors.password && <span className={styles.errorMsg}>{editPasswordErrors.password}</span>}
               <label>Password Admin</label>
-              <input
-                name="adminPassword"
-                type="password"
-                value={editPasswordForm.adminPassword}
-                onChange={handleEditPasswordChange}
-                placeholder="Masukkan password akun admin"
-              />
+              <input name="adminPassword" type="password" value={editPasswordForm.adminPassword} onChange={handleEditPasswordChange} placeholder="Masukkan password akun admin" />
               {editPasswordErrors.adminPassword && <span className={styles.errorMsg}>{editPasswordErrors.adminPassword}</span>}
               <div className={styles.popupActionRow}>
                 <button className={styles.saveBtn} type="submit"><FaCheck /> Simpan</button>
@@ -239,7 +293,6 @@ export default function Pengaturan() {
         </div>
       )}
 
-      {/* Toast Success */}
       {showSuccess && (
         <div className={styles.toastSuccess}><FaCheck style={{marginRight:6}}/>Update berhasil!</div>
       )}
