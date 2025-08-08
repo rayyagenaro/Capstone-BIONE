@@ -75,17 +75,33 @@ export default function DetailsLaporan() {
     const handleUpdateStatus = async (newStatusId) => {
         setIsUpdating(true);
         try {
+            // 1. Update status booking
             const res = await fetch('/api/booking', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ bookingId: id, newStatusId: newStatusId }),
+                body: JSON.stringify({ bookingId: id, newStatusId }),
             });
             if (!res.ok) {
                 const errData = await res.json();
                 throw new Error(errData.error || "Gagal mengubah status.");
             }
+
+            // 2. Kalau disetujui, update status kendaraan juga
+            if (newStatusId === 2 && booking.vehicle_types?.length > 0) {
+                for (const vehicle of booking.vehicle_types) {
+                    await fetch('/api/updateVehiclesStatus', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            vehicleTypeId: vehicle.id,
+                            newStatusId: 2, // Set status kendaraan jadi 2 (Unavailable)
+                        }),
+                    });
+                }
+            }
+
             setShowSuccess(true);
-            router.push('/Persetujuan/hal-persetujuan'); // Arahkan kembali ke halaman list
+            router.push('/Persetujuan/hal-persetujuan'); // Redirect
         } catch (err) {
             alert(`Error: ${err.message}`);
         } finally {
