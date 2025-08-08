@@ -296,3 +296,40 @@
   background: #f3f7ff;
   box-shadow: 0 4px 14px 0 rgba(70,90,150,0.13);
 }
+/* ===== Pagination (Halaman Utama Admin) ===== */
+.paginationContainer {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #e7e9f2;
+}
+
+.paginationControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.resultsText {
+  font-size: 14px;
+  color: #555;
+  font-weight: 600;
+}
+
+.itemsPerPageDropdown {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1.5px solid #e0e0e0;
+  background-color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .paginationControls {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
