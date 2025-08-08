@@ -1,39 +1,26 @@
-import React, { useEffect, useState } from 'react';
+// src/pages/Ketersediaan/hal-ketersediaan.js
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './ketersediaan.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
-import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaCar, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import Pagination from '@/components/Pagination/Pagination';
+import { FaUsers, FaCar, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 
 // Mapping untuk menampilkan label pada tabel dan form select
-const VEHICLE_STATUS_MAP = {
-  1: 'Available',
-  2: 'Unavailable',
-  3: 'Maintenance'
-};
+const VEHICLE_STATUS_MAP = { 1: 'Available', 2: 'Unavailable', 3: 'Maintenance' };
 const VEHICLE_TYPE_MAP = {
-  1: 'Mobil SUV',
-  2: 'Mobil MPV',
-  3: 'Minibus',
-  4: 'Double Cabin',
-  5: 'Truck',
-  6: 'Kaskeliling',
-  7: 'Edukator'
+  1: 'Mobil SUV', 2: 'Mobil MPV', 3: 'Minibus', 4: 'Double Cabin',
+  5: 'Truck', 6: 'Kaskeliling', 7: 'Edukator'
 };
 const VEHICLE_TYPE_OPTIONS = [
-  { id: 1, name: 'Mobil SUV' },
-  { id: 2, name: 'Mobil MPV' },
-  { id: 3, name: 'Minibus' },
-  { id: 4, name: 'Double Cabin' },
-  { id: 5, name: 'Truck' },
-  { id: 6, name: 'Kaskeliling' },
+  { id: 1, name: 'Mobil SUV' }, { id: 2, name: 'Mobil MPV' }, { id: 3, name: 'Minibus' },
+  { id: 4, name: 'Double Cabin' }, { id: 5, name: 'Truck' }, { id: 6, name: 'Kaskeliling' },
   { id: 7, name: 'Edukator' }
 ];
 const VEHICLE_STATUS_OPTIONS = [
-  { id: 1, name: 'Available' },
-  { id: 2, name: 'Unavailable' },
-  { id: 3, name: 'Maintenance' }
+  { id: 1, name: 'Available' }, { id: 2, name: 'Unavailable' }, { id: 3, name: 'Maintenance' }
 ];
 
 // Modal komponen terpisah
@@ -176,16 +163,20 @@ export default function Ketersediaan() {
   const [editMode, setEditMode] = useState(false);
   const [modalType, setModalType] = useState('drivers');
   const [formData, setFormData] = useState(initialDriver);
+
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const handleLogout = () => {
     localStorage.removeItem('admin');
     window.location.href = '/Login/hal-login';
-  } 
+  };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // ---------- PAGINATION STATE (per tab) ----------
+  const [page, setPage] = useState({ drivers: 1, vehicles: 1 });
+  const [perPage, setPerPage] = useState({ drivers: 10, vehicles: 10 });
+  const tableTopRef = useRef(null);
 
+  // Fetch
+  useEffect(() => { fetchData(); }, []);
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -202,33 +193,24 @@ export default function Ketersediaan() {
     setLoading(false);
   };
 
+  // Open/close modal
   const handleOpenModal = (type, data = null) => {
     setModalType(type);
     setEditMode(!!data);
-    setFormData(
-      data
-        ? { ...data }
-        : type === 'drivers'
-        ? initialDriver
-        : initialVehicle
-    );
+    setFormData(data ? { ...data } : (type === 'drivers' ? initialDriver : initialVehicle));
     setModalOpen(true);
   };
-
   const handleCloseModal = () => {
     setModalOpen(false);
     setFormData(modalType === 'drivers' ? initialDriver : initialVehicle);
     setEditMode(false);
   };
 
+  // Form change & submit
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     const type = modalType;
@@ -237,11 +219,7 @@ export default function Ketersediaan() {
     const body = JSON.stringify({ ...formData, type });
 
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body,
-      });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body });
       const result = await res.json();
       if (result.success) {
         fetchData();
@@ -273,6 +251,42 @@ export default function Ketersediaan() {
     }
   };
 
+  // ---------- DATA AKTIF + PAGINATION ----------
+  const activeList = activeTab === 'drivers' ? drivers : vehicles;
+  const currentPage = page[activeTab];
+  const itemsPerPage = perPage[activeTab];
+
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(activeList.length / itemsPerPage || 1));
+  }, [activeList.length, itemsPerPage]);
+
+  // Koreksi page jika ukuran data berubah
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setPage((p) => ({ ...p, [activeTab]: 1 }));
+    }
+  }, [totalPages, currentPage, activeTab]);
+
+  const startIdx = (currentPage - 1) * itemsPerPage;
+  const endIdx = startIdx + itemsPerPage;
+  const pageRows = useMemo(() => activeList.slice(startIdx, endIdx), [activeList, startIdx, endIdx]);
+
+  const onPageChange = useCallback((p) => {
+    if (p < 1 || p > totalPages) return;
+    setPage((prev) => ({ ...prev, [activeTab]: p }));
+    tableTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [activeTab, totalPages]);
+
+  const onChangeItemsPerPage = (e) => {
+    const val = Number(e.target.value);
+    setPerPage((prev) => ({ ...prev, [activeTab]: val }));
+    setPage((prev) => ({ ...prev, [activeTab]: 1 }));
+    tableTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const resultsFrom = activeList.length ? startIdx + 1 : 0;
+  const resultsTo = Math.min(endIdx, activeList.length);
+
   return (
     <>
       <div className={styles.background}>
@@ -285,22 +299,29 @@ export default function Ketersediaan() {
           <div className={styles.cardContainer}>
             <div className={styles.tabButtons}>
               <button
+                type="button"
                 className={`${styles.tabBtn} ${activeTab === 'drivers' ? styles.tabBtnActive : ''}`}
-                onClick={() => setActiveTab('drivers')}
+                onClick={() => { setActiveTab('drivers'); tableTopRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
               >
                 <FaUsers style={{ marginRight: 8 }} /> Driver
               </button>
               <button
+                type="button"
                 className={`${styles.tabBtn} ${activeTab === 'vehicles' ? styles.tabBtnActive : ''}`}
-                onClick={() => setActiveTab('vehicles')}
+                onClick={() => { setActiveTab('vehicles'); tableTopRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
               >
                 <FaCar style={{ marginRight: 8 }} /> Vehicle
               </button>
             </div>
+
             <div className={styles.tableWrapper}>
+              {/* anchor untuk auto-scroll */}
+              <div ref={tableTopRef} />
+
               {/* Tambah tombol Create/Add */}
               <div className={styles.addRow}>
                 <button
+                  type="button"
                   className={styles.btnCreate}
                   onClick={() => handleOpenModal(activeTab)}
                 >
@@ -308,7 +329,8 @@ export default function Ketersediaan() {
                   Tambah {activeTab === 'drivers' ? 'Driver' : 'Vehicle'}
                 </button>
               </div>
-              {/* Tabel Driver */}
+
+              {/* Tabel */}
               {loading ? (
                 <div style={{ textAlign: 'center', margin: 40 }}>Loading...</div>
               ) : activeTab === 'drivers' ? (
@@ -323,20 +345,19 @@ export default function Ketersediaan() {
                     </tr>
                   </thead>
                   <tbody>
-                    {drivers.length === 0 && (
+                    {pageRows.length === 0 ? (
                       <tr><td colSpan={5} style={{ textAlign: 'center', color: '#aaa' }}>Data kosong</td></tr>
-                    )}
-                    {drivers.map((d) => (
+                    ) : pageRows.map((d) => (
                       <tr key={d.id}>
                         <td>{d.id}</td>
                         <td>{d.nim}</td>
                         <td>{d.name}</td>
                         <td>{d.phone}</td>
                         <td>
-                          <button className={styles.btnAction} onClick={() => handleOpenModal('drivers', d)} title="Edit">
+                          <button type="button" className={styles.btnAction} onClick={() => handleOpenModal('drivers', d)} title="Edit">
                             <FaEdit />
                           </button>
-                          <button className={styles.btnActionDelete} onClick={() => handleDelete('drivers', d.id)} title="Delete">
+                          <button type="button" className={styles.btnActionDelete} onClick={() => handleDelete('drivers', d.id)} title="Delete">
                             <FaTrash />
                           </button>
                         </td>
@@ -345,7 +366,6 @@ export default function Ketersediaan() {
                   </tbody>
                 </table>
               ) : (
-                // Tabel Vehicle
                 <table className={styles.dataTable}>
                   <thead>
                     <tr>
@@ -358,10 +378,9 @@ export default function Ketersediaan() {
                     </tr>
                   </thead>
                   <tbody>
-                    {vehicles.length === 0 && (
+                    {pageRows.length === 0 ? (
                       <tr><td colSpan={6} style={{ textAlign: 'center', color: '#aaa' }}>Data kosong</td></tr>
-                    )}
-                    {vehicles.map((v) => (
+                    ) : pageRows.map((v) => (
                       <tr key={v.id}>
                         <td>{v.id}</td>
                         <td>{v.plat_nomor}</td>
@@ -369,10 +388,10 @@ export default function Ketersediaan() {
                         <td>{VEHICLE_TYPE_MAP[v.vehicle_type_id] || v.vehicle_type_id}</td>
                         <td>{VEHICLE_STATUS_MAP[v.vehicle_status_id] || v.vehicle_status_id}</td>
                         <td>
-                          <button className={styles.btnAction} onClick={() => handleOpenModal('vehicles', v)} title="Edit">
+                          <button type="button" className={styles.btnAction} onClick={() => handleOpenModal('vehicles', v)} title="Edit">
                             <FaEdit />
                           </button>
-                          <button className={styles.btnActionDelete} onClick={() => handleDelete('vehicles', v.id)} title="Delete">
+                          <button type="button" className={styles.btnActionDelete} onClick={() => handleDelete('vehicles', v.id)} title="Delete">
                             <FaTrash />
                           </button>
                         </td>
@@ -381,14 +400,47 @@ export default function Ketersediaan() {
                   </tbody>
                 </table>
               )}
+
+              {/* Controls + Pagination */}
+              {!loading && activeList.length > 0 && (
+                <div className={styles.paginateArea}>
+                  <div className={styles.paginateControls}>
+                    <div className={styles.resultsText}>
+                      Menampilkan {resultsFrom}-{resultsTo} dari {activeList.length} data
+                    </div>
+                    <div>
+                      <label htmlFor="perPage" style={{ marginRight: 8 }}>Items per page:</label>
+                      <select
+                        id="perPage"
+                        className={styles.itemsPerPageDropdown}
+                        value={itemsPerPage}
+                        onChange={onChangeItemsPerPage}
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={15}>15</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
+                  </div>
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={onPageChange}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </main>
+
         <LogoutPopup
           open={showLogoutPopup}
           onCancel={() => setShowLogoutPopup(false)}
           onLogout={handleLogout}
         />
+
         {modalOpen && (
           <Modal
             editMode={editMode}

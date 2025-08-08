@@ -344,6 +344,7 @@
   border: none;
   font-weight: 600;
   font-size: 19px;
+  font-family: inherit;
   border-radius: 21px;
   padding: 8px 27px 8px 17px;
   cursor: pointer;
@@ -359,4 +360,41 @@
 .backBtn:hover {
   background: #e8f0fe;
   color: #1c295a;
+}
+/* ===== Pagination (Persetujuan) ===== */
+.paginationContainer {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #e7e9f2;
+}
+
+.paginationControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.resultsText {
+  font-size: 14px;
+  color: #555;
+  font-weight: 600;
+}
+
+.itemsPerPageDropdown {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1.5px solid #e0e0e0;
+  background-color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .paginationControls {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
