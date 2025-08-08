@@ -22,10 +22,12 @@ export default function SignInAdmin() {
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem('admin', JSON.stringify(data.admin));
         setShowSuccess(true);
-        window.location.href = '/HalamanUtama/hal-utamaAdmin';
+        setTimeout(() => {
+          router.push('/HalamanUtama/hal-utamaAdmin');
+        }, 1000)
       } else {
+        const data = await res.json();
         setError(data.error || 'Login gagal.');
       }
     } catch (err) {

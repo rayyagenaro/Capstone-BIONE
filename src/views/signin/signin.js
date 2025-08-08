@@ -20,7 +20,6 @@ export default function SignIn() {
       setError('Email dan password wajib diisi.');
       return;
     }
-
     setError('');
 
     try {
@@ -35,7 +34,7 @@ export default function SignIn() {
       if (res.ok) {
         localStorage.setItem('user', JSON.stringify(data.user));
         setShowSuccess(true);
-        window.location.href = '/HalamanUtama/hal-utamauser';
+        router.push('/HalamanUtama/hal-utamauser');
       } else {
         setError(data.error || 'Login gagal.');
       }
@@ -88,7 +87,7 @@ export default function SignIn() {
             <div className={styles.headerLogoWrapper}>
               <Image
                 src="/assets/BI-One-Blue.png"
-                alt="Logo BI-One"
+                alt="Logo D'ONE"
                 width={160}
                 height={44}
                 className={styles.cardBankLogo}
