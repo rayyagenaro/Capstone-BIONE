@@ -26,50 +26,38 @@ export default function HalamanUtamaUser() {
     }
   }, []);
 
-  // Daftar semua fitur (8 fitur)
+  // Daftar semua fitur (6 fitur)
   const fiturLayanan = [
     {
       logo: "/assets/D'MOVE.svg",   
-      desc: "Pilih driver dan jadwal yang sesuai untuk kebutuhan dinas dan rapat anda.",
+      desc: "BI.DRIVE, mendukung pemesanan layanan pengemudi secara terjadwal untuk mendukung pelaksanaan tugas dinas.",
       link: "/FiturDmove/hal-dmove"
     },
     {
-      logo: "/assets/D'REST.svg",
-      desc: "Pilih rumah dinas dan jadwal yang sesuai untuk kebutuhan penginapan anda.",
-      link: "#"
-    },
-    {
       logo: "/assets/D'CARE.svg",
-      desc: "Pilih dokter dan jadwal yang sesuai untuk kebutuhan kesehatan anda.",
+      desc: "BI.CARE, memfasilitasi pembuatan janji temu dan reservasi layanan klinik Bank Indonesia secara terencana.",
       link: "#"
     },
-        {
+    {
+      logo: "/assets/D'MEAL.svg",
+      desc: "BI.MEAL, memfasilitasi pemesanan konsumsi secara terjadwal untuk mendukung kelancaran rapat dan tugas dinas.",
+      link: "#"
+    },
+    {
+      logo: "/assets/D'TRACK.svg",
+      desc: "BI.MAIL, menyediakan layanan pelacakan dan penomoran surat dinas secara digital, sehingga administrasi surat-menyurat.",
+      link: "#"
+    },
+    {
       logo: "/assets/D'ROOM.svg",
-      desc: "Pilih rumah dinas dan jadwal yang sesuai untuk kebutuhan penginapan anda.",
+      desc: "BI.MEET, menghadirkan kemudahan reservasi ruang rapat dalam penyelenggaraan pertemuan dan kolaborasi antarunit kerja.",
       link: "#"
     },
     {
-      logo: "/assets/D'MEAL.png",
-      desc: "Pilih makanan dan jadwal yang sesuai untuk kebutuhan rapat anda.",
+      logo: "/assets/D'REST.svg",
+      desc: "BI.STAY, menyediakan sistem reservasi akomodasi rumah dinas Bank Indonesia selama menjalankan penugasan.",
       link: "#"
     },
-    {
-      logo: "/assets/D'TRACK.png",
-      desc: "Pilih driver dan jadwal yang sesuai untuk kebutuhan dinas dan rapat anda.",
-      link: "#"
-    },
-    {
-      logo: "/assets/D'SPORTS.png",
-      title: "Digital Sports Reservation System",
-      desc: "Pilih dokter dan jadwal yang sesuai untuk kebutuhan kesehatan anda.",
-      link: "#"
-    },
-    {
-      logo: "/assets/D'MIND.png",
-      title: "Digital Mental Insight System",
-      desc: "Pilih makanan dan jadwal yang sesuai untuk kebutuhan rapat anda.",
-      link: "#"
-    }
   ];
 
   // Fungsi logout
@@ -100,7 +88,7 @@ export default function HalamanUtamaUser() {
           <div className={styles.servicesBox}>
             <div className={styles.servicesTitle}>Pilih Layanan Sesuai Kebutuhan Anda</div>
             <div className={styles.servicesDesc}>
-              Pilih layanan yang Anda butuhkan dan rasakan manfaat nyata dari driver booking, residence booking, clinic appointment & reservation, meal booking, tracking & numbering letter, Digital Reservation Meeting Room, Sports Reservation, dan Mental Insight
+              BI.ONE, memudahkan Anda dalam memilih layanan digital untuk mendukung aktivitas di lingkungan Bank Indonesia.
             </div>
             <div className={styles.cardsGrid}>
               {fiturLayanan.map((fitur, idx) => (

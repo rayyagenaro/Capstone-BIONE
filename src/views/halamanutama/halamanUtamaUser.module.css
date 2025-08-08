@@ -146,7 +146,7 @@
 .welcomeBox {
   width: 90%;
   max-width: 1050px;
-  margin: 20px auto 0 auto;
+  margin: 20px auto 20px auto;
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 2px 16px rgba(47,77,142,0.07);
@@ -203,16 +203,16 @@
 .cardLogo {
   width: 500px !important;
   height: 100px !important;
-  margin-bottom: 12px;
+  /* margin-bottom: 12px; */
   object-fit: contain;
 }
 .cardTitle {
   color: #2f4d8e;
   font-size: 16px;
   font-weight: 700;
-  margin-bottom: 7px;
+  /* margin-bottom: 7px; */
   text-align: center;
-  min-height: 36px;
+  /* min-height: 36px; */
   letter-spacing: 0.01em;
 }
 .cardDesc {
