@@ -190,6 +190,7 @@ export default function FiturDmove() {
             phone: fields.noHp,
             keterangan: fields.keterangan,
             file_link: fields.file_link,
+            jumlah_driver: parseInt(fields.jumlahDriver, 10),
             vehicle_details: fields.jenisKendaraan.map(({ id, quantity }) => ({ id, quantity })),
         };
 

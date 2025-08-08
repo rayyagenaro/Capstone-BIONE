@@ -108,7 +108,7 @@ export default async function handler(req, res) {
         // --- PERUBAHAN 2: Baca 'vehicle_details' dari body ---
         const {
             user_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg,
-            start_date, end_date, phone, keterangan, file_link, vehicle_details
+            start_date, end_date, phone, keterangan, file_link, vehicle_details, jumlah_driver
         } = req.body;
 
         const connection = await db.getConnection();
@@ -117,12 +117,12 @@ export default async function handler(req, res) {
 
             const bookingQuery = `
                 INSERT INTO bookings 
-                  (user_id, status_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg, start_date, end_date, phone, keterangan, file_link) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  (user_id, status_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg, start_date, end_date, phone, keterangan, file_link, jumlah_driver) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             const bookingValues = [
                 user_id, 1, tujuan, jumlah_orang, jumlah_kendaraan, 
-                volume_kg, start_date, end_date, phone, keterangan, file_link
+                volume_kg, start_date, end_date, phone, keterangan, file_link, jumlah_driver
             ];
             const [result] = await connection.query(bookingQuery, bookingValues);
             const newBookingId = result.insertId;
