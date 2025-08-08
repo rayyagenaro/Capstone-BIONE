@@ -45,6 +45,7 @@ export default function DetailsLaporan() {
     const [error, setError] = useState(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     // Fetch data booking spesifik saat komponen dimuat atau ID berubah
     useEffect(() => {
@@ -83,7 +84,7 @@ export default function DetailsLaporan() {
                 const errData = await res.json();
                 throw new Error(errData.error || "Gagal mengubah status.");
             }
-            alert("Status berhasil diperbarui!");
+            setShowSuccess(true);
             router.push('/Persetujuan/hal-persetujuan'); // Arahkan kembali ke halaman list
         } catch (err) {
             alert(`Error: ${err.message}`);
@@ -103,6 +104,20 @@ export default function DetailsLaporan() {
         <div className={styles.background}>
             {/* SIDEBAR (tetap sama) */}
             <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
+
+            {showSuccess && (
+              <div className={styles.popupOverlay}>
+                <div className={styles.popupBox}>
+                  <div className={styles.popupIcon}>
+                    <svg width="70" height="70" viewBox="0 0 70 70">
+                      <circle cx="35" cy="35" r="35" fill="#7EDC89" />
+                      <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div className={styles.popupMsg}><b>Berhasil Mengubah Status</b></div>
+                </div>
+              </div>
+            )}
 
             {/* MAIN CONTENT */}
             <main className={styles.mainContent}>
