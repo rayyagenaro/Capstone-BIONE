@@ -195,7 +195,8 @@
   border-radius: 9px;
   padding: 7px 19px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
   display: flex;
   align-items: center;
