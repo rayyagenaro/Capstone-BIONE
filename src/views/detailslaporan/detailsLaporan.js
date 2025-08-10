@@ -1,17 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import styles from './detailsLaporan.module.css';
-import {
-  FaHome,
-  FaClipboardList,
-  FaCog,
-  FaSignOutAlt,
-  FaFilePdf,
-  FaArrowLeft,
-  FaUsers,
-} from 'react-icons/fa';
+import { FaFilePdf, FaArrowLeft } from 'react-icons/fa';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
@@ -47,11 +37,6 @@ export default function DetailsLaporan() {
   const router = useRouter();
   const { id } = router.query;
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin');
-    router.push('/Login/hal-login');
-  };
-
   // State
   const [booking, setBooking] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,10 +45,10 @@ export default function DetailsLaporan() {
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
 
-  const [driversFromDB, setDriversFromDB] = useState([]);
   const [availableDrivers, setAvailableDrivers] = useState([]);
   const [availableVehicles, setAvailableVehicles] = useState([]);
 
+  // Ambil driver available
   useEffect(() => {
     const fetchDrivers = async () => {
       try {
@@ -79,25 +64,7 @@ export default function DetailsLaporan() {
     fetchDrivers();
   }, []);
 
-  useEffect(() => {
-    const fetchDrivers = async () => {
-      try {
-        const res = await fetch('/api/getDrivers');
-        if (!res.ok) throw new Error('Gagal memuat data driver');
-        const data = await res.json();
-        const onlyAvailable = Array.isArray(data)
-          ? data.filter(d => Number(d.driver_status_id ?? d.status_id ?? d.status) === 1)
-          : [];
-        setAvailableDrivers(onlyAvailable);
-      } catch (err) {
-        console.error('Error fetching drivers:', err);
-        setAvailableDrivers([]);
-      }
-    };
-    fetchDrivers();
-  }, []);
-
-  // Fetch booking detail
+  // Ambil detail booking
   useEffect(() => {
     if (!id) return;
     const fetchBookingDetail = async () => {
@@ -106,7 +73,7 @@ export default function DetailsLaporan() {
         const res = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
         if (!res.ok) {
           const errData = await res.json();
-          throw new Error(errData.error || `Gagal memuat data booking.`);
+          throw new Error(errData.error || 'Gagal memuat data booking.');
         }
         const data = await res.json();
         setBooking(data);
@@ -119,26 +86,20 @@ export default function DetailsLaporan() {
     fetchBookingDetail();
   }, [id]);
 
-  // Fetch unit kendaraan available
+  // Ambil unit kendaraan available sesuai type pada booking
   useEffect(() => {
     if (!booking) return;
-
-    // Ambil semua type_id dari booking
-    const typeIds = (booking.vehicle_types || [])
-      .map(v => v.id)
-      .filter(Boolean);
-
-    // Susun query string type_id=1,2,3
-    const qs = typeIds.length ? `&type_id=${typeIds.join(",")}` : "";
+    const typeIds = (booking.vehicle_types || []).map(v => v.id).filter(Boolean);
+    const qs = typeIds.length ? `&type_id=${typeIds.join(',')}` : '';
 
     const fetchAvailableVehicles = async () => {
       try {
         const res = await fetch(`/api/vehicles?status=available${qs}`);
-        if (!res.ok) throw new Error("Gagal ambil kendaraan available");
+        if (!res.ok) throw new Error('Gagal ambil kendaraan available');
         const data = await res.json();
         setAvailableVehicles(Array.isArray(data) ? data : []);
       } catch (e) {
-        console.error("fetchAvailableVehicles error:", e);
+        console.error('fetchAvailableVehicles error:', e);
         setAvailableVehicles([]);
       }
     };
@@ -192,28 +153,39 @@ export default function DetailsLaporan() {
       }
 
       // 2) Update status unit kendaraan -> Unavailable (2) by UNIT
+      if (!vehicleIds || vehicleIds.length === 0) {
+        alert('Pilih kendaraan dulu ya.');
+        setIsUpdating(false);
+        return;
+      }
       await Promise.all(
-        vehicleIds.map(async (id) => {
-          const res = await fetch('/api/updateVehiclesStatus', {   // <- perhatikan S di Vehicles
+        vehicleIds.map(async (vehId) => {
+          const res = await fetch('/api/updateVehiclesStatus', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vehicleId: id, newStatusId: 2 }),
+            body: JSON.stringify({ vehicleId: vehId, newStatusId: 2 }),
           });
           if (!res.ok) {
             const txt = await res.text().catch(() => '');
-            throw new Error(`Gagal update vehicle ${id}: ${txt}`);
+            throw new Error(`Gagal update vehicle ${vehId}: ${txt}`);
           }
         })
       );
 
       // 3) Update status driver -> Digunakan (2)
-      for (const driverId of driverIds) {
-        await fetch('/api/updateDriversStatus', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ driverId, newStatusId: 2 }),
-        });
-      }
+      await Promise.all(
+        driverIds.map(async (driverId) => {
+          const res = await fetch('/api/updateDriversStatus', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ driverId, newStatusId: 2 }),
+          });
+          if (!res.ok) {
+            const txt = await res.text().catch(() => '');
+            throw new Error(`Gagal update driver ${driverId}: ${txt}`);
+          }
+        })
+      );
 
       alert('Persetujuan berhasil diproses.');
       router.push('/Persetujuan/hal-persetujuan');
@@ -223,6 +195,11 @@ export default function DetailsLaporan() {
       setIsUpdating(false);
       setShowPopup(false);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin');
+    router.push('/Login/hal-login');
   };
 
   // UI states
@@ -364,7 +341,7 @@ export default function DetailsLaporan() {
         onClose={() => setShowPopup(false)}
         onSubmit={handleSubmitPersetujuan}
         detail={booking}
-        driverList={availableDrivers}   // sekarang harus terisi
+        driverList={availableDrivers}
         vehicleList={availableVehicles}
       />
     </div>
