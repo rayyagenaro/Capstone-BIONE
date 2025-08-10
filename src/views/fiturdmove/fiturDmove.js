@@ -39,7 +39,7 @@ const SuccessPopup = ({ onClose }) => (
 export default function FiturDmove() {
     const [availabilityData, setAvailabilityData] = useState(null);
     useEffect(() => {
-    fetch('/api/availability')
+    fetch('/api/vehicleAvailability')
         .then(res => res.ok ? res.json() : Promise.reject('Gagal ambil data availability'))
         .then(setAvailabilityData)
         .catch(err => console.error('Error availability:', err));
@@ -47,10 +47,10 @@ export default function FiturDmove() {
     const router = useRouter();
     const { isOpen: isVehicleDropdownOpen, setIsOpen: setVehicleDropdownOpen, ref: vehicleDropdownRef } = useDropdown();
 
-    const getMaxQuantity = (vehicleName) => {
-    if (!availabilityData || !availabilityData.vehicles) return Infinity;
-    const vehicle = availabilityData.vehicles.find(v => v.jenis === vehicleName);
-    return vehicle ? vehicle.jumlah : Infinity;
+    const getMaxQuantity = (typeId) => {
+    if (!availabilityData?.vehicles) return Infinity;
+    const item = availabilityData.vehicles.find(v => v.type_id === typeId);
+    return item ? item.available : 0; // kalau nggak ada, anggap 0
     };
 
     const [fields, setFields] = useState({
@@ -102,22 +102,34 @@ export default function FiturDmove() {
     };
 
     const handleQuantityChange = (option, change) => {
-        setFields(prev => {
-            const existingVehicle = prev.jenisKendaraan.find(item => item.id === option.id);
-            let newSelection = [...prev.jenisKendaraan];
-            if (existingVehicle) {
-                const newQuantity = existingVehicle.quantity + change;
-                if (newQuantity > 0) {
-                    newSelection = newSelection.map(item => item.id === option.id ? { ...item, quantity: newQuantity } : item);
-                } else {
-                    newSelection = newSelection.filter(item => item.id !== option.id);
-                }
-            } else if (change > 0) {
-                newSelection.push({ ...option, quantity: 1 });
-            }
-            return { ...prev, jenisKendaraan: newSelection };
-        });
-        if (errors.jenisKendaraan) setErrors(prev => ({ ...prev, jenisKendaraan: null }));
+    setFields(prev => {
+        const maxForThisType = getMaxQuantity(option.id);
+        const existing = prev.jenisKendaraan.find(item => item.id === option.id);
+        let newSelection = [...prev.jenisKendaraan];
+
+        if (existing) {
+        let newQuantity = existing.quantity + change;
+        if (newQuantity <= 0) {
+            newSelection = newSelection.filter(item => item.id !== option.id);
+        } else {
+            // clamp ke max
+            if (newQuantity > maxForThisType) newQuantity = maxForThisType;
+            newSelection = newSelection.map(item =>
+            item.id === option.id ? { ...item, quantity: newQuantity } : item
+            );
+        }
+        } else if (change > 0) {
+        if (maxForThisType > 0) {
+            newSelection.push({ ...option, quantity: 1 });
+        } else {
+            // opsional: kasih info user
+            alert(`Stok ${option.name} sedang tidak tersedia.`);
+        }
+        }
+
+        return { ...prev, jenisKendaraan: newSelection };
+    });
+    if (errors.jenisKendaraan) setErrors(prev => ({ ...prev, jenisKendaraan: null }));
     };
 
     const handleDateChange = (date, field) => {
@@ -145,12 +157,14 @@ export default function FiturDmove() {
 
         // Validasi jenis kendaraan tidak melebihi jumlah yang tersedia
         if (availabilityData?.vehicles?.length > 0) {
-            fields.jenisKendaraan.forEach(vehicle => {
-                const avail = availabilityData.vehicles.find(v => v.jenis === vehicle.name);
-                if (avail && vehicle.quantity > avail.jumlah) {
-                    err.jenisKendaraan = `Jumlah ${vehicle.name} melebihi stok (maks ${avail.jumlah})`;
-                }
-            });
+        for (const vehicle of fields.jenisKendaraan) {
+            const avail = availabilityData.vehicles.find(v => v.type_id === vehicle.id);
+            const max = avail ? avail.available : 0;
+            if (vehicle.quantity > max) {
+            err.jenisKendaraan = `Jumlah ${vehicle.name} melebihi stok (maks ${max}).`;
+            break;
+            }
+        }
         }
         return err;
     };
@@ -223,56 +237,76 @@ export default function FiturDmove() {
         }
     };
 
-      const AvailabilitySection = () => {
-      const { isOpen, setIsOpen, ref } = useDropdown();
-      const [data, setData] = useState(null);
-      const [loading, setLoading] = useState(false);
-      const [error, setError] = useState('');
+    // --- AvailabilitySection (pakai /api/vehicle-availability) ---
+    const AvailabilitySection = () => {
+    const { isOpen, setIsOpen, ref } = useDropdown();
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-      useEffect(() => {
+    useEffect(() => {
         if (isOpen && !data && !loading) {
-          setLoading(true);
-          setError('');
-          fetch('/api/availability')
+        setLoading(true);
+        setError('');
+        fetch('/api/vehicleAvailability')
             .then(res => res.ok ? res.json() : Promise.reject('Gagal mengambil data.'))
             .then(setData)
-            .catch(setError)
+            .catch((e) => setError(typeof e === 'string' ? e : e?.message || 'Gagal mengambil data.'))
             .finally(() => setLoading(false));
         }
-      }, [isOpen, data, loading]);
+    }, [isOpen, data, loading]);
 
-      const renderStatus = (count) =>
-        count === 0 ? <span style={{ color: 'red', fontWeight: 'bold' }}>Tidak tersedia</span> : count;
+    const renderStatus = (count) =>
+        Number(count) === 0
+        ? <span style={{ color: 'red', fontWeight: 'bold' }}>Tidak tersedia</span>
+        : count;
 
-      return (
+    return (
         <div className={styles.availabilitySection}>
-          <div className={styles.availabilityLabel}>Availability</div>
-          <div className={styles.availabilityDropdownWrap} ref={ref}>
-            <button type="button" className={styles.availabilityDropdownBtn} onClick={() => setIsOpen(v => !v)}>
-              Lihat Ketersediaan <span className={styles.availChevron}>▼</span>
+        <div className={styles.availabilityLabel}>Availability</div>
+        <div className={styles.availabilityDropdownWrap} ref={ref}>
+            <button
+            type="button"
+            className={styles.availabilityDropdownBtn}
+            onClick={() => setIsOpen(v => !v)}
+            >
+            Lihat Ketersediaan <span className={styles.availChevron}>▼</span>
             </button>
+
             {isOpen && (
-              <div className={styles.availabilityDropdown}>
+            <div className={styles.availabilityDropdown}>
                 {loading && <div>Loading...</div>}
                 {error && <div style={{ color: 'red', padding: 4 }}>{error}</div>}
-                {data && (
-                  <table>
-                    <thead><tr><th>Jenis</th><th>Jumlah</th></tr></thead>
-                    <tbody>
-                      <tr><td>Driver</td><td>{renderStatus(data.drivers)}</td></tr>
-                      {Array.isArray(data.vehicles) && data.vehicles.map(v => (
-                        <tr key={v.jenis}><td>{v.jenis}</td><td>{renderStatus(v.jumlah)}</td></tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    };
 
+                {data && (
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Jenis</th>
+                        <th>Jumlah</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Driver</td>
+                        <td>{renderStatus(data.drivers)}</td>
+                    </tr>
+
+                    {Array.isArray(data.vehicles) && data.vehicles.map(v => (
+                        <tr key={v.type_id}>
+                        <td>{v.type_name}</td>
+                        <td>{renderStatus(v.available)}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+                )}
+            </div>
+            )}
+        </div>
+        </div>
+    );
+    };
 
     const closeSuccess = () => {
         setShowSuccess(false);
@@ -322,14 +356,16 @@ export default function FiturDmove() {
                                             {vehicleTypesOptions.map(option => {
                                                 const selectedVehicle = fields.jenisKendaraan.find(item => item.id === option.id);
                                                 const quantity = selectedVehicle ? selectedVehicle.quantity : 0;
+                                                const maxForThisType = getMaxQuantity(option.id);
                                                 return (
                                                     <div key={option.id} className={styles.quantityOption}>
                                                         <span>{option.name}</span>
                                                         <div className={styles.quantityControl}>
-                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleQuantityChange(option, -1); }} disabled={quantity === 0}>-</button>
+                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleQuantityChange(option, -1); }} 
+                                                            disabled={quantity === 0}>-</button>
                                                             <span>{quantity}</span>
                                                             <button type="button" onClick={(e) => { e.stopPropagation(); handleQuantityChange(option, +1); }}
-                                                            disabled={quantity >= getMaxQuantity(option.name)}>+</button>
+                                                            disabled={quantity >= maxForThisType}>+</button>
                                                         </div>
                                                     </div>
                                                 );

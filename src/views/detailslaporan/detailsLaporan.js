@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -16,7 +16,7 @@ import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
 
-// --- Helper Functions ---
+// Helpers
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
   return new Date(dateString).toLocaleDateString('id-ID', {
@@ -37,7 +37,6 @@ const formatDuration = (start, end) => {
   return `${diffDays} Hari | ${startDate.toLocaleDateString('id-ID')} - ${endDate.toLocaleDateString('id-ID')}`;
 };
 
-// --- Konfigurasi Status ---
 const STATUS_CONFIG = {
   '1': { text: 'Pending', className: styles.statusPending, dot: styles.dotPending },
   '2': { text: 'Approved', className: styles.statusApproved, dot: styles.dotApproved },
@@ -53,31 +52,52 @@ export default function DetailsLaporan() {
     router.push('/Login/hal-login');
   };
 
-  // --- State Management ---
+  // State
   const [booking, setBooking] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [driversFromDB, setDriversFromDB] = useState([]);
 
-  // Ambil data driver untuk pilihan di popup
+  const [driversFromDB, setDriversFromDB] = useState([]);
+  const [availableDrivers, setAvailableDrivers] = useState([]);
+  const [availableVehicles, setAvailableVehicles] = useState([]);
+
   useEffect(() => {
     const fetchDrivers = async () => {
       try {
-        const res = await fetch('/api/getDrivers'); // Pastikan endpoint ini ada
+        const res = await fetch('/api/drivers?status=available');
         if (!res.ok) throw new Error('Gagal memuat data driver');
         const data = await res.json();
-        setDriversFromDB(data);
+        setAvailableDrivers(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Error fetching drivers:', err);
+        setAvailableDrivers([]);
       }
     };
     fetchDrivers();
   }, []);
 
-  // Ambil data booking detail
+  useEffect(() => {
+    const fetchDrivers = async () => {
+      try {
+        const res = await fetch('/api/getDrivers');
+        if (!res.ok) throw new Error('Gagal memuat data driver');
+        const data = await res.json();
+        const onlyAvailable = Array.isArray(data)
+          ? data.filter(d => Number(d.driver_status_id ?? d.status_id ?? d.status) === 1)
+          : [];
+        setAvailableDrivers(onlyAvailable);
+      } catch (err) {
+        console.error('Error fetching drivers:', err);
+        setAvailableDrivers([]);
+      }
+    };
+    fetchDrivers();
+  }, []);
+
+  // Fetch booking detail
   useEffect(() => {
     if (!id) return;
     const fetchBookingDetail = async () => {
@@ -99,7 +119,34 @@ export default function DetailsLaporan() {
     fetchBookingDetail();
   }, [id]);
 
-  // Update status: tolak / setujui (tanpa popup)
+  // Fetch unit kendaraan available
+  useEffect(() => {
+    if (!booking) return;
+
+    // Ambil semua type_id dari booking
+    const typeIds = (booking.vehicle_types || [])
+      .map(v => v.id)
+      .filter(Boolean);
+
+    // Susun query string type_id=1,2,3
+    const qs = typeIds.length ? `&type_id=${typeIds.join(",")}` : "";
+
+    const fetchAvailableVehicles = async () => {
+      try {
+        const res = await fetch(`/api/vehicles?status=available${qs}`);
+        if (!res.ok) throw new Error("Gagal ambil kendaraan available");
+        const data = await res.json();
+        setAvailableVehicles(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("fetchAvailableVehicles error:", e);
+        setAvailableVehicles([]);
+      }
+    };
+
+    fetchAvailableVehicles();
+  }, [booking]);
+
+  // Update status tanpa popup
   const handleUpdateStatus = async (newStatusId) => {
     setIsUpdating(true);
     try {
@@ -121,18 +168,17 @@ export default function DetailsLaporan() {
     }
   };
 
-  // Submit dari popup persetujuan
-  const handleSubmitPersetujuan = async ({ driverIds, vehicleTypeIds, keterangan }) => {
+  // Submit dari popup persetujuan (terima driverIds & vehicleIds)
+  const handleSubmitPersetujuan = async ({ driverIds, vehicleIds, keterangan }) => {
     setIsUpdating(true);
     try {
-      // Validasi jumlah driver sesuai booking
       if ((driverIds?.length || 0) !== Number(booking.jumlah_driver)) {
         alert(`Jumlah driver yang dipilih harus tepat ${booking.jumlah_driver}.`);
         setIsUpdating(false);
         return;
       }
 
-      // 1) Update status booking -> Approved (2)
+      // 1) Approve booking
       {
         const res = await fetch('/api/booking', {
           method: 'PUT',
@@ -145,19 +191,20 @@ export default function DetailsLaporan() {
         }
       }
 
-      // 2) Update status kendaraan -> Unavailable (2)
-      const vehiclesToUpdate =
-        Array.isArray(vehicleTypeIds) && vehicleTypeIds.length > 0
-          ? vehicleTypeIds
-          : (booking.vehicle_types || []).map((v) => v.id);
-
-      for (const vehicleTypeId of vehiclesToUpdate) {
-        await fetch('/api/updateVehiclesStatus', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ vehicleTypeId, newStatusId: 2 }),
-        });
-      }
+      // 2) Update status unit kendaraan -> Unavailable (2) by UNIT
+      await Promise.all(
+        vehicleIds.map(async (id) => {
+          const res = await fetch('/api/updateVehiclesStatus', {   // <- perhatikan S di Vehicles
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vehicleId: id, newStatusId: 2 }),
+          });
+          if (!res.ok) {
+            const txt = await res.text().catch(() => '');
+            throw new Error(`Gagal update vehicle ${id}: ${txt}`);
+          }
+        })
+      );
 
       // 3) Update status driver -> Digunakan (2)
       for (const driverId of driverIds) {
@@ -190,7 +237,7 @@ export default function DetailsLaporan() {
       <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
 
       <main className={styles.mainContent}>
-        <div className={styles.header}>{/* ... header ... */}</div>
+        <div className={styles.header}>{/* optional header */}</div>
 
         <div className={styles.titleBox}>
           <button className={styles.backBtn} onClick={() => router.back()}>
@@ -271,7 +318,6 @@ export default function DetailsLaporan() {
                 )}
               </div>
 
-              {/* Tampilkan jumlah driver */}
               <div className={styles.detailLabel}>JUMLAH DRIVER</div>
               <div className={styles.detailValue}>{booking.jumlah_driver ?? 'N/A'}</div>
 
@@ -285,7 +331,6 @@ export default function DetailsLaporan() {
             </div>
           </div>
 
-          {/* Tombol hanya untuk Pending */}
           {booking.status_id === 1 && (
             <div className={styles.actionBtnRow}>
               <button
@@ -319,8 +364,8 @@ export default function DetailsLaporan() {
         onClose={() => setShowPopup(false)}
         onSubmit={handleSubmitPersetujuan}
         detail={booking}
-        driverList={driversFromDB}
-        vehicleList={booking.vehicle_types}
+        driverList={availableDrivers}   // sekarang harus terisi
+        vehicleList={availableVehicles}
       />
     </div>
   );
