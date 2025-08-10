@@ -6,9 +6,9 @@ export default function PersetujuanPopup({
   show,
   onClose,
   onSubmit,
-  detail,                 // berisi booking, termasuk vehicle_types: [{id(type_id), name, quantity}]
-  driverList = [],        // array drivers: { id, name, hp, driver_status_id | status_id }
-  vehicleList = [],       // array vehicles (unit): { id, plat_nomor, tahun, vehicle_type_id, vehicle_status_id }
+  detail,                 // booking: { jumlah_driver, keterangan, vehicle_types: [{id(type_id), name, quantity}] }
+  driverList = [],        // drivers: { id, name, phone?, driver_status_id }
+  vehicleList = [],       // vehicles UNIT: { id, plat_nomor, tahun, vehicle_type_id, vehicle_status_id }
 }) {
   const [selectedDrivers, setSelectedDrivers] = useState([]);
   const [selectedVehicles, setSelectedVehicles] = useState([]);
@@ -16,45 +16,54 @@ export default function PersetujuanPopup({
 
   const maxDrivers = Number(detail?.jumlah_driver) || 0;
 
-  // Map “kuota per tipe” dari booking
+  // kuota per tipe dari booking
   const requiredByType = useMemo(() => {
     const map = new Map();
     (detail?.vehicle_types || []).forEach(vt => {
-      // vt.id = vehicle_type_id, vt.quantity = jumlah unit type ini yang diminta
       map.set(Number(vt.id), Number(vt.quantity) || 0);
     });
     return map;
   }, [detail]);
 
-  // Total unit kendaraan yang diminta
+  // total unit yang diminta
   const totalVehiclesRequired = useMemo(
     () => Array.from(requiredByType.values()).reduce((a, b) => a + b, 0),
     [requiredByType]
   );
 
-  // Filter drivers: hanya available
-  const filteredDrivers = useMemo(() => {
-    return (driverList || []).filter(d => {
-      const s = Number(d.driver_status_id ?? d.status_id ?? d.status);
-      return s === 1; // 1 = Available
-    });
-  }, [driverList]);
+  // driver available
+  const filteredDrivers = useMemo(
+    () => (driverList || []).filter(d => Number(d.driver_status_id ?? d.status_id ?? d.status) === 1),
+    [driverList]
+  );
 
-  // Filter vehicles (unit): hanya available & tipenya ada di booking
+  // kendaraan available & sesuai tipe booking
   const allowedTypeIds = useMemo(
     () => new Set((detail?.vehicle_types || []).map(vt => Number(vt.id))),
     [detail]
   );
 
-  const filteredVehicles = useMemo(() => {
-    return (vehicleList || []).filter(v => {
-      const statusOk = Number(v.vehicle_status_id) === 1; // 1 = Available
-      const typeOk = allowedTypeIds.has(Number(v.vehicle_type_id));
-      return statusOk && typeOk;
-    });
-  }, [vehicleList, allowedTypeIds]);
+  const filteredVehicles = useMemo(
+    () => (vehicleList || []).filter(v =>
+      Number(v.vehicle_status_id) === 1 && allowedTypeIds.has(Number(v.vehicle_type_id))
+    ),
+    [vehicleList, allowedTypeIds]
+  );
 
-  // Hitung terpilih per type untuk batasi sesuai kuota
+  // kelompokkan kendaraan per tipe untuk render per section
+  const vehiclesByType = useMemo(() => {
+    const map = new Map();
+    filteredVehicles.forEach(v => {
+      const t = Number(v.vehicle_type_id);
+      if (!map.has(t)) map.set(t, []);
+      map.get(t).push(v);
+    });
+    // opsional: sort per type & per unit id
+    map.forEach(arr => arr.sort((a, b) => a.id - b.id));
+    return map;
+  }, [filteredVehicles]);
+
+  // hitung yang terpilih per tipe (untuk disable)
   const selectedCountByType = useMemo(() => {
     const map = new Map();
     selectedVehicles.forEach(vid => {
@@ -74,7 +83,7 @@ export default function PersetujuanPopup({
 
   if (!show) return null;
 
-  // Toggle driver (batasi jumlah = maxDrivers)
+  // toggle driver
   const handleDriverToggle = (id) => {
     if (selectedDrivers.includes(id)) {
       setSelectedDrivers(prev => prev.filter(d => d !== id));
@@ -87,7 +96,7 @@ export default function PersetujuanPopup({
     setSelectedDrivers(prev => [...prev, id]);
   };
 
-  // Toggle vehicle unit dengan batas total & per tipe
+  // toggle vehicle unit (batasi total & per tipe)
   const handleVehicleToggle = (id) => {
     const isSelected = selectedVehicles.includes(id);
     if (isSelected) {
@@ -95,13 +104,12 @@ export default function PersetujuanPopup({
       return;
     }
 
-    // Batas total
+    // batas total
     if (selectedVehicles.length >= totalVehiclesRequired) {
       alert(`Maksimum kendaraan yang bisa dipilih adalah ${totalVehiclesRequired} unit.`);
       return;
     }
 
-    // Batas per tipe
     const vehicle = filteredVehicles.find(v => v.id === id);
     if (!vehicle) return;
 
@@ -110,7 +118,6 @@ export default function PersetujuanPopup({
     const selectedForType = selectedCountByType.get(typeId) || 0;
 
     if (selectedForType >= requiredForType) {
-      // opsional: cari nama tipe dari detail untuk pesan yang lebih informatif
       const typeName = (detail?.vehicle_types || []).find(vt => Number(vt.id) === typeId)?.name || `Tipe ${typeId}`;
       alert(`Kuota ${typeName} sudah terpenuhi (maks ${requiredForType}).`);
       return;
@@ -133,8 +140,8 @@ export default function PersetujuanPopup({
     }
 
     onSubmit({
-      driverIds: selectedDrivers,     // kirim ID driver
-      vehicleIds: selectedVehicles,   // kirim ID unit kendaraan
+      driverIds: selectedDrivers,
+      vehicleIds: selectedVehicles,
       keterangan,
     });
   };
@@ -144,15 +151,15 @@ export default function PersetujuanPopup({
     .map(d => d.name)
     .join(', ');
 
-  // Helper tampilkan label kendaraan (plat + tipe)
   const vehicleLabel = (v) => {
-    const typeName = (detail?.vehicle_types || []).find(t => Number(t.id) === Number(v.vehicle_type_id))?.name || `Type ${v.vehicle_type_id}`;
+    const typeName =
+      (detail?.vehicle_types || []).find(t => Number(t.id) === Number(v.vehicle_type_id))?.name
+      || `Tipe ${v.vehicle_type_id}`;
     return `${v.plat_nomor ?? v.plate ?? v.id} — ${typeName}`;
   };
 
-  // Disabled state untuk checkbox kendaraan (kalau sudah penuh total atau per tipe)
   const isVehicleDisabled = (v) => {
-    if (selectedVehicles.includes(v.id)) return false; // selalu boleh unselect
+    if (selectedVehicles.includes(v.id)) return false; // boleh uncheck
     if (selectedVehicles.length >= totalVehiclesRequired) return true;
     const typeId = Number(v.vehicle_type_id);
     const requiredForType = requiredByType.get(typeId) || 0;
@@ -169,75 +176,107 @@ export default function PersetujuanPopup({
         </div>
 
         <form className={styles.popupForm} onSubmit={handleSubmit}>
-          {/* Kendaraan (hanya available & sesuai tipe booking) */}
-          <label className={styles.formLabel}>
-            Pilih Kendaraan
-            {totalVehiclesRequired ? ` (butuh ${totalVehiclesRequired} unit)` : ''}
-          </label>
-          <div className={styles.multipleChoiceWrap}>
-            {filteredVehicles.length === 0 && (
-              <div className={styles.emptyHint}>Tidak ada kendaraan available yang sesuai tipe.</div>
-            )}
-            {filteredVehicles.map(vehicle => (
-              <label key={vehicle.id} className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  value={vehicle.id}
-                  checked={selectedVehicles.includes(vehicle.id)}
-                  onChange={() => handleVehicleToggle(vehicle.id)}
-                  className={styles.checkboxInput}
-                  disabled={isVehicleDisabled(vehicle)}
-                />
-                <span>{vehicleLabel(vehicle)}</span>
+          {/* === 2 columns layout === */}
+          <div className={styles.columns}>
+            {/* LEFT: kendaraan (group per type) */}
+            <div className={styles.col}>
+              <label className={styles.formLabel}>
+                Pilih Kendaraan{totalVehiclesRequired ? ` (butuh ${totalVehiclesRequired} unit)` : ''}
               </label>
-            ))}
+
+              {detail?.vehicle_types?.map((t) => {
+                const typeId = Number(t.id);
+                const list = vehiclesByType.get(typeId) || [];
+                const required = requiredByType.get(typeId) || 0;
+                const selectedForType = selectedCountByType.get(typeId) || 0;
+
+                return (
+                  <div key={typeId} className={styles.typeSection}>
+                    <div className={styles.typeHeader}>
+                      <span className={styles.typeTitle}>
+                        {required} unit {t.name}
+                      </span>
+                      <span className={styles.typeCounter}>
+                        {selectedForType}/{required}
+                      </span>
+                    </div>
+
+                    <div className={styles.scrollBox}>
+                      {list.length === 0 && (
+                        <div className={styles.emptyHintSmall}>Tidak ada unit {t.name} yang available.</div>
+                      )}
+                      {list.map(vehicle => (
+                        <label key={vehicle.id} className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            value={vehicle.id}
+                            checked={selectedVehicles.includes(vehicle.id)}
+                            onChange={() => handleVehicleToggle(vehicle.id)}
+                            className={styles.checkboxInput}
+                            disabled={isVehicleDisabled(vehicle)}
+                          />
+                          <span>{vehicleLabel(vehicle)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* RIGHT: drivers */}
+            <div className={styles.col}>
+              <label className={styles.formLabel}>
+                Pilih Driver{maxDrivers ? ` (Max ${maxDrivers})` : ''}
+              </label>
+              <div className={styles.scrollBox}>
+                {filteredDrivers.length === 0 && (
+                  <div className={styles.emptyHint}>Tidak ada driver yang available.</div>
+                )}
+                {filteredDrivers.map(driver => (
+                  <label key={driver.id} className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      value={driver.id}
+                      checked={selectedDrivers.includes(driver.id)}
+                      onChange={() => handleDriverToggle(driver.id)}
+                      className={styles.checkboxInput}
+                      disabled={
+                        !selectedDrivers.includes(driver.id) &&
+                        selectedDrivers.length >= maxDrivers
+                      }
+                    />
+                    <span>{driver.name}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Nama Driver Terpilih */}
+              <label className={styles.formLabel}>Driver Terpilih</label>
+              <input
+                className={styles.formInput}
+                type="text"
+                value={selectedDriverNames}
+                readOnly
+                placeholder="Driver"
+              />
+            </div>
           </div>
 
-          {/* Driver (hanya available) */}
-          <label className={styles.formLabel}>Pilih Driver (Max {maxDrivers})</label>
-          <div className={styles.multipleChoiceWrap}>
-            {filteredDrivers.length === 0 && (
-              <div className={styles.emptyHint}>Tidak ada driver yang available.</div>
-            )}
-            {filteredDrivers.map(driver => (
-              <label key={driver.id} className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  value={driver.id}
-                  checked={selectedDrivers.includes(driver.id)}
-                  onChange={() => handleDriverToggle(driver.id)}
-                  className={styles.checkboxInput}
-                  disabled={
-                    !selectedDrivers.includes(driver.id) &&
-                    selectedDrivers.length >= maxDrivers
-                  }
-                />
-                <span>{driver.name}</span>
-              </label>
-            ))}
+          {/* Keterangan + Submit (di bawah 2 kolom) */}
+          <div className={styles.footerRow}>
+            <div className={styles.keteranganCol}>
+              <label className={styles.formLabel}>Keterangan</label>
+              <input
+                className={styles.formInput}
+                type="text"
+                value={keterangan}
+                onChange={(e) => setKeterangan(e.target.value)}
+                placeholder="Keterangan"
+              />
+            </div>
+            <button type="submit" className={styles.submitBtn}>Submit</button>
           </div>
-
-          {/* Nama Driver Terpilih (display only) */}
-          <label className={styles.formLabel}>Driver Terpilih</label>
-          <input
-            className={styles.formInput}
-            type="text"
-            value={selectedDriverNames}
-            readOnly
-            placeholder="Driver"
-          />
-
-          {/* Keterangan */}
-          <label className={styles.formLabel}>Keterangan</label>
-          <input
-            className={styles.formInput}
-            type="text"
-            value={keterangan}
-            onChange={(e) => setKeterangan(e.target.value)}
-            placeholder="Keterangan"
-          />
-
-          <button type="submit" className={styles.submitBtn}>Submit</button>
         </form>
       </div>
     </div>
