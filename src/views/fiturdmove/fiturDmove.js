@@ -170,72 +170,62 @@ export default function FiturDmove() {
     };
 
     const handleSubmit = async (e) => {
-        console.log('1. Fungsi handleSubmit terpanggil.');
         e.preventDefault();
         setSubmitError('');
 
         const validationErrors = validate();
-        console.log('2. Hasil validasi:', validationErrors);
         if (Object.keys(validationErrors).length > 0) {
-            console.log('   -> Proses dihentikan karena ada error validasi.');
             setErrors(validationErrors);
             return;
         }
         setErrors({});
         setIsSubmitting(true);
 
-        const userDataStr = localStorage.getItem('user');
-        if (!userDataStr) {
-            console.log('   -> Proses dihentikan karena user data tidak ditemukan di localStorage.');
-            setSubmitError("Sesi Anda berakhir. Silakan login kembali.");
-            setIsSubmitting(false);
-            return;
-        }
-        const user = JSON.parse(userDataStr);
-
-        const payload = {
-            user_id: user.id,
-            tujuan: fields.tujuan,
-            jumlah_orang: parseInt(fields.jumlahOrang, 10) || null,
-            jumlah_kendaraan: fields.jumlahKendaraan,
-            volume_kg: parseInt(fields.volumeBarang, 10) || null,
-            start_date: fields.startDate.toISOString(),
-            end_date: fields.endDate.toISOString(),
-            phone: fields.noHp,
-            keterangan: fields.keterangan,
-            file_link: fields.file_link,
-            jumlah_driver: parseInt(fields.jumlahDriver, 10),
-            vehicle_details: fields.jenisKendaraan.map(({ id, quantity }) => ({ id, quantity })),
-        };
-
-        console.log('3. PAYLOAD YANG SIAP DIKIRIM:', payload);
-        console.log('4. Mencoba mengirim data ke server...');
-
         try {
+            // Ambil data user dari token di cookie
+            const meRes = await fetch('/api/me');
+            const meData = await meRes.json();
+
+            if (!meData.hasToken || !meData.payload?.sub) {
+                setSubmitError("Sesi Anda berakhir. Silakan login kembali.");
+                setIsSubmitting(false);
+                return;
+            }
+
+            const payload = {
+                user_id: meData.payload.sub, // langsung dari token
+                tujuan: fields.tujuan,
+                jumlah_orang: parseInt(fields.jumlahOrang, 10) || null,
+                jumlah_kendaraan: fields.jumlahKendaraan,
+                volume_kg: parseInt(fields.volumeBarang, 10) || null,
+                start_date: fields.startDate.toISOString(),
+                end_date: fields.endDate.toISOString(),
+                phone: fields.noHp,
+                keterangan: fields.keterangan,
+                file_link: fields.file_link,
+                jumlah_driver: parseInt(fields.jumlahDriver, 10),
+                vehicle_details: fields.jenisKendaraan.map(({ id, quantity }) => ({ id, quantity })),
+            };
+
             const res = await fetch('/api/booking', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
-            console.log('5. Respons dari server diterima:', res);
-
             if (!res.ok) {
                 const errorData = await res.json();
-                console.error('   -> Server mengembalikan error:', errorData);
                 throw new Error(errorData.error || 'Gagal membuat booking.');
             }
 
-            console.log('   -> Booking berhasil!');
             setShowSuccess(true);
         } catch (error) {
-            console.error('6. Terjadi error pada blok try-catch:', error.message);
             setSubmitError(error.message);
         } finally {
-            console.log('7. Proses selesai, setIsSubmitting(false).');
             setIsSubmitting(false);
         }
     };
+
 
     // --- AvailabilitySection (pakai /api/vehicle-availability) ---
     const AvailabilitySection = () => {
@@ -310,21 +300,25 @@ export default function FiturDmove() {
 
     const closeSuccess = () => {
         setShowSuccess(false);
-        router.push("/StatusBooking/hal-statusBooking");
+        router.push("/User/StatusBooking/hal-statusBooking");
     };
-
-    const handleLogout = () => {
-        localStorage.removeItem('user');
-        router.push('/Login/hal-login');
+    const handleLogout = async () => {
+        try {
+        await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+        } catch (e) {
+        // optional: log error
+        } finally {
+        router.replace('/Signin/hal-sign'); // balik ke login admin
+        }
     };
 
     return (
         <div className={styles.background}>
-            <SidebarUser onLogoutClick={() => setShowLogoutPopup(true)} />
+            <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
             <main className={styles.mainContent}>
                 <div className={styles.formBox}>
                     <div className={styles.topRow}>
-                        <Link href="/HalamanUtama/hal-utamauser"><button className={styles.backBtn}><FaArrowLeft /> Kembali</button></Link>
+                        <Link href="/User/HalamanUtama/hal-utamauser"><button className={styles.backBtn}><FaArrowLeft /> Kembali</button></Link>
                         <div className={styles.logoDmoveWrapper}><Image src="/assets/D'MOVE.svg" alt="BI.DRIVE" width={180} height={85} priority /></div>
                         <AvailabilitySection />
                     </div>

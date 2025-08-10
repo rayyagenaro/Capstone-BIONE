@@ -5,13 +5,14 @@ import styles from './signin.module.css';
 import { useRouter } from 'next/router';
 
 export default function SignIn() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showForgotPopup, setShowForgotPopup] = useState(false);
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -21,25 +22,37 @@ export default function SignIn() {
       return;
     }
     setError('');
+    setLoading(true);
 
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // cookie HttpOnly akan di-set oleh response ini
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
-      if (res.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setShowSuccess(true);
-        router.push('/HalamanUtama/hal-utamauser');
-      } else {
-        setError(data.error || 'Login gagal.');
+      if (!res.ok) {
+        setError(data?.error || 'Login gagal.');
+        setLoading(false);
+        return;
       }
+
+      // sukses: token sudah di cookie `token` (HttpOnly)
+      setShowSuccess(true);
+
+      // kalau ada ?from=/path (di-set oleh middleware), pakai itu
+      const from = typeof router.query.from === 'string' ? router.query.from : null;
+      const target = from || '/User/HalamanUtama/hal-utamauser';
+
+      setTimeout(() => {
+        router.push(target);
+      }, 800);
     } catch (err) {
       setError('Terjadi kesalahan saat login.');
+      setLoading(false);
     }
   }
 
@@ -50,8 +63,6 @@ export default function SignIn() {
   function handleCloseForgotPopup() {
     setShowForgotPopup(false);
   }
-
-  // MODIFIKASI: langsung redirect ke halaman login
   function handleBack() {
     router.push('/Login/hal-login');
   }
@@ -76,7 +87,7 @@ export default function SignIn() {
 
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
-          {/* HEADER CARD: Icon Kembali & Logo */}
+          {/* HEADER CARD */}
           <div className={styles.cardHeaderRowMod}>
             <button className={styles.backBtn} type="button" onClick={handleBack} aria-label="Kembali">
               <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
@@ -96,10 +107,9 @@ export default function SignIn() {
             </div>
             <div className={styles.backBtnSpacer} />
           </div>
-          {/* END header row */}
 
           <span className={styles.welcome}>Selamat Datang!</span>
-          
+
           <form className={styles.form} autoComplete="off" onSubmit={handleSubmit}>
             <label htmlFor="email" className={styles.inputLabel}>Email</label>
             <input
@@ -125,10 +135,12 @@ export default function SignIn() {
                 autoComplete="current-password"
                 required
               />
-              <span
+              <button
+                type="button"
                 className={styles.eyeIcon}
                 onClick={() => setShowPassword((s) => !s)}
                 title={showPassword ? 'Sembunyikan Password' : 'Lihat Password'}
+                aria-label={showPassword ? 'Sembunyikan Password' : 'Lihat Password'}
               >
                 {showPassword ? (
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -151,9 +163,9 @@ export default function SignIn() {
                     <circle cx="12" cy="12" r="3" stroke="#bbb" strokeWidth="2" />
                   </svg>
                 )}
-              </span>
+              </button>
             </div>
-            
+
             {showSuccess && (
               <div className={styles.popupOverlay}>
                 <div className={styles.popupBox}>
@@ -193,19 +205,7 @@ export default function SignIn() {
                       0812812812
                     </span>
                   </div>
-                  <button className={styles.button}
-                    style={{
-                      marginTop: 4,
-                      fontWeight: 'bold',
-                      fontSize: '16.5px',
-                      borderRadius: '16px',
-                      width: '100%',
-                      maxWidth: 320,
-                      marginInline: 'auto',
-                      padding: '10px 0'
-                    }}
-                    onClick={handleCloseForgotPopup}
-                  >
+                  <button className={styles.button} style={{ marginTop: 4 }} onClick={handleCloseForgotPopup}>
                     Tutup
                   </button>
                 </div>
@@ -217,11 +217,7 @@ export default function SignIn() {
                 <input type="checkbox" className={styles.checkbox} />
                 Ingat Saya
               </label>
-              <span
-                className={styles.forgotLink}
-                style={{ cursor: 'pointer' }}
-                onClick={handleForgotPassword}
-              >
+              <span className={styles.forgotLink} style={{ cursor: 'pointer' }} onClick={handleForgotPassword}>
                 Lupa Kata Sandi?
               </span>
             </div>
@@ -231,13 +227,13 @@ export default function SignIn() {
             <button
               type="submit"
               className={styles.button}
-              disabled={!email.trim() || !password}
+              disabled={loading || !email.trim() || !password}
               style={{
-                opacity: !email.trim() || !password ? 0.6 : 1,
-                cursor: !email.trim() || !password ? 'not-allowed' : 'pointer',
+                opacity: loading || !email.trim() || !password ? 0.6 : 1,
+                cursor: loading || !email.trim() || !password ? 'not-allowed' : 'pointer',
               }}
             >
-              Masuk
+              {loading ? 'Memproses...' : 'Masuk'}
             </button>
           </form>
 

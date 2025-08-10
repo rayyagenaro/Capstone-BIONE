@@ -165,9 +165,14 @@ export default function Ketersediaan() {
   const [formData, setFormData] = useState(initialDriver);
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
-  const handleLogout = () => {
-    localStorage.removeItem('admin');
-    window.location.href = '/Login/hal-login';
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+    } catch (e) {
+      // optional: log error
+    } finally {
+      router.replace('/Signin/hal-signAdmin'); // balik ke login admin
+    }
   };
 
   // ---------- PAGINATION STATE (per tab) ----------
@@ -291,7 +296,7 @@ export default function Ketersediaan() {
     <>
       <div className={styles.background}>
         {/* SIDEBAR */}
-        <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
+        <SidebarAdmin onLogout={() => setShowLogoutPopup(true)} />
 
         {/* MAIN CONTENT */}
         <main className={styles.mainContent}>

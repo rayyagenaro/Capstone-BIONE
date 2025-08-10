@@ -1,4 +1,4 @@
-import DetailsLaporan from '../../views/pengaturanuser/pengaturan';
+import DetailsLaporan from '../../../views/detailslaporan/detailsLaporan';
 
 export default function HalDetailslaporan() {
   return <DetailsLaporan/>;

@@ -151,9 +151,14 @@ export default function Pengaturan() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin');
-    Router.push('/Login/hal-login');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+    } catch (e) {
+      // optional: log error
+    } finally {
+      router.replace('/Signin/hal-signAdmin'); // balik ke login admin
+    }
   };
   
   // --- 4. FUNGSI HANDLER BARU UNTUK PAGINATION ---
@@ -168,7 +173,7 @@ export default function Pengaturan() {
 
   return (
     <div className={styles.background}>
-      <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
+      <SidebarAdmin onLogout={() => setShowLogoutPopup(true)} />
       <main className={styles.mainContent}>
         <div className={styles.tableBox}>
           <div className={styles.tableTopRow}>

@@ -158,24 +158,38 @@ export default function StatusBooking() {
     return () => { document.body.style.overflow = ''; };
   }, [selectedBooking]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    router.push('/Login/hal-login');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+    } catch (e) {
+      // optional: log error
+    } finally {
+      router.replace('/Signin/hal-sign'); // balik ke login admin
+    }
   };
 
   useEffect(() => {
-    const userDataStr = localStorage.getItem('user');
-    if (!userDataStr) {
-      setIsLoading(false);
-      setError('Silakan login untuk melihat status booking.');
-      return;
-    }
+    let active = true;
 
-    const user = JSON.parse(userDataStr);
     const fetchBookings = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/booking?userId=${user.id}`);
+        // Ambil identitas user dari token di cookie
+        const meRes = await fetch('/api/me');
+        const meData = await meRes.json();
+
+        if (!active) return;
+
+        if (!meData.hasToken || meData.payload?.role !== 'user') {
+          setError('Silakan login untuk melihat status booking.');
+          setIsLoading(false);
+          return;
+        }
+
+        const userId = meData.payload.sub;
+
+        // Ambil booking berdasarkan userId
+        const res = await fetch(`/api/booking?userId=${userId}`);
         if (!res.ok) {
           const errorData = await res.json();
           throw new Error(errorData.error || 'Gagal memuat data booking');
@@ -185,11 +199,14 @@ export default function StatusBooking() {
       } catch (err) {
         setError(err.message);
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
+
     fetchBookings();
+    return () => { active = false; };
   }, []);
+
 
   const handleTabChange = useCallback((tabName) => {
     setActiveTab(tabName);
@@ -244,7 +261,7 @@ export default function StatusBooking() {
 
   return (
     <div className={styles.background}>
-      <SidebarUser onLogoutClick={() => setShowLogoutPopup(true)} />
+      <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
       <main className={styles.mainContent}>
         <div className={styles.bookingBox}>
           <div className={styles.topRow}>

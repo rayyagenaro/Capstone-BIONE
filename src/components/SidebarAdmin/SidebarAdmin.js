@@ -6,13 +6,13 @@ import { useRouter } from 'next/router';
 import styles from './SidebarAdmin.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers } from 'react-icons/fa';
 
-export default function SidebarAdmin({ onLogoutClick }) {
+export default function SidebarAdmin({ onLogout }) {
     const router = useRouter();
     const menuItems = [
-        { href: '/HalamanUtama/hal-utamaAdmin', text: 'Beranda', icon: FaHome },
-        { href: '/Persetujuan/hal-persetujuan', text: 'Persetujuan Booking', icon: FaClipboardList },
-        { href: '/Ketersediaan/hal-ketersediaan', text: 'Ketersediaan', icon: FaUsers },
-        { href: '/Pengaturan/hal-pengaturan', text: 'Pengaturan', icon: FaCog },
+        { href: '/Admin/HalamanUtama/hal-utamaAdmin', text: 'Beranda', icon: FaHome },
+        { href: '/Admin/Persetujuan/hal-persetujuan', text: 'Persetujuan Booking', icon: FaClipboardList },
+        { href: '/Admin/Ketersediaan/hal-ketersediaan', text: 'Ketersediaan', icon: FaUsers },
+        { href: '/Admin/Pengaturan/hal-pengaturan', text: 'Pengaturan', icon: FaCog },
     ];
 
     return (
@@ -41,7 +41,7 @@ export default function SidebarAdmin({ onLogoutClick }) {
             </nav>
             <div 
                 className={styles.logout} 
-                onClick={onLogoutClick} 
+                onClick={onLogout} 
                 role="button" 
                 tabIndex={0}
             >

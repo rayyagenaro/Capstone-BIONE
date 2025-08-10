@@ -14,7 +14,6 @@ const calculateDuration = (start, end) => {
   return `${d || 1} Hari`;
 };
 
-// Status config
 const STATUS_CONFIG = {
   '1': { text: 'Pending', className: styles.layananStatusProcess },
 };
@@ -27,54 +26,59 @@ export default function HalamanUtamaAdmin() {
   const [error, setError] = useState(null);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
-  // ===== Pagination state =====
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const listTopRef = useRef(null);
 
+  // ✅ GANTI guard: cek token & role dari server, BUKAN localStorage
   useEffect(() => {
-    const adminStr = localStorage.getItem('admin');
-    if (adminStr) {
+    let active = true;
+    (async () => {
       try {
-        const admin = JSON.parse(adminStr);
-        setNamaAdmin(admin.nama || 'Admin');
-      } catch {
-        localStorage.removeItem('admin');
-        router.push('/Login/hal-login');
-        return;
-      }
-    } else {
-      router.push('/Login/hal-login');
-      return;
-    }
+        const r = await fetch('/api/me');
+        const d = await r.json();
 
-    const fetchIncomingBookings = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
+        if (!active) return;
+
+        // Jika tidak ada token atau bukan admin → ke halaman login admin
+        if (!d.hasToken || d.payload?.role !== 'admin') {
+          router.replace('/Signin/hal-signAdmin?from=' + encodeURIComponent(router.asPath));
+          return;
+        }
+
+        // Set nama admin dari payload JWT (fallback "Admin")
+        setNamaAdmin(d.payload?.name || 'Admin');
+
+        // Setelah lolos, load data
+        setIsLoading(true);
+        setError(null);
         const res = await fetch('/api/booking?status=pending');
         if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Gagal memuat data booking');
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData?.error || 'Gagal memuat data booking');
         }
         const data = await res.json();
         setIncomingBookings(data);
-      } catch (err) {
-        setError(err.message);
+      } catch (e) {
+        setError(e.message || 'Terjadi kesalahan');
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
-    };
-
-    fetchIncomingBookings();
+    })();
+    return () => { active = false; };
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin');
-    router.push('/Login/hal-login');
+  // ✅ Logout via API agar cookie token terhapus
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+    } catch (e) {
+      // optional: log error
+    } finally {
+      router.replace('/Signin/hal-signAdmin'); // balik ke login admin
+    }
   };
 
-  // ===== Hitung & slice data untuk pagination =====
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil((incomingBookings.length || 0) / itemsPerPage));
   }, [incomingBookings.length, itemsPerPage]);
@@ -91,15 +95,11 @@ export default function HalamanUtamaAdmin() {
     [incomingBookings, startIndex, endIndex]
   );
 
-  // ===== Handlers =====
-  const onPageChange = useCallback(
-    (page) => {
-      if (page < 1 || page > totalPages) return;
-      setCurrentPage(page);
-      listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    },
-    [totalPages]
-  );
+  const onPageChange = useCallback((page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [totalPages]);
 
   const onChangeItemsPerPage = (e) => {
     const val = Number(e.target.value);
@@ -113,7 +113,7 @@ export default function HalamanUtamaAdmin() {
 
   return (
     <div className={styles.background}>
-      <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
+      <SidebarAdmin onLogout={() => setShowLogoutPopup(true)} />
       <main className={styles.mainContent}>
         <div className={styles.greeting}>
           Selamat datang, {namaAdmin}
@@ -122,8 +122,6 @@ export default function HalamanUtamaAdmin() {
 
         <div className={styles.boxLayanan}>
           <div className={styles.titleLayanan}>LAYANAN MASUK</div>
-
-          {/* anchor untuk auto-scroll ke atas list */}
           <div ref={listTopRef} />
 
           <div className={styles.cardList}>
@@ -132,15 +130,7 @@ export default function HalamanUtamaAdmin() {
             ) : error ? (
               <p className={styles.errorText}>Error: {error}</p>
             ) : paginated.length === 0 ? (
-              <div className={styles.emptyStateContainer}>
-                <Image
-                  src="/assets/no-requests.svg"
-                  alt="Tidak ada permintaan"
-                  width={120}
-                  height={120}
-                />
-                <p className={styles.emptyText}>Belum ada permintaan booking baru.</p>
-              </div>
+              <p className={styles.emptyText}>Belum ada permintaan booking baru.</p>
             ) : (
               paginated.map((booking) => {
                 const statusInfo = STATUS_CONFIG[booking.status_id];
@@ -148,13 +138,8 @@ export default function HalamanUtamaAdmin() {
                   <div
                     key={booking.id}
                     className={styles.cardLayanan}
-                    onClick={() =>
-                      router.push(`/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)
-                    }
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' &&
-                      router.push(`/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)
-                    }
+                    onClick={() => router.push(`/Admin/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)}
+                    onKeyDown={(e) => e.key === 'Enter' && router.push(`/Admin/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)}
                     role="button"
                     tabIndex={0}
                     aria-label={`Lihat detail booking ${booking.tujuan}`}
@@ -168,12 +153,8 @@ export default function HalamanUtamaAdmin() {
                       priority
                     />
                     <div className={styles.cardContent}>
-                      <div className={styles.layananTitle}>
-                        {`Booking D'MOVE | ${booking.tujuan}`}
-                      </div>
-                      <div className={styles.layananSub}>
-                        {calculateDuration(booking.start_date, booking.end_date)}
-                      </div>
+                      <div className={styles.layananTitle}>{`Booking D'MOVE | ${booking.tujuan}`}</div>
+                      <div className={styles.layananSub}>{calculateDuration(booking.start_date, booking.end_date)}</div>
                       {statusInfo && (
                         <div className={`${styles.layananStatus} ${statusInfo.className}`}>
                           {statusInfo.text}
@@ -186,7 +167,6 @@ export default function HalamanUtamaAdmin() {
             )}
           </div>
 
-          {/* Controls + Pagination */}
           {!isLoading && !error && incomingBookings.length > 0 && (
             <div className={styles.paginationContainer}>
               <div className={styles.paginationControls}>
@@ -194,9 +174,7 @@ export default function HalamanUtamaAdmin() {
                   Menampilkan {resultsFrom}-{resultsTo} dari {incomingBookings.length} data
                 </div>
                 <div>
-                  <label htmlFor="perPage" style={{ marginRight: 8 }}>
-                    Items per page:
-                  </label>
+                  <label htmlFor="perPage" style={{ marginRight: 8 }}>Items per page:</label>
                   <select
                     id="perPage"
                     className={styles.itemsPerPageDropdown}
@@ -213,11 +191,7 @@ export default function HalamanUtamaAdmin() {
                 </div>
               </div>
 
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={onPageChange}
-              />
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
             </div>
           )}
         </div>

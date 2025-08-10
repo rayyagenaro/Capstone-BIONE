@@ -4,34 +4,53 @@ import { useRouter } from 'next/router';
 import styles from './signinAdmin.module.css';
 
 export default function SignInAdmin() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (!email.trim() || !password) {
+      setError('Email dan password wajib diisi.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
 
     try {
       const res = await fetch('/api/loginAdmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // Cookie HttpOnly `token` akan di-set oleh API
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        setShowSuccess(true);
-        setTimeout(() => {
-          router.push('/HalamanUtama/hal-utamaAdmin');
-        }, 1000)
-      } else {
-        const data = await res.json();
-        setError(data.error || 'Login gagal.');
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data?.error || 'Login gagal.');
+        setLoading(false);
+        return;
       }
+
+      setShowSuccess(true);
+
+      // Pakai ?from= kalau ada (diisi middleware), else ke halaman utama admin
+      const from = typeof router.query.from === 'string' ? router.query.from : null;
+      const target = from || '/Admin/HalamanUtama/hal-utamaAdmin';
+
+      setTimeout(() => {
+        router.push(target);
+      }, 800);
     } catch (err) {
       setError('Terjadi kesalahan saat login.');
+      setLoading(false);
     }
   }
 
@@ -63,7 +82,6 @@ export default function SignInAdmin() {
               onClick={handleBack}
               aria-label="Kembali"
             >
-              {/* Icon saja */}
               <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
                 <circle cx="14" cy="12" r="11" fill="#fff" />
                 <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -103,7 +121,7 @@ export default function SignInAdmin() {
             <div className={styles.passwordGroup}>
               <input
                 id="password"
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 placeholder="Password"
                 className={styles.input}
                 value={password}
@@ -111,10 +129,12 @@ export default function SignInAdmin() {
                 autoComplete="current-password"
                 required
               />
-              <span
+              <button
+                type="button"
                 className={styles.eyeIcon}
-                onClick={() => setShowPassword((s) => !s)}
-                title={showPassword ? "Sembunyikan Password" : "Lihat Password"}
+                onClick={() => setShowPassword(s => !s)}
+                title={showPassword ? 'Sembunyikan Password' : 'Lihat Password'}
+                aria-label={showPassword ? 'Sembunyikan Password' : 'Lihat Password'}
               >
                 {showPassword ? (
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -125,14 +145,7 @@ export default function SignInAdmin() {
                       strokeWidth="2"
                       strokeLinecap="round"
                     />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="3"
-                      stroke="#bbb"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
+                    <circle cx="12" cy="12" r="3" stroke="#bbb" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 ) : (
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -141,16 +154,10 @@ export default function SignInAdmin() {
                       stroke="#bbb"
                       strokeWidth="2"
                     />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="3"
-                      stroke="#bbb"
-                      strokeWidth="2"
-                    />
+                    <circle cx="12" cy="12" r="3" stroke="#bbb" strokeWidth="2" />
                   </svg>
                 )}
-              </span>
+              </button>
             </div>
 
             <div className={styles.optionsRow}>
@@ -165,13 +172,13 @@ export default function SignInAdmin() {
             <button
               type="submit"
               className={styles.button}
-              disabled={!email.trim() || !password}
+              disabled={loading || !email.trim() || !password}
               style={{
-                opacity: !email.trim() || !password ? 0.6 : 1,
-                cursor: !email.trim() || !password ? "not-allowed" : "pointer"
+                opacity: loading || !email.trim() || !password ? 0.6 : 1,
+                cursor: loading || !email.trim() || !password ? 'not-allowed' : 'pointer'
               }}
             >
-              Masuk
+              {loading ? 'Memproses...' : 'Masuk'}
             </button>
           </form>
 
@@ -188,7 +195,6 @@ export default function SignInAdmin() {
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>

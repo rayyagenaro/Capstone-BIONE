@@ -49,8 +49,8 @@ const BookingCard = React.memo(({ booking }) => {
   return (
     <div
       className={styles.cardLayanan}
-      onClick={() => router.push(`/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)}
-      onKeyDown={(e) => e.key === 'Enter' && router.push(`/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)}
+      onClick={() => router.push(`/Admin/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)}
+      onKeyDown={(e) => e.key === 'Enter' && router.push(`/Admin/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)}
       role="button"
       tabIndex={0}
       aria-label={`Lihat detail booking tujuan ${booking.tujuan}`}
@@ -81,9 +81,14 @@ export default function PersetujuanBooking() {
 
   // logout popup
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
-  const handleLogout = () => {
-    localStorage.removeItem('admin');
-    router.push('/Login/hal-login');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+    } catch (e) {
+      // optional: log error
+    } finally {
+      router.replace('/Signin/hal-signAdmin'); // balik ke login admin
+    }
   };
 
   useEffect(() => {
@@ -156,7 +161,7 @@ export default function PersetujuanBooking() {
 
   return (
     <div className={styles.background}>
-      <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
+      <SidebarAdmin onLogout={() => setShowLogoutPopup(true)} />
       <main className={styles.mainContent}>
         <div className={styles.boxLayanan}>
           {/* Back + Title (opsional) */}
@@ -218,7 +223,11 @@ export default function PersetujuanBooking() {
         </div>
       </main>
 
-      <LogoutPopup open={showLogoutPopup} onCancel={() => setShowLogoutPopup(false)} onLogout={handleLogout} />
+      <LogoutPopup 
+      open={showLogoutPopup}
+       onCancel={() => setShowLogoutPopup(false)} 
+       onLogout={handleLogout}
+        />
     </div>
   );
 }

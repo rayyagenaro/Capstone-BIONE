@@ -121,7 +121,7 @@ export default function DetailsLaporan() {
         throw new Error(errData.error || 'Gagal mengubah status.');
       }
       alert('Status berhasil diperbarui!');
-      router.push('/Persetujuan/hal-persetujuan');
+      router.push('/Admin/Persetujuan/hal-persetujuan');
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -197,9 +197,14 @@ export default function DetailsLaporan() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin');
-    router.push('/Login/hal-login');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+    } catch (e) {
+      // optional: log error
+    } finally {
+      router.replace('/Signin/hal-signAdmin'); // balik ke login admin
+    }
   };
 
   // UI states

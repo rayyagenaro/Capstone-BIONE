@@ -11,27 +11,37 @@ export default function HalamanUtamaUser() {
   const [namaUser, setNamaUser] = useState('');
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const router = useRouter();
-
+  
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
+    let active = true;
+    (async () => {
       try {
-        const user = JSON.parse(userStr);
-        setNamaUser(user.name || 'User');
+        const r = await fetch('/api/me');
+        const d = await r.json();
+
+        if (!active) return;
+
+        // Bukan user? tendang ke halaman login user
+        if (!d.hasToken || !['user', 'admin'].includes(d.payload?.role)) {
+          router.replace('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath));
+          return;
+        }
+
+        // Set nama tampilan
+        setNamaUser(d.payload?.name || 'User');
       } catch {
-        setNamaUser('User');
+        router.replace('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath));
       }
-    } else {
-      setNamaUser('User');
-    }
-  }, []);
+    })();
+    return () => { active = false; };
+  }, [router]);
 
   // Daftar semua fitur (6 fitur)
   const fiturLayanan = [
     {
       logo: "/assets/D'MOVE.svg",   
       desc: "BI.DRIVE, mendukung pemesanan layanan pengemudi secara terjadwal untuk mendukung pelaksanaan tugas dinas.",
-      link: "/FiturDmove/hal-dmove"
+      link: "/User/FiturDmove/hal-dmove"
     },
     {
       logo: "/assets/D'CARE.svg",
@@ -61,16 +71,21 @@ export default function HalamanUtamaUser() {
   ];
 
   // Fungsi logout
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    router.push('/Login/hal-login');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+    } catch (e) {
+      // optional: log error
+    } finally {
+      router.replace('/Signin/hal-sign'); // balik ke login user
+    }
   };
 
   return (
     <div className={styles.background}>
 
       {/* SIDEBAR USER */}
-      <SidebarUser onLogoutClick={() => setShowLogoutPopup(true)} />
+      <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
 
       {/* MAIN CONTENT */}
       <main className={styles.mainContent}>

@@ -19,16 +19,27 @@ export default function EditProfile() {
   });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setProfile({
-        email: user.email ?? '',
-        name: user.name ?? '',
-        hp: user.phone ?? '',
-      });
-    }
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch('/api/me');
+        if (!res.ok) throw new Error('Gagal mengambil profil');
+        const data = await res.json();
+
+        if (data?.hasToken && data?.payload) {
+          setProfile({
+            email: data.payload.email ?? '',
+            name: data.payload.name ?? '',
+            hp: data.payload.phone ?? '',
+          });
+        }
+      } catch (err) {
+        console.error('Error memuat profil:', err);
+      }
+    };
+
+    fetchProfile();
   }, []);
+
 
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -40,7 +51,7 @@ export default function EditProfile() {
 
   function closeSuccess() {
     setShowSuccess(false);
-    router.push("/HalamanUtama/hal-utamauser");
+    router.push("/User/HalamanUtama/hal-utamauser");
   }
 
   function validate() {
@@ -79,15 +90,20 @@ export default function EditProfile() {
   };
 
   // Fungsi Logout
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    router.push('/Login/hal-login');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+    } catch (e) {
+      // optional: log error
+    } finally {
+      router.replace('/Signin/hal-sign'); // balik ke login admin
+    }
   };
 
   return (
     <div className={styles.background}>
       {/* Sidebar */}
-      <SidebarUser onLogoutClick={() => setShowLogoutPopup(true)} />
+      <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
       <main className={styles.mainContent}>
         <div className={styles.formBox}>
           <div className={styles.topRow}>
