@@ -188,7 +188,7 @@ export default function DetailsLaporan() {
       );
 
       alert('Persetujuan berhasil diproses.');
-      router.push('/Persetujuan/hal-persetujuan');
+      router.push('/Admin/Persetujuan/hal-persetujuan');
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
