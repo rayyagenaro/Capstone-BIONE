@@ -15,6 +15,10 @@ export default function SidebarAdmin({ onLogout }) {
         { href: '/Admin/Pengaturan/hal-pengaturan', text: 'Pengaturan', icon: FaCog },
     ];
 
+    const handleNavigate = (href) => {
+        router.push(href);
+    };
+
     return (
         <aside className={styles.sidebar}>
             <div className={styles.logoSidebar}>
@@ -31,7 +35,11 @@ export default function SidebarAdmin({ onLogout }) {
                     {menuItems.map((item) => {
                         const isActive = router.pathname.startsWith(item.href);
                         return (
-                            <li key={item.href} className={isActive ? styles.active : ''}>
+                            <li 
+                            key={item.href} 
+                            className={`${styles.menuItem} ${isActive ? styles.active : ''}`}
+                            onClick={() => handleNavigate(item.href)}
+                            >
                                 <item.icon className={styles.menuIcon} />
                                 <Link href={item.href}>{item.text}</Link>
                             </li>

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import styles from './signin.module.css';
 import { useRouter } from 'next/router';
+import SuccessPopup from '@/components/SuccessPopup/SuccessPopup';
 
 export default function SignIn() {
   const router = useRouter();
@@ -166,19 +167,7 @@ export default function SignIn() {
               </button>
             </div>
 
-            {showSuccess && (
-              <div className={styles.popupOverlay}>
-                <div className={styles.popupBox}>
-                  <div className={styles.popupIcon}>
-                    <svg width="70" height="70" viewBox="0 0 70 70">
-                      <circle cx="35" cy="35" r="35" fill="#7EDC89" />
-                      <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <div className={styles.popupMsg}><b>Berhasil Sign In</b></div>
-                </div>
-              </div>
-            )}
+            {showSuccess && <SuccessPopup message="Login berhasil!" />}
 
             {showForgotPopup && (
               <div className={styles.popupOverlay} onClick={handleCloseForgotPopup}>

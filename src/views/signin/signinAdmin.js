@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import styles from './signinAdmin.module.css';
+import SuccessPopup from '@/components/SuccessPopup/SuccessPopup';
 
 export default function SignInAdmin() {
   const router = useRouter();
@@ -181,20 +182,7 @@ export default function SignInAdmin() {
               {loading ? 'Memproses...' : 'Masuk'}
             </button>
           </form>
-
-          {showSuccess && (
-            <div className={styles.popupOverlay}>
-              <div className={styles.popupBox}>
-                <div className={styles.popupIcon}>
-                  <svg width="70" height="70" viewBox="0 0 70 70">
-                    <circle cx="35" cy="35" r="35" fill="#7EDC89" />
-                    <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <div className={styles.popupMsg}><b>Berhasil Sign In</b></div>
-              </div>
-            </div>
-          )}
+          {showSuccess && <SuccessPopup message="Login berhasil!" />}
         </div>
       </div>
     </div>
