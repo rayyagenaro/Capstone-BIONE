@@ -332,6 +332,13 @@ export default function DetailsLaporan() {
               </button>
             </div>
           )}
+          {booking.status_id === 2 && (
+            <div className={styles.actionBtnRow}>
+              <button className={styles.btnKirimPesan}>
+                Kirim Pesan
+              </button>
+            </div>
+          )}
         </div>
       </main>
 
