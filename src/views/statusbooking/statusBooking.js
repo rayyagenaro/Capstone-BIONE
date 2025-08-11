@@ -8,6 +8,9 @@ import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import { FaArrowLeft, FaTimes } from 'react-icons/fa';
 
+// ⬇️ NEW: tampilkan alasan penolakan
+import RejectionBox from '@/components/RejectionBox/RejectionBox';
+
 // --- KONFIGURASI & HELPER ---
 const STATUS_CONFIG = {
   '1': { text: 'Pending',  className: styles.statusProcess },
@@ -38,6 +41,8 @@ const getPlate = (v) =>
 const BookingCard = React.memo(({ booking, onClick }) => {
   const statusInfo =
     STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
+  const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
+
   return (
     <div
       className={styles.bookingCard}
@@ -64,6 +69,13 @@ const BookingCard = React.memo(({ booking, onClick }) => {
           </div>
         )}
         <div className={statusInfo.className}>{statusInfo.text}</div>
+
+        {/* NEW: Box alasan penolakan (compact) */}
+        {isRejected && (
+          <div style={{ marginTop: 8 }}>
+            <RejectionBox reason={booking.rejection_reason} compact />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -99,6 +111,7 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
   const statusInfo =
     STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
   const isApprovedOrFinished = Number(booking.status_id) === 2 || Number(booking.status_id) === 4;
+  const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
 
   const assignedDrivers = Array.isArray(booking.assigned_drivers) ? booking.assigned_drivers : [];
   const assignedVehicles = Array.isArray(booking.assigned_vehicles) ? booking.assigned_vehicles : [];
@@ -120,6 +133,15 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
               {statusInfo.text}
             </span>
           </p>
+
+          {/* NEW: Box alasan penolakan (full) */}
+          {isRejected && (
+            <>
+              <hr className={styles.modalDivider} />
+              <RejectionBox reason={booking.rejection_reason} title="Alasan Penolakan" />
+            </>
+          )}
+
           <hr className={styles.modalDivider} />
           <p>
             <strong>Jenis Kendaraan:</strong>{' '}

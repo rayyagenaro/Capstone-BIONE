@@ -5,6 +5,7 @@ import { FaFilePdf, FaArrowLeft } from 'react-icons/fa';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
+import PenolakanPopup from '@/components/penolakanpopup/PenolakanPopup';
 
 // Helpers
 const formatDate = (dateString) => {
@@ -49,6 +50,10 @@ export default function DetailsLaporan() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+
+  // untuk penolakan
+  const [showReject, setShowReject] = useState(false);
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   const [availableDrivers, setAvailableDrivers] = useState([]);
   const [availableVehicles, setAvailableVehicles] = useState([]);
@@ -112,7 +117,7 @@ export default function DetailsLaporan() {
     fetchAvailableVehicles();
   }, [booking]);
 
-  // Update status tanpa popup
+  // Update status TANPA alasan (masih dipakai untuk status lain kalau perlu)
   const handleUpdateStatus = async (newStatusId) => {
     setIsUpdating(true);
     try {
@@ -208,6 +213,40 @@ export default function DetailsLaporan() {
     }
   };
 
+  // Submit dari popup penolakan (kirim alasan ke API khusus)
+  const handleSubmitPenolakan = async (reason) => {
+    setRejectLoading(true);
+    try {
+      const res = await fetch('/api/reject-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: Number(id), reason }),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || json?.ok === false) {
+        throw new Error(json?.message || 'Gagal menolak booking.');
+      }
+
+      alert('Booking berhasil ditolak.');
+      // Refresh halaman detail agar rejection_reason tampil
+      // atau arahkan balik ke list persetujuan
+      // Pilih salah satu, di sini kita reload data current:
+      setShowReject(false);
+
+      // muat ulang detail agar reason tampil
+      setIsLoading(true);
+      const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
+      const d2 = await r2.json();
+      setBooking(d2);
+      setIsLoading(false);
+    } catch (err) {
+      alert(`Error: ${err.message || err}`);
+    } finally {
+      setRejectLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('admin');
     router.push('/Login/hal-login');
@@ -241,7 +280,7 @@ export default function DetailsLaporan() {
         <div className={styles.detailCard}>
           <div className={styles.topRow}>
             <div className={styles.leftTitle}>
-              <div className={styles.bookingTitle}>{`Booking D'MOVE | ${booking.tujuan}`}</div>
+              <div className={styles.bookingTitle}>{`Booking BI-DRIVE | ${booking.tujuan}`}</div>
               <div className={styles.metaInfo}>
                 <span className={styles.metaLabel}>TANGGAL PENGAJUAN</span>
                 <span className={styles.metaValue}>{formatDate(booking.created_at)}</span>
@@ -278,6 +317,14 @@ export default function DetailsLaporan() {
                     </a>
                   </div>
                 </>
+              )}
+
+              {/* === Alasan Penolakan (tampil hanya jika Rejected) === */}
+              {Number(booking.status_id) === 3 && booking.rejection_reason && (
+                <div className={styles.rejectBox}>
+                  <div className={styles.rejectTitle}>Alasan Penolakan</div>
+                  <div className={styles.rejectText}>{booking.rejection_reason}</div>
+                </div>
               )}
             </div>
 
@@ -364,12 +411,11 @@ export default function DetailsLaporan() {
             </div>
           )}
 
-
           {booking.status_id === 1 && (
             <div className={styles.actionBtnRow}>
               <button
                 className={styles.btnTolak}
-                onClick={() => handleUpdateStatus(3)}
+                onClick={() => setShowReject(true)} // ⬅️ buka popup penolakan (dengan alasan)
                 disabled={isUpdating}
               >
                 {isUpdating ? 'Memproses...' : 'Tolak'}
@@ -400,6 +446,14 @@ export default function DetailsLaporan() {
         detail={booking}
         driverList={availableDrivers}
         vehicleList={availableVehicles}
+      />
+
+      {/* Popup Penolakan */}
+      <PenolakanPopup
+        show={showReject}
+        onClose={() => setShowReject(false)}
+        onSubmit={handleSubmitPenolakan}
+        loading={rejectLoading}
       />
     </div>
   );
