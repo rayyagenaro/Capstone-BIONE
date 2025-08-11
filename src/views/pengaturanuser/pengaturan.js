@@ -227,16 +227,28 @@ export default function Pengaturan() {
           {/* --- 5. UI PAGINATION DITAMBAHKAN DI SINI --- */}
           {pagination.totalItems > 0 && (
             <>
-              <div className={styles.paginationControls}>
-                <span className={styles.resultsText}>
-                  Results: {((pagination.currentPage - 1) * itemsPerPage) + 1} - {Math.min(pagination.currentPage * itemsPerPage, pagination.totalItems)} of {pagination.totalItems}
-                </span>
-                <select value={itemsPerPage} onChange={handleItemsPerPageChange} className={styles.itemsPerPageDropdown}>
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                </select>
-              </div>
+                      <div className={styles.paginationControls}>
+            <span className={styles.resultsText}>
+              Results: {((pagination.currentPage - 1) * itemsPerPage) + 1} - {Math.min(pagination.currentPage * itemsPerPage, pagination.totalItems)} of {pagination.totalItems}
+            </span>
+
+            <div className={styles.itemsPerPageWrapper}>
+              <label htmlFor="itemsPerPage" className={styles.label}>
+                Items per page:
+              </label>
+              <select
+                id="itemsPerPage"
+                value={itemsPerPage}
+                onChange={handleItemsPerPageChange}
+                className={styles.itemsPerPageDropdown}
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+
               
               <Pagination
                 currentPage={pagination.currentPage}

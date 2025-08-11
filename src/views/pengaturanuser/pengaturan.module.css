@@ -18,6 +18,11 @@
   bottom: 0;
   z-index: 99;
 }
+.label {
+  margin-right: 8px;
+  color: #22335e;
+  font-weight: 400;
+}
 .logoSidebar {
   display: flex;
   align-items: center;
@@ -498,6 +503,7 @@
   border-radius: 8px;
   border: 1.5px solid #e0e0e0;
   background-color: #fff;
+  color: #000000;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;

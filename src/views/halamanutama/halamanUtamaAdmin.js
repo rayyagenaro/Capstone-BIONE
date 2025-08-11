@@ -174,7 +174,7 @@ export default function HalamanUtamaAdmin() {
                   Menampilkan {resultsFrom}-{resultsTo} dari {incomingBookings.length} data
                 </div>
                 <div>
-                  <label htmlFor="perPage" style={{ marginRight: 8 }}>Items per page:</label>
+                  <label htmlFor="perPage" className={styles.label}>Jumlah item per halaman</label>
                   <select
                     id="perPage"
                     className={styles.itemsPerPageDropdown}

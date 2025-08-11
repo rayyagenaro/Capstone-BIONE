@@ -48,6 +48,11 @@
   bottom: 0;
   z-index: 99;
 }
+.label {
+  margin-right: 8px;
+  color: #22335e;
+  font-weight: 400;
+}
 .logoSidebar {
   display: flex;
   align-items: center;
@@ -383,12 +388,13 @@
 }
 
 .itemsPerPageDropdown {
-  padding: 8px 10px;
+  padding: 8px 12px;
   border-radius: 8px;
   border: 1.5px solid #e0e0e0;
   background-color: #fff;
-  font-size: 14px;
-  font-weight: 600;
+  color: #000000;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
 }
 
