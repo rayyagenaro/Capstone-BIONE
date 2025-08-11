@@ -19,27 +19,48 @@ export default function EditProfile() {
   });
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    (async () => {
       try {
         const res = await fetch('/api/me');
-        if (!res.ok) throw new Error('Gagal mengambil profil');
         const data = await res.json();
 
-        if (data?.hasToken && data?.payload) {
-          setProfile({
-            email: data.payload.email ?? '',
-            name: data.payload.name ?? '',
-            hp: data.payload.phone ?? '',
-          });
-        }
+        const p = data?.hasToken ? (data.payload ?? {}) : {};
+        const fromLS = JSON.parse(localStorage.getItem('user') || '{}');
+
+        // Ambil email/name dari token, fallback ke localStorage
+        const email = p.email ?? fromLS.email ?? '';
+        const name  = p.name  ?? fromLS.name  ?? '';
+
+        // Karena /api/me kamu tidak kirim 'phone', fallback ke beberapa kemungkinan + localStorage
+        const phone =
+          p.phone ?? p.hp ?? p.no_hp ?? p.telepon ??
+          fromLS.phone ?? fromLS.hp ?? '';
+
+        setProfile({
+          email,
+          name,
+          hp: phone != null ? String(phone) : ''
+        });
+
+        // Opsional: sinkronkan localStorage biar next time tetap kebaca
+        localStorage.setItem('user', JSON.stringify({
+          ...fromLS,
+          email,
+          name,
+          phone: phone != null ? String(phone) : ''
+        }));
       } catch (err) {
         console.error('Error memuat profil:', err);
+        // Fallback penuh ke localStorage bila /api/me error
+        const fromLS = JSON.parse(localStorage.getItem('user') || '{}');
+        setProfile({
+          email: fromLS.email ?? '',
+          name:  fromLS.name  ?? '',
+          hp:    (fromLS.phone ?? fromLS.hp ?? '') + ''
+        });
       }
-    };
-
-    fetchProfile();
+    })();
   }, []);
-
 
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);

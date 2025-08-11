@@ -157,7 +157,7 @@ export default function Pengaturan() {
     } catch (e) {
       // optional: log error
     } finally {
-      router.replace('/Signin/hal-signAdmin'); // balik ke login admin
+      Router.replace('/Signin/hal-signAdmin'); // balik ke login admin
     }
   };
   
