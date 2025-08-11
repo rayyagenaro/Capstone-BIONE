@@ -20,32 +20,19 @@ export default function SignIn() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/loginAdmin', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Login gagal');
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data?.error || 'Login gagal.');
-        setLoading(false);
-        return;
-      }
-
-      // sukses: token sudah di cookie `token` (HttpOnly)
-      setShowSuccess(true);
-
-      // kalau ada ?from=/path (di-set oleh middleware), pakai itu
-      const from = typeof router.query.from === 'string' ? router.query.from : null;
-      const target = from || '/User/HalamanUtama/hal-utamauser';
-
-      setTimeout(() => {
-        router.push(target);
-      }, 800);
-    } catch (err) {
-      setError('Terjadi kesalahan saat login.');
+      router.replace('/User/HalamanUtama/hal-utamauser');
+      // atau: window.location.href = '/Admin/HalamanUtama/hal-utamaAdmin';
+    } catch (e) {
+      setError(e.message);
+    } finally {
       setLoading(false);
     }
   }

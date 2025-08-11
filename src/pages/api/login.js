@@ -3,7 +3,6 @@ import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');

@@ -58,7 +58,7 @@ export default function SignupAdmin() {
         const data = await res.json();
         if (res.ok) {
           setShowSuccess(true);
-          window.location.href = '/Signin/hal-signAdmin';
+          router.replace('/Signin/hal-signAdmin');
         } else {
           alert(data.error || 'Terjadi kesalahan saat mendaftar admin');
         }

@@ -3,6 +3,7 @@ import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -11,6 +12,7 @@ export default async function handler(req, res) {
 
   const email = (req.body?.email || '').trim();
   const password = req.body?.password || '';
+
   if (!email || !password) {
     return res.status(400).json({ error: 'Email dan password wajib diisi' });
   }
