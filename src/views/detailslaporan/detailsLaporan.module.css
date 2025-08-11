@@ -301,6 +301,16 @@
   gap: 4px;
   margin-left: 12px;
 }
+.statusFinished {
+  color: #6c63ff;
+  background: none;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+}
 .dotPending {
   width: 10px;
   height: 10px;
@@ -319,6 +329,13 @@
   width: 10px;
   height: 10px;
   background: #ed6257;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dotFinished {
+  width: 10px;
+  height: 10px;
+  background: #6c63ff;
   border-radius: 50%;
   display: inline-block;
 }

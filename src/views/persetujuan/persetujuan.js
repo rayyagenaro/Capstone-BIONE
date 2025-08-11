@@ -14,9 +14,10 @@ const STATUS_CONFIG = {
   '1': { text: 'Pending', className: styles.statusPending },
   '2': { text: 'Approved', className: styles.statusApproved },
   '3': { text: 'Rejected', className: styles.statusRejected },
+  '4': { text: 'Finished', className: styles.statusFinished },
 };
-const TABS = ['All', 'Pending', 'Approved', 'Rejected'];
-const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3 };
+const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished'];
+const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
 
 const calculateDuration = (start, end) => {
   if (!start || !end) return 'N/A';

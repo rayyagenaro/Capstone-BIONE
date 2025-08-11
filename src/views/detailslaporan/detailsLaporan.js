@@ -31,6 +31,7 @@ const STATUS_CONFIG = {
   '1': { text: 'Pending', className: styles.statusPending, dot: styles.dotPending },
   '2': { text: 'Approved', className: styles.statusApproved, dot: styles.dotApproved },
   '3': { text: 'Rejected', className: styles.statusRejected, dot: styles.dotRejected },
+  '4': { text: 'Finished', className: styles.statusFinished, dot: styles.dotFinished },
 };
 
 export default function DetailsLaporan() {
@@ -334,18 +335,9 @@ export default function DetailsLaporan() {
           )}
           {booking.status_id === 2 && (
             <div className={styles.actionBtnRow}>
-              <div className={styles.kirimPesanWrapper}>
-                <button className={styles.btnKirimPesan}>
-                  Kirim Pesan
-                </button>
-                <p className={styles.kirimPesanNote}>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
-                      strokeWidth="1.5" stroke="currentColor" className={styles.iconInfo}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                  </svg>
-                  Kirim pesan otomatis kepada driver untuk konfirmasi ke driver.
-                </p>
-              </div>
+              <button className={styles.btnKirimPesan}>
+                Kirim Pesan
+              </button>
             </div>
           )}
         </div>
