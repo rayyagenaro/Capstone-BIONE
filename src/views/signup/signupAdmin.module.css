@@ -44,11 +44,6 @@
   left: 0;
   z-index: 10;
 }
-.logoDone {
-  width: 75px !important;
-  height: 40px !important;
-  object-fit: contain;
-}
 
 /* Isi konten */
 .contentWrapper {
@@ -193,10 +188,6 @@
   }
   .cardTitle {
     font-size: 27px;
-  }
-  .logoBI {
-    width: 80px !important;
-    height: 18px !important;
   }
   .topbar {
     height: 54px;

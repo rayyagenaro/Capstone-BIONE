@@ -76,9 +76,8 @@ export default function SignupAdmin() {
           <Image
             src="/assets/Logo BI Putih.png"
             alt="D'ONE"
-            width={75}
-            height={40}
-            className={styles.logoDone}
+            width={100}
+            height={60}
             priority
           />
         </div>
@@ -89,9 +88,8 @@ export default function SignupAdmin() {
           <Image
             src="/assets/BI-One-Blue.png"
             alt="Bank Indonesia"
-            width={120}
-            height={34}
-            className={styles.logoBI}
+            width={200}
+            height={60} 
             priority
           />
 
