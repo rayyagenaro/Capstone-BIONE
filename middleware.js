@@ -1,13 +1,10 @@
+// /middleware.js
 import { NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
 const PUBLIC = [
-  '/',
-  '/Login/hal-login',
-  '/Signin/hal-sign',
-  '/Signin/hal-signAdmin',
-  '/SignUp/hal-signup',
-  '/SignUp/hal-signupAdmin',
+  '/', '/Login/hal-login', '/Signin/hal-sign', '/Signin/hal-signAdmin',
+  '/SignUp/hal-signup', '/SignUp/hal-signupAdmin',
 ];
 
 export const config = {
@@ -16,6 +13,7 @@ export const config = {
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
+
   if (PUBLIC.includes(pathname)) return NextResponse.next();
 
   const token = req.cookies.get('token')?.value;
@@ -32,36 +30,23 @@ export async function middleware(req) {
       new TextEncoder().encode(process.env.JWT_SECRET)
     );
 
-    // ROLE GUARD
+    // role guard
     const p = pathname.toLowerCase();
-    const inAdmin = p.startsWith('/Admin')
+    const inAdmin = p.startsWith('/admin');
     if (inAdmin && payload.role !== 'admin') {
       return NextResponse.redirect(new URL('/Signin/hal-signAdmin', req.url));
     }
 
-    // === TURUNKAN DATA KE COOKIE YANG BISA DIBACA CLIENT ===
+    // turunkan info ringan buat UI (optional)
     const res = NextResponse.next();
-
-    const roleCookie = req.cookies.get('role')?.value;
-    const nameCookie = req.cookies.get('displayName')?.value;
-
-    if (roleCookie !== payload.role) {
-      res.cookies.set('role', String(payload.role), {
-        path: '/',
-        sameSite: 'lax',
-        // penting: agar bisa dibaca di client
-        httpOnly: false,
-      });
-    }
-
     const displayName = payload.name || (payload.role === 'admin' ? 'Admin' : 'User');
-    if (nameCookie !== displayName) {
-      res.cookies.set('displayName', displayName, {
-        path: '/',
-        sameSite: 'lax',
-        httpOnly: false,
-      });
-    }
+
+    res.cookies.set('role', String(payload.role), {
+      path: '/', sameSite: 'lax', httpOnly: false, maxAge: 60 * 60 * 24 * 7,
+    });
+    res.cookies.set('displayName', displayName, {
+      path: '/', sameSite: 'lax', httpOnly: false, maxAge: 60 * 60 * 24 * 7,
+    });
 
     return res;
   } catch {
