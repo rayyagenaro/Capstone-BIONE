@@ -34,6 +34,10 @@ const STATUS_CONFIG = {
   '4': { text: 'Finished', className: styles.statusFinished, dot: styles.dotFinished },
 };
 
+// fallback ambil nopol dari beberapa kemungkinan kolom
+const getPlate = (v) =>
+  v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
+
 export default function DetailsLaporan() {
   const router = useRouter();
   const { id } = router.query;
@@ -73,13 +77,13 @@ export default function DetailsLaporan() {
       try {
         const res = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
         if (!res.ok) {
-          const errData = await res.json();
+          const errData = await res.json().catch(() => ({}));
           throw new Error(errData.error || 'Gagal memuat data booking.');
         }
         const data = await res.json();
         setBooking(data);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Terjadi kesalahan');
       } finally {
         setIsLoading(false);
       }
@@ -118,11 +122,11 @@ export default function DetailsLaporan() {
         body: JSON.stringify({ bookingId: id, newStatusId }),
       });
       if (!res.ok) {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || 'Gagal mengubah status.');
       }
       alert('Status berhasil diperbarui!');
-      router.push('/Admin/Persetujuan/hal-persetujuan');
+      router.push('/Persetujuan/hal-persetujuan');
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -134,55 +138,61 @@ export default function DetailsLaporan() {
   const handleSubmitPersetujuan = async ({ driverIds, vehicleIds, keterangan }) => {
     setIsUpdating(true);
     try {
+      // validasi basic
       if ((driverIds?.length || 0) !== Number(booking.jumlah_driver)) {
         alert(`Jumlah driver yang dipilih harus tepat ${booking.jumlah_driver}.`);
         setIsUpdating(false);
         return;
       }
-
-      // 1) Approve booking
-      {
-        const res = await fetch('/api/booking', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: id, newStatusId: 2 }),
-        });
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || 'Gagal mengubah status booking.');
-        }
-      }
-
-      // 2) Update status unit kendaraan -> Unavailable (2) by UNIT
-      if (!vehicleIds || vehicleIds.length === 0) {
+      if (!vehicleIds?.length) {
         alert('Pilih kendaraan dulu ya.');
         setIsUpdating(false);
         return;
       }
+
+      // 1) Simpan penugasan + set status Approved
+      const resAssign = await fetch('/api/booking?action=assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'assign',
+          bookingId: Number(id),
+          driverIds,
+          vehicleIds,
+          keterangan,
+          updateStatusTo: 2,
+        }),
+      });
+
+      const assignJson = await resAssign.json().catch(() => ({}));
+      if (!resAssign.ok || assignJson?.error) {
+        throw new Error(assignJson?.error || 'Gagal menyimpan penugasan.');
+      }
+
+      // 2) (opsional) tandai unit & driver sedang digunakan
       await Promise.all(
         vehicleIds.map(async (vehId) => {
-          const res = await fetch('/api/updateVehiclesStatus', {
+          const r = await fetch('/api/updateVehiclesStatus', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vehicleId: vehId, newStatusId: 2 }),
+            body: JSON.stringify({ vehicleId: Number(vehId), newStatusId: 2 }),
           });
-          if (!res.ok) {
-            const txt = await res.text().catch(() => '');
+          if (!r.ok) {
+            const txt = await r.text().catch(() => '');
             throw new Error(`Gagal update vehicle ${vehId}: ${txt}`);
           }
         })
       );
 
-      // 3) Update status driver -> Digunakan (2)
       await Promise.all(
         driverIds.map(async (driverId) => {
-          const res = await fetch('/api/updateDriversStatus', {
+          const r = await fetch('/api/updateDriversStatus', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ driverId, newStatusId: 2 }),
+            body: JSON.stringify({ driverId: Number(driverId), newStatusId: 2 }),
           });
-          if (!res.ok) {
-            const txt = await res.text().catch(() => '');
+          if (!r.ok) {
+            const txt = await r.text().catch(() => '');
             throw new Error(`Gagal update driver ${driverId}: ${txt}`);
           }
         })
@@ -191,21 +201,16 @@ export default function DetailsLaporan() {
       alert('Persetujuan berhasil diproses.');
       router.push('/Admin/Persetujuan/hal-persetujuan');
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      alert(`Error: ${err.message || err}`);
     } finally {
       setIsUpdating(false);
       setShowPopup(false);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
-    } catch (e) {
-      // optional: log error
-    } finally {
-      router.replace('/Signin/hal-signAdmin'); // balik ke login admin
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('admin');
+    router.push('/Login/hal-login');
   };
 
   // UI states
@@ -215,12 +220,16 @@ export default function DetailsLaporan() {
 
   const statusInfo = STATUS_CONFIG[booking.status_id] || STATUS_CONFIG['1'];
 
+  // ambil penugasan dari API (kalau ada)
+  const assignedDrivers = Array.isArray(booking.assigned_drivers) ? booking.assigned_drivers : [];
+  const assignedVehicles = Array.isArray(booking.assigned_vehicles) ? booking.assigned_vehicles : [];
+
   return (
     <div className={styles.background}>
       <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
 
       <main className={styles.mainContent}>
-        <div className={styles.header}>{/* optional header */}</div>
+        <div className={styles.header} />
 
         <div className={styles.titleBox}>
           <button className={styles.backBtn} onClick={() => router.back()}>
@@ -314,6 +323,48 @@ export default function DetailsLaporan() {
             </div>
           </div>
 
+          {/* === PENUGASAN: tampil kalau Approved atau Finished === */}
+          {[2, 4].includes(Number(booking.status_id)) && (
+            <div className={styles.detailRow} style={{ marginTop: 16 }}>
+              <div className={styles.detailColLeft}>
+                <div className={styles.detailLabel}>DRIVER DITUGASKAN</div>
+                <div className={styles.detailValue}>
+                  {assignedDrivers.length ? (
+                    <ul style={{ paddingLeft: 16, margin: 0 }}>
+                      {assignedDrivers.map((d) => (
+                        <li key={d.id}>
+                          {d.name || d.driver_name || '-'}
+                          {d.phone ? ` — ${d.phone}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    'Belum ada data.'
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.detailColRight}>
+                <div className={styles.detailLabel}>KENDARAAN DITUGASKAN</div>
+                <div className={styles.detailValue}>
+                  {assignedVehicles.length ? (
+                    <ul style={{ paddingLeft: 16, margin: 0 }}>
+                      {assignedVehicles.map((v) => (
+                        <li key={v.id}>
+                          {getPlate(v)}
+                          {v.type_name ? ` — ${v.type_name}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    'Belum ada data.'
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+
           {booking.status_id === 1 && (
             <div className={styles.actionBtnRow}>
               <button
@@ -330,13 +381,6 @@ export default function DetailsLaporan() {
                 disabled={isUpdating}
               >
                 {isUpdating ? 'Memproses...' : 'Setujui'}
-              </button>
-            </div>
-          )}
-          {booking.status_id === 2 && (
-            <div className={styles.actionBtnRow}>
-              <button className={styles.btnKirimPesan}>
-                Kirim Pesan
               </button>
             </div>
           )}

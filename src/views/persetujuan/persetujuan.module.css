@@ -246,6 +246,9 @@
 .statusPending {
   color: #338ef7;
 }
+.statusFinished {
+  color: #6c63ff;
+}
 .tabRow {
   display: flex;
   align-items: center;

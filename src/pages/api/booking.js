@@ -1,10 +1,7 @@
 // /pages/api/booking.js
 import db from "@/lib/db";
 
-/**
- * Helper: membentuk query insert untuk tabel relasi booking_vehicle_types
- * Sekarang menyimpan (booking_id, vehicle_type_id, quantity)
- */
+/** helper untuk insert bvt saat create booking */
 function formatInsertBookingVehicleTypes(bookingId, vehicleDetails) {
   if (!Array.isArray(vehicleDetails) || vehicleDetails.length === 0) {
     return { query: "", values: [] };
@@ -16,14 +13,83 @@ function formatInsertBookingVehicleTypes(bookingId, vehicleDetails) {
   `;
   const values = vehicleDetails.flatMap((detail) => [
     bookingId,
-    detail.id,
-    detail.quantity,
+    Number(detail.id),
+    Number(detail.quantity) || 0,
   ]);
   return { query, values };
 }
 
 export default async function handler(req, res) {
-  // --- GET: Ambil data booking ---
+  const action = String(req.query.action || req.body?.action || "").toLowerCase();
+
+  // ===================== ASSIGN (POST?action=assign) =====================
+  if (req.method === "POST" && action === "assign") {
+    const {
+      bookingId,
+      driverIds = [],
+      vehicleIds = [],
+      keterangan,
+      updateStatusTo, // contoh: 2 untuk Approved
+    } = req.body || {};
+
+    const bid = Number(bookingId);
+    if (!Number.isFinite(bid) || bid <= 0) {
+      return res.status(400).json({ error: "bookingId wajib diisi" });
+    }
+
+    const conn = await db.getConnection();
+    try {
+      // (kalau engine-mu MyISAM, transaksi diabaikan—tidak masalah)
+      await conn.beginTransaction();
+
+      // Optional: update status & keterangan
+      if (updateStatusTo) {
+        await conn.query(
+          "UPDATE bookings SET status_id = ?, keterangan = COALESCE(?, keterangan) WHERE id = ?",
+          [Number(updateStatusTo), keterangan ?? null, bid]
+        );
+      }
+
+      // Simpan kendaraan ditugaskan
+      let insertedVehicles = 0;
+      if (Array.isArray(vehicleIds) && vehicleIds.length) {
+        const vals = vehicleIds.map((vid) => [bid, Number(vid), null]);
+        await conn.query(
+          `INSERT IGNORE INTO booking_assignments (booking_id, vehicle_id, driver_id)
+           VALUES ${vals.map(() => "(?,?,?)").join(",")}`,
+          vals.flat()
+        );
+        insertedVehicles = vehicleIds.length;
+      }
+
+      // Simpan driver ditugaskan
+      let insertedDrivers = 0;
+      if (Array.isArray(driverIds) && driverIds.length) {
+        const vals = driverIds.map((did) => [bid, null, Number(did)]);
+        await conn.query(
+          `INSERT IGNORE INTO booking_assignments (booking_id, vehicle_id, driver_id)
+           VALUES ${vals.map(() => "(?,?,?)").join(",")}`,
+          vals.flat()
+        );
+        insertedDrivers = driverIds.length;
+      }
+
+      await conn.commit();
+      return res.status(200).json({
+        ok: true,
+        insertedVehicles,
+        insertedDrivers,
+      });
+    } catch (e) {
+      await conn.rollback();
+      console.error("Assign error:", e);
+      return res.status(500).json({ error: "Gagal menyimpan penugasan." });
+    } finally {
+      conn.release();
+    }
+  }
+
+  // ===================== GET =====================
   if (req.method === "GET") {
     const { userId, bookingId, status } = req.query;
 
@@ -40,7 +106,6 @@ export default async function handler(req, res) {
       } else if (status === "pending") {
         whereClause = "WHERE b.status_id = 1";
       } else if (status === "finished") {
-        // NEW: dukung filter finished
         whereClause = "WHERE b.status_id = 4";
       }
 
@@ -99,7 +164,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // --- PUT: Update status booking (mis. ke Finished = 4) ---
+  // ===================== PUT (update status) =====================
   if (req.method === "PUT") {
     const { bookingId, newStatusId } = req.body;
 
@@ -130,8 +195,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // --- POST: Simpan booking baru ---
+  // ===================== POST (create booking baru) =====================
   if (req.method === "POST") {
+    // jika bukan action=assign (sudah ditangani di atas)
     const {
       user_id,
       tujuan,
@@ -151,7 +217,6 @@ export default async function handler(req, res) {
     try {
       await connection.beginTransaction();
 
-      // status_id default = 1 (Pending)
       const bookingQuery = `
         INSERT INTO bookings
           (user_id, status_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg,
@@ -160,7 +225,7 @@ export default async function handler(req, res) {
       `;
       const bookingValues = [
         user_id,
-        1,
+        1, // Pending
         tujuan,
         jumlah_orang,
         jumlah_kendaraan,
@@ -176,7 +241,6 @@ export default async function handler(req, res) {
       const [result] = await connection.query(bookingQuery, bookingValues);
       const newBookingId = result.insertId;
 
-      // simpan tipe kendaraan + quantity
       const { query: typesQuery, values: typesValues } =
         formatInsertBookingVehicleTypes(newBookingId, vehicle_details);
 
@@ -199,7 +263,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // Method fallback
   res.setHeader("Allow", ["GET", "POST", "PUT"]);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }

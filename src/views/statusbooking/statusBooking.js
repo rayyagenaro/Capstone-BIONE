@@ -13,11 +13,9 @@ const STATUS_CONFIG = {
   '1': { text: 'Pending',  className: styles.statusProcess },
   '2': { text: 'Approved', className: styles.statusApproved },
   '3': { text: 'Rejected', className: styles.statusRejected },
-  // NEW
   '4': { text: 'Finished', className: styles.statusFinished },
 };
 
-// NEW: tambah tab Finished
 const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished'];
 const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
 
@@ -31,6 +29,10 @@ const formatDate = (dateString) => {
     minute: '2-digit',
   });
 };
+
+// fallback ambil nopol dari beberapa kemungkinan kolom
+const getPlate = (v) =>
+  v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
 
 // --- SUB-KOMPONEN ---
 const BookingCard = React.memo(({ booking, onClick }) => {
@@ -96,7 +98,10 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
   if (!booking) return null;
   const statusInfo =
     STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
-  const isApproved = Number(booking.status_id) === 2;
+  const isApprovedOrFinished = Number(booking.status_id) === 2 || Number(booking.status_id) === 4;
+
+  const assignedDrivers = Array.isArray(booking.assigned_drivers) ? booking.assigned_drivers : [];
+  const assignedVehicles = Array.isArray(booking.assigned_vehicles) ? booking.assigned_vehicles : [];
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
@@ -134,8 +139,40 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
             </p>
           )}
 
-          {/* NEW: tombol “Finished” hanya saat status Approved */}
-          {isApproved && (
+          {/* === TAMPILKAN PENUGASAN SAAT APPROVED / FINISHED === */}
+          {isApprovedOrFinished && (
+            <>
+              <hr className={styles.modalDivider} />
+              <div className={styles.assignedBlock}>
+                <p><strong>Driver Ditugaskan:</strong></p>
+                {assignedDrivers.length ? (
+                  <ul className={styles.assignedList}>
+                    {assignedDrivers.map((d) => (
+                      <li key={d.id}>{d.name}{d.phone ? ` — ${d.phone}` : ''}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={styles.assignedEmpty}>Belum ada data driver.</p>
+                )}
+              </div>
+
+              <div className={styles.assignedBlock}>
+                <p><strong>Kendaraan Ditugaskan:</strong></p>
+                {assignedVehicles.length ? (
+                  <ul className={styles.assignedList}>
+                    {assignedVehicles.map((v) => (
+                      <li key={v.id}>{getPlate(v)}{v.type_name ? ` — ${v.type_name}` : ''}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={styles.assignedEmpty}>Belum ada data kendaraan.</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Tombol “Finished” hanya saat Approved */}
+          {Number(booking.status_id) === 2 && (
             <div className={styles.modalActions}>
               <button
                 type="button"
@@ -144,7 +181,7 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
                 disabled={finishing}
                 title="Tandai booking ini sudah selesai"
               >
-                {finishing ? 'Memproses...' : 'Finished'}
+                {finishing ? 'Memproses...' : 'Finish Booking'}
               </button>
             </div>
           )}
@@ -170,7 +207,7 @@ export default function StatusBooking() {
   // Popup Logout
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
-  // NEW: state proses “Finished”
+  // proses “Finished”
   const [finishing, setFinishing] = useState(false);
 
   // 🔒 Kunci scroll saat modal terbuka
@@ -198,7 +235,6 @@ export default function StatusBooking() {
     const fetchBookings = async () => {
       setIsLoading(true);
       try {
-        // Ambil identitas user dari token di cookie
         const meRes = await fetch('/api/me?scope=user', { cache: 'no-store' });
         const meData = await meRes.json();
 
@@ -212,10 +248,9 @@ export default function StatusBooking() {
 
         const userId = meData.payload.sub;
 
-        // Ambil booking berdasarkan userId
         const res = await fetch(`/api/booking?userId=${userId}`);
         if (!res.ok) {
-          const errorData = await res.json();
+          const errorData = await res.json().catch(() => ({}));
           throw new Error(errorData.error || 'Gagal memuat data booking');
         }
         const data = await res.json();
@@ -236,10 +271,24 @@ export default function StatusBooking() {
     setCurrentPage(1);
   }, []);
 
-  const handleCardClick = useCallback((booking) => setSelectedBooking(booking), []);
+  // Saat klik kartu, ambil DETAIL (supaya dapat assigned_*)
+  const handleCardClick = useCallback(async (booking) => {
+    try {
+      // tampilkan modal dulu biar UX cepat
+      setSelectedBooking(booking);
+      const res = await fetch(`/api/bookings-with-vehicle?bookingId=${booking.id}`);
+      if (!res.ok) throw new Error('Gagal memuat detail booking.');
+      const full = await res.json();
+      setSelectedBooking(full);
+    } catch (e) {
+      // biarkan modal menampilkan info dasar saja
+      console.error('fetch detail error:', e);
+    }
+  }, []);
+
   const closeModal = useCallback(() => setSelectedBooking(null), []);
 
-  // NEW: tandai sebagai Finished
+  // Tandai Finished
   const markAsFinished = useCallback(async (booking) => {
     try {
       setFinishing(true);
@@ -253,12 +302,20 @@ export default function StatusBooking() {
         throw new Error(e.error || 'Gagal mengubah status menjadi Finished.');
       }
 
-      // Update data lokal (optimistic update)
+      // Optimistic update list
       setAllBookings((prev) =>
         prev.map((b) => (b.id === booking.id ? { ...b, status_id: 4 } : b))
       );
-      setSelectedBooking((prev) => (prev ? { ...prev, status_id: 4 } : prev));
-      // opsional: pindah ke tab Finished
+
+      // Re-fetch detail supaya assigned_* tetap ada & status terbarui
+      try {
+        const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${booking.id}`);
+        const full = await r2.json().catch(() => null);
+        setSelectedBooking(full || { ...booking, status_id: 4 });
+      } catch {
+        setSelectedBooking((prev) => (prev ? { ...prev, status_id: 4 } : prev));
+      }
+
       setActiveTab('Finished');
     } catch (e) {
       alert(e.message);
@@ -371,8 +428,8 @@ export default function StatusBooking() {
       <BookingDetailModal
         booking={selectedBooking}
         onClose={closeModal}
-        onFinish={markAsFinished}        // NEW
-        finishing={finishing}            // NEW
+        onFinish={markAsFinished}
+        finishing={finishing}
       />
 
       {/* POPUP LOGOUT */}
