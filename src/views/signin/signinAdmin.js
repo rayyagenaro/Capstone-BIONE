@@ -54,7 +54,7 @@ export default function SignInAdmin() {
   }
 
   function handleBack() {
-    router.back();
+    router.push('/Login/hal-login');
   }
 
   return (

@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import styles from './signup.module.css';
 
 export default function Signup() {
+  const router = useRouter();
+
   const [fields, setFields] = useState({
     nama: '',
     nip: '',
@@ -62,7 +65,6 @@ export default function Signup() {
 
         if (res.ok) {
           setShowSuccess(true);
-          // Redirect ke halaman login jika mau
           window.location.href = '/Signin/hal-sign';
         } else {
           alert(data.error || 'Terjadi kesalahan saat mendaftar');
@@ -75,6 +77,11 @@ export default function Signup() {
   }
 
   const bolehDaftar = Object.values(fields).every(x => !!x) && fields.password === fields.konfirmasi;
+
+  function handleBack() {
+    // sama seperti halaman lain: balik ke halaman login umum
+    router.push('/Login/hal-login');
+  }
 
   return (
     <div className={styles.background}>
@@ -98,14 +105,31 @@ export default function Signup() {
 
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
-          <Image
-            src="/assets/Logo D'ONE.png"
-            alt="Logo D'ONE"
-            width={120}
-            height={34}
-            className={styles.logoBI}
-            priority
-          />
+          {/* HEADER CARD: logo center, tombol back menempel kiri */}
+          <div className={styles.cardHeaderRowMod}>
+            <button
+              className={styles.backBtn}
+              type="button"
+              onClick={handleBack}
+              aria-label="Kembali"
+            >
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
+                <circle cx="14" cy="12" r="11" fill="#fff" />
+                <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            <div className={styles.headerLogoWrapper}>
+              <Image
+                src="/assets/BI-One-Blue.png"
+                alt="Logo D'ONE"
+                width={120}
+                height={34}
+                className={styles.logoBI}
+                priority
+              />
+            </div>
+          </div>
 
           <div className={styles.cardTitle}>Register Akun</div>
           <div className={styles.cardSubtitle}>Isi data di bawah ini dengan sesuai!</div>
@@ -173,9 +197,7 @@ export default function Signup() {
                 value={fields.password}
                 onChange={handleChange}
               />
-              <span className={styles.eyeIcon} onClick={() => setShowPass(x => !x)} tabIndex={0}>
-                {/* (Ikon eye SVG tidak diubah) */}
-              </span>
+              <span className={styles.eyeIcon} onClick={() => setShowPass(x => !x)} tabIndex={0} />
               {submitted && errors.password && <div className={styles.errorMsg}>{errors.password}</div>}
             </div>
 
@@ -189,9 +211,7 @@ export default function Signup() {
                 value={fields.konfirmasi}
                 onChange={handleChange}
               />
-              <span className={styles.eyeIcon} onClick={() => setShowConf(x => !x)} tabIndex={0}>
-                {/* (Ikon eye SVG tidak diubah) */}
-              </span>
+              <span className={styles.eyeIcon} onClick={() => setShowConf(x => !x)} tabIndex={0} />
               {submitted && errors.konfirmasi && <div className={styles.errorMsg}>{errors.konfirmasi}</div>}
             </div>
 
@@ -206,19 +226,19 @@ export default function Signup() {
             </button>
           </form>
 
-            {showSuccess && (
-              <div className={styles.popupOverlay}>
-                <div className={styles.popupBox}>
-                  <div className={styles.popupIcon}>
-                    <svg width="70" height="70" viewBox="0 0 70 70">
-                      <circle cx="35" cy="35" r="35" fill="#7EDC89" />
-                      <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <div className={styles.popupMsg}><b>Berhasil Sign Up</b></div>
+          {showSuccess && (
+            <div className={styles.popupOverlay}>
+              <div className={styles.popupBox}>
+                <div className={styles.popupIcon}>
+                  <svg width="70" height="70" viewBox="0 0 70 70">
+                    <circle cx="35" cy="35" r="35" fill="#7EDC89" />
+                    <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
+                <div className={styles.popupMsg}><b>Berhasil Sign Up</b></div>
               </div>
-            )}
+            </div>
+          )}
 
           <div className={styles.registerArea}>
             Punya Akun? <Link href="/Signin/hal-sign" className={styles.registerLink}>Masuk ke Akunmu</Link>

@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import styles from './signupadmin.module.css';
 
 export default function SignupAdmin() {
+  const router = useRouter();
+
   const [fields, setFields] = useState({
     nama: '',
     email: '',
@@ -19,12 +22,12 @@ export default function SignupAdmin() {
 
   function validate() {
     const e = {};
-    if (!fields.nama) e.nama = "Nama wajib diisi";
-    if (!fields.email) e.email = "Email wajib diisi";
-    if (!fields.password) e.password = "Kata sandi wajib diisi";
-    if (!fields.konfirmasi) e.konfirmasi = "Konfirmasi wajib diisi";
+    if (!fields.nama) e.nama = 'Nama wajib diisi';
+    if (!fields.email) e.email = 'Email wajib diisi';
+    if (!fields.password) e.password = 'Kata sandi wajib diisi';
+    if (!fields.konfirmasi) e.konfirmasi = 'Konfirmasi wajib diisi';
     if (fields.password && fields.konfirmasi && fields.password !== fields.konfirmasi) {
-      e.konfirmasi = "Konfirmasi tidak cocok";
+      e.konfirmasi = 'Konfirmasi tidak cocok';
     }
     return e;
   }
@@ -53,32 +56,36 @@ export default function SignupAdmin() {
         });
 
         const data = await res.json();
-
         if (res.ok) {
           setShowSuccess(true);
           window.location.href = '/Signin/hal-signAdmin';
         } else {
           alert(data.error || 'Terjadi kesalahan saat mendaftar admin');
         }
-      } catch (err) {
-        console.error('Error:', err);
+      } catch {
         alert('Gagal menghubungi server');
       }
     }
   }
 
-  const bolehDaftar = Object.values(fields).every(Boolean) && fields.password === fields.konfirmasi;
+  const bolehDaftar =
+    Object.values(fields).every(Boolean) && fields.password === fields.konfirmasi;
+
+  function handleBack() {
+    // samakan rute balik seperti di signin admin
+    router.push('/Login/hal-login');
+  }
 
   return (
     <div className={styles.background}>
+      {/* TOPBAR */}
       <div className={styles.topbar}>
         <div className={styles.logoWrap}>
           <Image
             src="/assets/Logo BI Putih.png"
-            alt="D'ONE"
-            width={75}
-            height={40}
-            className={styles.logoDone}
+            alt="Bank Indonesia Logo"
+            width={180}
+            height={50}
             priority
           />
         </div>
@@ -86,20 +93,35 @@ export default function SignupAdmin() {
 
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
-          <Image
-            src="/assets/BI-One-Blue.png"
-            alt="Bank Indonesia"
-            width={120}
-            height={34}
-            className={styles.logoBI}
-            priority
-          />
+          {/* HEADER: logo center, tombol back absolute di kiri */}
+          <div className={styles.cardHeaderRowMod}>
+            <button
+              className={styles.backBtn}
+              type="button"
+              onClick={handleBack}
+              aria-label="Kembali"
+            >
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
+                <circle cx="14" cy="12" r="11" fill="#fff" />
+                <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            <div className={styles.headerLogoWrapper}>
+              <Image
+                src="/assets/BI-One-Blue.png"
+                alt="BI One Logo"
+                width={180}
+                height={60}
+                priority
+              />
+            </div>
+          </div>
 
           <div className={styles.cardTitle}>Registrasi Admin</div>
           <div className={styles.cardSubtitle}>Buat akun admin dengan aman</div>
 
           <form className={styles.form} autoComplete="off" onSubmit={handleSubmit}>
-            {/* Nama */}
             <div className={styles.formGroup}>
               <input
                 className={styles.input}
@@ -112,7 +134,6 @@ export default function SignupAdmin() {
               {submitted && errors.nama && <div className={styles.errorMsg}>{errors.nama}</div>}
             </div>
 
-            {/* Email */}
             <div className={styles.formGroup}>
               <input
                 className={styles.input}
@@ -125,7 +146,6 @@ export default function SignupAdmin() {
               {submitted && errors.email && <div className={styles.errorMsg}>{errors.email}</div>}
             </div>
 
-            {/* Password */}
             <div className={styles.formGroup} style={{ position: 'relative' }}>
               <input
                 className={styles.input}
@@ -135,11 +155,10 @@ export default function SignupAdmin() {
                 value={fields.password}
                 onChange={handleChange}
               />
-              <span className={styles.eyeIcon} onClick={() => setShowPass((x) => !x)} />
+              <span className={styles.eyeIcon} onClick={() => setShowPass(s => !s)} />
               {submitted && errors.password && <div className={styles.errorMsg}>{errors.password}</div>}
             </div>
 
-            {/* Konfirmasi */}
             <div className={styles.formGroup} style={{ position: 'relative' }}>
               <input
                 className={styles.input}
@@ -149,7 +168,7 @@ export default function SignupAdmin() {
                 value={fields.konfirmasi}
                 onChange={handleChange}
               />
-              <span className={styles.eyeIcon} onClick={() => setShowConf((x) => !x)} />
+              <span className={styles.eyeIcon} onClick={() => setShowConf(s => !s)} />
               {submitted && errors.konfirmasi && <div className={styles.errorMsg}>{errors.konfirmasi}</div>}
             </div>
 
@@ -169,7 +188,7 @@ export default function SignupAdmin() {
                 <div className={styles.popupIcon}>
                   <svg width="70" height="70" viewBox="0 0 70 70">
                     <circle cx="35" cy="35" r="35" fill="#7EDC89" />
-                    <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                    <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <div className={styles.popupMsg}><b>Berhasil Sign Up</b></div>
@@ -179,9 +198,7 @@ export default function SignupAdmin() {
 
           <div className={styles.registerArea}>
             Sudah punya akun admin?
-            <Link href="/Signin/hal-signAdmin" className={styles.registerLink}>
-              Masuk di sini
-            </Link>
+            <Link href="/Signin/hal-signAdmin" className={styles.registerLink}>Masuk di sini</Link>
           </div>
         </div>
       </div>

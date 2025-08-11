@@ -10,8 +10,7 @@
   content: "";
   position: fixed;
   left: 0; top: 0; right: 0; bottom: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100vw; height: 100vh;
   z-index: -2;
   background: url('/assets/bankindonesia.png') center center / cover no-repeat;
   opacity: 0.35;
@@ -21,8 +20,7 @@
   content: "";
   position: fixed;
   left: 0; top: 0; right: 0; bottom: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100vw; height: 100vh;
   z-index: -1;
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
   opacity: 0.7;
@@ -44,11 +42,7 @@
   left: 0;
   z-index: 10;
 }
-.logoDone {
-  width: 75px !important;
-  height: 40px !important;
-  object-fit: contain;
-}
+.logoWrap { display: flex; align-items: center; }
 
 /* Isi konten */
 .contentWrapper {
@@ -58,6 +52,7 @@
   justify-content: center;
   min-height: calc(100vh - 68px);
 }
+
 .card {
   background: #fff;
   min-width: 340px;
@@ -65,48 +60,74 @@
   width: 100%;
   border-radius: 23px;
   box-shadow: 0 8px 38px 0 rgba(70,90,150,0.19), 0 1.5px 8px 0 rgba(70,90,150,0.07);
-  padding: 35px 36px 26px 36px;
+  padding: 26px 36px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
 }
-.logoBI {
-  width: 120px !important;
-  height: 34px !important;
-  object-fit: contain;
+
+/* ===== HEADER: logo center, back absolute kiri ===== */
+.cardHeaderRowMod {
+  position: relative;          /* referensi posisi untuk tombol back */
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;     /* logo persis di tengah */
+  min-height: 44px;
   margin-bottom: 12px;
 }
+.backBtn {
+  position: absolute;
+  left: 0;                     /* tempel ke kiri card */
+  top: 50%;
+  transform: translateY(-50%); /* sejajar vertikal dengan logo */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f6fa;
+  border: 1.2px solid #bcd0f0;
+  color: #2F4D8E;
+  border-radius: 12px;
+  padding: 7px 10px;
+  width: 44px; height: 44px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(70,90,150,0.08);
+  transition: background 0.15s, color 0.15s, border 0.15s;
+  border: none; outline: none;
+  font-size: 0;
+}
+.backBtn:hover,
+.backBtn:focus { background: #e3eaf7; color: #253e70; border: 1.2px solid #253e70; }
+.backBtn svg { display: block; }
+
+/* wrapper logo tetap center */
+.headerLogoWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.cardBankLogo { width: 110px !important; height: 42px !important; object-fit: contain; }
+
+/* Judul & subjudul */
 .cardTitle {
   font-size: 38px;
   color: #2F4D8E;
   text-align: center;
-  margin-bottom: 5px;
+  margin: 0 0 5px 0;
   font-weight: 700;
-  /* font-family: inherit; */
   letter-spacing: 1px;
 }
 .cardSubtitle {
   font-size: 15px;
-  /* font-family: inherit; */
   color: #949494;
   margin-bottom: 24px;
   text-align: center;
 }
-.form {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  margin-bottom: 14px;
-}
-.formGroup {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  position: relative;
-}
+
+/* Form */
+.form { width: 100%; display: flex; flex-direction: column; gap: 13px; margin-bottom: 14px; }
+.formGroup { width: 100%; display: flex; flex-direction: column; gap: 1px; position: relative; }
 .input {
   width: 100%;
   padding: 14px 16px;
@@ -114,20 +135,14 @@
   border: 1.5px solid #e1e5f3;
   font-size: 1.1rem;
   font-weight: 500;
-  /* font-family: inherit; */
   outline: none;
   background: #f7faff;
   transition: border 0.18s;
   color: #253e70;
 }
-.input:focus {
-  border: 1.5px solid #2F4D8E;
-  background: #fff;
-  color: #253e70;
-}
-.input::placeholder {
-  color: #bbc6e6;
-}
+.input:focus { border: 1.5px solid #2F4D8E; background: #fff; color: #253e70; }
+.input::placeholder { color: #bbc6e6; }
+
 .eyeIcon {
   position: absolute;
   right: 13px;
@@ -138,12 +153,9 @@
   padding: 2px;
   z-index: 3;
 }
-.errorMsg {
-  font-size: 13px;
-  color: #d62c2c;
-  margin-top: 2px;
-  margin-left: 10px;
-}
+
+.errorMsg { font-size: 13px; color: #d62c2c; margin-top: 2px; margin-left: 10px; }
+
 .button {
   background: #2F4D8E;
   color: #ffffff;
@@ -153,79 +165,29 @@
   font-size: 18px;
   width: 100%;
   font-weight: 600;
-  /* font-family: inherit; */
   margin: 22px auto 2px auto;
   cursor: pointer;
   box-shadow: 0 4px 14px 0 rgba(70,90,150,0.13);
   transition: background 0.18s;
 }
-.button:disabled {
-  background: #6c7b97;
-  color: #fff;
-  cursor: not-allowed;
-}
-.registerArea {
-  margin-top: 10px;
-  font-size: 13px;
-  color: #969db1;
-  text-align: center;
-}
-.registerLink {
-  color: #2F4D8E;
-  text-decoration: none;
-  margin-left: 5px;
-  font-weight: bold;
-  font-weight: 500;
-  /* font-family: inherit; */
-  letter-spacing: 0.3px;
-  font-size: 13px;
-}
-.registerLink:hover {
-  text-decoration: underline;
-}
+.button:disabled { background: #6c7b97; color: #fff; cursor: not-allowed; }
+
+.registerArea { margin-top: 10px; font-size: 13px; color: #969db1; text-align: center; }
+.registerLink { color: #2F4D8E; text-decoration: none; margin-left: 5px; font-weight: 500; letter-spacing: 0.3px; font-size: 13px; }
+.registerLink:hover { text-decoration: underline; }
 
 /* Responsive */
 @media (max-width: 650px) {
-  .card {
-    max-width: 99vw;
-    min-width: 0;
-    padding: 16px 2vw 12px 2vw;
-  }
-  .cardTitle {
-    font-size: 27px;
-  }
-  .logoBI {
-    width: 80px !important;
-    height: 18px !important;
-  }
-  .topbar {
-    height: 54px;
-    padding: 0 10px;
-  }
-  .contentWrapper {
-    padding-top: 66px;
-  }
+  .card { max-width: 99vw; min-width: 0; padding: 16px 2vw 12px 2vw; border-radius: 16px; }
+  .topbar { height: 54px; padding: 0 10px; }
+  .contentWrapper { padding-top: 66px; }
+  .cardTitle { font-size: 27px; }
+  .cardHeaderRowMod { min-height: 38px; }
+  .backBtn { width: 34px; height: 34px; padding: 4px; }
 }
 
-.popupOverlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 9999;
-}
-.popupBox {
-  background: white;
-  padding: 30px;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-  position: relative;
-}
-.popupIcon {
-  margin-bottom: 16px;
-}
-.popupMsg {
-  font-size: 18px;
-  color: #2F4D8E;
-}
+/* Popup */
+.popupOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.popupBox { background: white; padding: 30px; border-radius: 16px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.2); position: relative; }
+.popupIcon { margin-bottom: 16px; }
+.popupMsg { font-size: 18px; color: #2F4D8E; }
