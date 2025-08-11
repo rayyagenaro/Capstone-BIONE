@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import styles from './persetujuan.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
@@ -166,8 +167,9 @@ export default function PersetujuanBooking() {
         <div className={styles.boxLayanan}>
           {/* Back + Title (opsional) */}
           <div className="topRowPersetujuan">
-            <button type="button" className={styles.backBtn} onClick={() => router.back()} aria-label="Kembali">
-              <FaArrowLeft /> Kembali
+            <button className={styles.backBtn}>
+              <FaArrowLeft />
+              <Link href="/Admin/HalamanUtama/hal-utamaAdmin" passHref legacyBehavior>Kembali</Link>
             </button>
           </div>
 
