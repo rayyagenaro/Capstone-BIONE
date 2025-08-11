@@ -1,24 +1,21 @@
 .background {
   min-height: 100vh;
-  /* Pakai posisi relative untuk overlay */
   position: relative;
   z-index: 0;
-  /* Tetap gunakan gradient agar efeknya sama */
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
   overflow: hidden;
 }
 .background::before {
   content: "";
-  position: fixed; /* Supaya gambar tetap dan full */
+  position: fixed;
   left: 0; top: 0; right: 0; bottom: 0;
   width: 100vw;
   height: 100vh;
   z-index: -2;
   background: url('/assets/bankindonesia.png') center center / cover no-repeat;
-  opacity: 0.35;      /* Atur transparansi gambar biar tidak terlalu gelap/terang */
-  pointer-events: none; /* Supaya ga ganggu klik apapun */
+  opacity: 0.35;
+  pointer-events: none;
 }
-/* Supaya gradient tetap terlihat di atas gambar */
 .background::after {
   content: "";
   position: fixed;
@@ -27,7 +24,7 @@
   height: 100vh;
   z-index: -1;
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
-  opacity: 0.7;      /* atur sesuai kebutuhan supaya gabungannya halus */
+  opacity: 0.7;
   pointer-events: none;
 }
 .topbar {
@@ -151,21 +148,56 @@
   border: 1.6px solid #253e70;
   background: #fff;
 }
+
+/* beri ruang ekstra untuk ikon mata */
+.inputWithIcon {
+  padding-right: 48px;
+}
+
 .passwordGroup {
   position: relative;
   display: flex;
   align-items: center;
 }
+
+/* === FIX: tombol mata tanpa kotak hitam === */
 .eyeIcon {
   position: absolute;
-  right: 16px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
+  /* hilangkan semua default style tombol */
+  background: transparent !important;
+  border: none !important;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-shadow: none;
+  /* ukuran klik yang nyaman */
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
   cursor: pointer;
-  z-index: 2;
-  padding: 2px;
-  opacity: 0.8;
+  opacity: 0.9;
+  border-radius: 50%;
 }
+.eyeIcon:hover {
+  background: rgba(37, 62, 112, 0.06);
+}
+.eyeIcon:focus-visible {
+  box-shadow: 0 0 0 2px rgba(37,62,112,0.28);
+}
+.eyeIcon svg {
+  display: block;
+  pointer-events: none;
+}
+
 .optionsRow {
   display: flex;
   justify-content: space-between;
@@ -300,13 +332,11 @@
   animation: fadeinpop .24s cubic-bezier(0.23,1,0.32,1);
 }
 
-/* Animasi pop muncul */
 @keyframes fadeinpop {
   from { transform: scale(0.93); opacity: 0; }
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* Icon popup */
 .popupIcon {
   display: flex;
   justify-content: center;
@@ -319,7 +349,6 @@
   height: 52px !important;
 }
 
-/* Pesan popup */
 .popupMsg {
   font-size: 1.07rem;
   color: #2c4065;
@@ -349,6 +378,7 @@
     border-radius: 13px;
   }
 }
+
 .cardHeaderRowMod {
   width: 100%;
   display: flex;
