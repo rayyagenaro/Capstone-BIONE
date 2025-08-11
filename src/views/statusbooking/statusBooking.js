@@ -341,7 +341,7 @@ export default function StatusBooking() {
                   Menampilkan {resultsFrom}-{resultsTo} dari {filteredBookings.length} data
                 </div>
                 <div>
-                  <label htmlFor="perPage" style={{ marginRight: 8 }}>
+                   <label htmlFor="perPage" className={styles.label}>
                     Items per page:
                   </label>
                   <select
