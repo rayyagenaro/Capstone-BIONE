@@ -183,7 +183,7 @@ export default function FiturDmove() {
 
         try {
             // Ambil data user dari token di cookie
-            const meRes = await fetch('/api/me');
+            const meRes = await fetch('/api/me?scope=user', { cache: 'no-store' });
             const meData = await meRes.json();
 
             if (!meData.hasToken || !meData.payload?.sub) {

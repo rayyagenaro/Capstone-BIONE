@@ -41,7 +41,7 @@ const BookingCard = React.memo(({ booking, onClick }) => {
       tabIndex={0}
     >
       <Image
-        src={"/assets/D'MOVE.png"}
+        src={"/assets/D'MOVE.svg"}
         alt="logo"
         width={60}
         height={60}
@@ -115,6 +115,7 @@ const BookingDetailModal = ({ booking, onClose }) => {
             {booking.vehicle_types?.map((vt) => vt.name).join(', ') || 'Tidak ada'}
           </p>
           <p><strong>Jumlah Kendaraan:</strong> {booking.jumlah_kendaraan || 'N/A'}</p>
+          <p><strong>Jumlah Driver:</strong> {booking.jumlah_driver || 'N/A'}</p>
           <p><strong>Jumlah Orang:</strong> {booking.jumlah_orang || 'N/A'}</p>
           <p><strong>Volume Barang:</strong> {booking.volume_kg ? `${booking.volume_kg} Kg` : 'N/A'}</p>
           <p><strong>Keterangan:</strong> {booking.keterangan || 'Tidak ada keterangan.'}</p>
@@ -175,7 +176,7 @@ export default function StatusBooking() {
       setIsLoading(true);
       try {
         // Ambil identitas user dari token di cookie
-        const meRes = await fetch('/api/me');
+        const meRes = await fetch('/api/me?scope=user', { cache: 'no-store' });
         const meData = await meRes.json();
 
         if (!active) return;

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import styles from './signin.module.css';
 import { useRouter } from 'next/router';
 import SuccessPopup from '@/components/SuccessPopup/SuccessPopup';
+import { set } from 'date-fns';
 
 export default function SignIn() {
   const router = useRouter();
@@ -17,22 +18,40 @@ export default function SignIn() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (!email.trim() || !password) {
+      setError('Email dan password wajib diisi.');
+      return;
+    }
+
     setError('');
     setLoading(true);
+
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Login gagal');
 
-      router.replace('/User/HalamanUtama/hal-utamauser');
-      // atau: window.location.href = '/Admin/HalamanUtama/hal-utamaAdmin';
-    } catch (e) {
-      setError(e.message);
-    } finally {
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data?.error || 'Login gagal.');
+        setLoading(false);
+        return;
+      }
+
+      setShowSuccess(true);
+
+      const from = typeof router.query.from === 'string' ? router.query.from : null;
+      const target = from || '/User/HalamanUtama/hal-utamauser';
+
+      setTimeout(() => {
+        router.replace(target);
+      }, 800);
+    } catch (err) {
+      setError('Terjadi kesalahan saat login.');
       setLoading(false);
     }
   }

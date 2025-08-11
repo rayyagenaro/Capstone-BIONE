@@ -3,7 +3,6 @@ import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -12,10 +11,7 @@ export default async function handler(req, res) {
 
   const email = (req.body?.email || '').trim();
   const password = req.body?.password || '';
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email dan password wajib diisi' });
-  }
+  if (!email || !password) return res.status(400).json({ error: 'Email dan password wajib diisi' });
 
   try {
     const [rows] = await db.query('SELECT * FROM admins WHERE email = ?', [email]);
@@ -28,7 +24,7 @@ export default async function handler(req, res) {
     const secret = process.env.JWT_SECRET;
     if (!secret) return res.status(500).json({ error: 'JWT_SECRET belum diset.' });
 
-    const maxAge = 60 * 60 * 24 * 7; // 7 hari
+    const maxAge = 60 * 60; // 1 jam
     const token = await new SignJWT({
       sub: String(admin.id),
       email: admin.email,
@@ -41,11 +37,13 @@ export default async function handler(req, res) {
       .sign(new TextEncoder().encode(secret));
 
     const isProd = process.env.NODE_ENV === 'production';
-    // Set cookie HttpOnly tanpa package
-    res.setHeader(
-      'Set-Cookie',
-      `token=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAge};${isProd ? ' Secure;' : ''}`
-    );
+    res.setHeader('Set-Cookie', [
+      `admin_session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAge};${isProd ? ' Secure;' : ''}`,
+      // hapus cookie lama
+      `admin_token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
+      `token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
+    ]);
+
 
     return res.status(200).json({ message: 'Login admin berhasil' });
   } catch (e) {

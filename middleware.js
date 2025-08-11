@@ -1,58 +1,70 @@
-// /middleware.js
+// middleware.js (DEBUG MODE)
 import { NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const PUBLIC = [
+const PUBLIC = new Set([
   '/', '/Login/hal-login', '/Signin/hal-sign', '/Signin/hal-signAdmin',
   '/SignUp/hal-signup', '/SignUp/hal-signupAdmin',
-];
+]);
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|images|api).*)'],
 };
 
+const isAdminPath = (p) => p.toLowerCase().startsWith('/admin');
+const cookieNameFor = (p) => (isAdminPath(p) ? 'admin_session' : 'user_session');
+
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
+  if (PUBLIC.has(pathname)) return NextResponse.next();
 
-  if (PUBLIC.includes(pathname)) return NextResponse.next();
+  const name = cookieNameFor(pathname);
+  const token = req.cookies.get(name)?.value;
 
-  const token = req.cookies.get('token')?.value;
-  if (!token) {
+  const redirectTo = (path) => {
     const url = req.nextUrl.clone();
-    url.pathname = pathname.startsWith('/Admin') ? '/Signin/hal-signAdmin' : '/Login/hal-login';
+    url.pathname = path;
     url.searchParams.set('from', pathname);
-    return NextResponse.redirect(url);
+    return url;
+  };
+
+  if (!token) {
+    const res = NextResponse.redirect(redirectTo(isAdminPath(pathname) ? '/Signin/hal-signAdmin' : '/Login/hal-login'));
+    res.headers.set('x-auth-reason', 'no-cookie');
+    res.headers.set('x-auth-cookie-name', name);
+    return res;
+  }
+
+  const secretStr = process.env.JWT_SECRET;
+  if (!secretStr) {
+    const res = NextResponse.redirect(redirectTo(isAdminPath(pathname) ? '/Signin/hal-signAdmin' : '/Login/hal-login'));
+    res.headers.set('x-auth-reason', 'missing-jwt-secret-in-middleware');
+    return res;
   }
 
   try {
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode(process.env.JWT_SECRET)
-    );
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secretStr), {
+      algorithms: ['HS256'],
+      clockTolerance: 10,
+    });
 
-    // role guard
-    const p = pathname.toLowerCase();
-    const inAdmin = p.startsWith('/admin');
-    if (inAdmin && payload.role !== 'admin') {
-      return NextResponse.redirect(new URL('/Signin/hal-signAdmin', req.url));
+    if (isAdminPath(pathname) && payload.role !== 'admin') {
+      const res = NextResponse.redirect(redirectTo('/Signin/hal-signAdmin'));
+      res.headers.set('x-auth-reason', 'role-mismatch');
+      res.headers.set('x-auth-role', String(payload.role ?? ''));
+      return res;
     }
 
-    // turunkan info ringan buat UI (optional)
     const res = NextResponse.next();
-    const displayName = payload.name || (payload.role === 'admin' ? 'Admin' : 'User');
-
-    res.cookies.set('role', String(payload.role), {
-      path: '/', sameSite: 'lax', httpOnly: false, maxAge: 60 * 60 * 24 * 7,
-    });
-    res.cookies.set('displayName', displayName, {
-      path: '/', sameSite: 'lax', httpOnly: false, maxAge: 60 * 60 * 24 * 7,
-    });
-
+    // Tambah header debug agar kita yakin lolos middleware
+    res.headers.set('x-auth-pass', 'true');
+    res.headers.set('x-auth-role', String(payload.role ?? ''));
     return res;
-  } catch {
-    const url = req.nextUrl.clone();
-    url.pathname = '/Login/hal-login';
-    url.searchParams.set('from', pathname);
-    return NextResponse.redirect(url);
+  } catch (e) {
+    const res = NextResponse.redirect(redirectTo(isAdminPath(pathname) ? '/Signin/hal-signAdmin' : '/Login/hal-login'));
+    res.headers.set('x-auth-reason', 'jwt-verify-failed');
+    res.headers.set('x-auth-error', (e && e.name) || 'unknown');
+    res.cookies.set(name, '', { path: '/', maxAge: 0 });
+    return res;
   }
 }

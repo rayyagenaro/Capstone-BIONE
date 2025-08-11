@@ -233,6 +233,7 @@
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+  text-align: center;
   transition: background 0.15s;
   box-shadow: 0 1px 4px 0 rgba(47,77,142,0.05);
 }

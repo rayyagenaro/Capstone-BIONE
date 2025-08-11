@@ -6,16 +6,24 @@ export default function handler(req, res) {
   }
 
   const isProd = process.env.NODE_ENV === 'production';
-  const base = `Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`;
+  const common = `SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`;
 
-  // hapus semua variasi cookie yang mungkin ada
-  res.setHeader('Set-Cookie', [
-    `token=; HttpOnly; ${base}`,
-    `user_token=; HttpOnly; ${base}`,
-    `admin_token=; HttpOnly; ${base}`,
-    `role=; ${base}`,
-    `displayName=; ${base}`,
-  ]);
+  // HttpOnly session cookies (baru + defensif legacy)
+  const killHttpOnly = [
+    `user_session=; HttpOnly; Path=/; ${common}`,
+    `admin_session=; HttpOnly; Path=/; ${common}`,
+    // hapus legacy
+    `token=; HttpOnly; Path=/; ${common}`,
+    `user_token=; HttpOnly; Path=/; ${common}`,
+    `admin_token=; HttpOnly; Path=/; ${common}`,
+  ];
 
+  // Non-HttpOnly UI cookies
+  const killClient = [
+    `role=; Path=/; ${common}`,
+    `displayName=; Path=/; ${common}`,
+  ];
+
+  res.setHeader('Set-Cookie', [...killHttpOnly, ...killClient]);
   return res.status(200).json({ ok: true });
 }

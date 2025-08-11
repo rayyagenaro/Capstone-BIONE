@@ -1,5 +1,5 @@
-import DetailsLaporan from '../../../views/pengaturanuser/pengaturan';
+import Pengaturan from '../../../views/pengaturanuser/pengaturan';
 
-export default function HalDetailslaporan() {
-  return <DetailsLaporan/>;
+export default function HalPengaturan() {
+  return <Pengaturan/>;
 }
