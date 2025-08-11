@@ -145,7 +145,7 @@ export default function HalamanUtamaAdmin() {
                     aria-label={`Lihat detail booking ${booking.tujuan}`}
                   >
                     <Image
-                      src={"/assets/D'MOVE.png"}
+                      src={"/assets/D'MOVE.svg"}
                       alt="D'MOVE"
                       width={70}
                       height={70}
