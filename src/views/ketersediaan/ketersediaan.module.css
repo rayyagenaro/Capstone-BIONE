@@ -296,7 +296,7 @@
 }
 .formGroup label {
   font-size: 15px;
-  color: #2F4D8E;
+  color: #555;
   font-weight: 700;
   margin-bottom: 6px;
 }
@@ -317,8 +317,8 @@
 }
 .label {
   margin-right: 8px;
-  color: #22335e;
-  font-weight: 400;
+  color: #555;
+  font-weight: 600;
 }
 .modalBtnGroup {
   display: flex;
@@ -415,7 +415,6 @@
 }
 
 .resultsText {
-  font-size: 14px;
   color: #555;
   font-weight: 600;
 }
