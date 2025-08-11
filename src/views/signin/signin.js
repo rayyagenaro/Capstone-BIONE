@@ -17,16 +17,10 @@ export default function SignIn() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-
-    if (!email.trim() || !password) {
-      setError('Email dan password wajib diisi.');
-      return;
-    }
     setError('');
     setLoading(true);
-
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch('/api/loginAdmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -40,8 +34,10 @@ export default function SignIn() {
         return;
       }
 
+      // sukses: token sudah di cookie `token` (HttpOnly)
       setShowSuccess(true);
 
+      // kalau ada ?from=/path (di-set oleh middleware), pakai itu
       const from = typeof router.query.from === 'string' ? router.query.from : null;
       const target = from || '/User/HalamanUtama/hal-utamauser';
 

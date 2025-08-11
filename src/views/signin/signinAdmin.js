@@ -45,7 +45,7 @@ export default function SignInAdmin() {
       const target = from || '/Admin/HalamanUtama/hal-utamaAdmin';
 
       setTimeout(() => {
-        router.push(target);
+        router.replace(target);
       }, 800);
     } catch (err) {
       setError('Terjadi kesalahan saat login.');
