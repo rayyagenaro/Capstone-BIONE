@@ -10,12 +10,16 @@ import { FaArrowLeft, FaTimes } from 'react-icons/fa';
 
 // --- KONFIGURASI & HELPER ---
 const STATUS_CONFIG = {
-  '1': { text: 'Pending', className: styles.statusProcess },
+  '1': { text: 'Pending',  className: styles.statusProcess },
   '2': { text: 'Approved', className: styles.statusApproved },
   '3': { text: 'Rejected', className: styles.statusRejected },
+  // NEW
+  '4': { text: 'Finished', className: styles.statusFinished },
 };
-const TABS = ['All', 'Pending', 'Approved', 'Rejected'];
-const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3 };
+
+// NEW: tambah tab Finished
+const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished'];
+const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Tanggal tidak valid';
@@ -80,7 +84,7 @@ const TabFilter = React.memo(({ currentTab, onTabChange }) => (
 ));
 TabFilter.displayName = 'TabFilter';
 
-const BookingDetailModal = ({ booking, onClose }) => {
+const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
   // Tutup dengan ESC
   useEffect(() => {
     if (!booking) return;
@@ -92,6 +96,8 @@ const BookingDetailModal = ({ booking, onClose }) => {
   if (!booking) return null;
   const statusInfo =
     STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
+  const isApproved = Number(booking.status_id) === 2;
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -127,6 +133,21 @@ const BookingDetailModal = ({ booking, onClose }) => {
               </a>
             </p>
           )}
+
+          {/* NEW: tombol “Finished” hanya saat status Approved */}
+          {isApproved && (
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.finishButton}
+                onClick={() => onFinish(booking)}
+                disabled={finishing}
+                title="Tandai booking ini sudah selesai"
+              >
+                {finishing ? 'Memproses...' : 'Finished'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -149,6 +170,9 @@ export default function StatusBooking() {
   // Popup Logout
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
+  // NEW: state proses “Finished”
+  const [finishing, setFinishing] = useState(false);
+
   // 🔒 Kunci scroll saat modal terbuka
   useEffect(() => {
     if (selectedBooking) {
@@ -161,11 +185,10 @@ export default function StatusBooking() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
-    } catch (e) {
-      // optional: log error
-    } finally {
-      router.replace('/Signin/hal-sign'); // balik ke login admin
+      await fetch('/api/logout', { method: 'POST' });
+    } catch {}
+    finally {
+      router.replace('/Signin/hal-sign');
     }
   };
 
@@ -208,14 +231,41 @@ export default function StatusBooking() {
     return () => { active = false; };
   }, []);
 
-
   const handleTabChange = useCallback((tabName) => {
     setActiveTab(tabName);
-    setCurrentPage(1); // reset halaman saat ganti tab
+    setCurrentPage(1);
   }, []);
 
   const handleCardClick = useCallback((booking) => setSelectedBooking(booking), []);
   const closeModal = useCallback(() => setSelectedBooking(null), []);
+
+  // NEW: tandai sebagai Finished
+  const markAsFinished = useCallback(async (booking) => {
+    try {
+      setFinishing(true);
+      const res = await fetch('/api/booking', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: booking.id, newStatusId: 4 }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error || 'Gagal mengubah status menjadi Finished.');
+      }
+
+      // Update data lokal (optimistic update)
+      setAllBookings((prev) =>
+        prev.map((b) => (b.id === booking.id ? { ...b, status_id: 4 } : b))
+      );
+      setSelectedBooking((prev) => (prev ? { ...prev, status_id: 4 } : prev));
+      // opsional: pindah ke tab Finished
+      setActiveTab('Finished');
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setFinishing(false);
+    }
+  }, []);
 
   const filteredBookings = useMemo(() => {
     if (activeTab === 'All') return allBookings;
@@ -223,13 +273,11 @@ export default function StatusBooking() {
     return allBookings.filter((item) => item.status_id === statusId);
   }, [activeTab, allBookings]);
 
-  // Total pages & slicing
   const totalPages = useMemo(() => {
     if (!filteredBookings.length) return 1;
     return Math.ceil(filteredBookings.length / itemsPerPage);
   }, [filteredBookings.length, itemsPerPage]);
 
-  // Pastikan currentPage tidak melebihi totalPages
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(1);
   }, [totalPages, currentPage]);
@@ -242,7 +290,6 @@ export default function StatusBooking() {
     [filteredBookings, startIndex, endIndex]
   );
 
-  // Handlers pagination
   const onPageChange = useCallback(
     (page) => {
       if (page < 1 || page > totalPages) return;
@@ -287,7 +334,6 @@ export default function StatusBooking() {
             ))}
           </div>
 
-          {/* Controls + Pagination */}
           {!isLoading && !error && filteredBookings.length > 0 && (
             <div className={styles.paginationContainer}>
               <div className={styles.paginationControls}>
@@ -322,7 +368,12 @@ export default function StatusBooking() {
         </div>
       </main>
 
-      <BookingDetailModal booking={selectedBooking} onClose={closeModal} />
+      <BookingDetailModal
+        booking={selectedBooking}
+        onClose={closeModal}
+        onFinish={markAsFinished}        // NEW
+        finishing={finishing}            // NEW
+      />
 
       {/* POPUP LOGOUT */}
       <LogoutPopup

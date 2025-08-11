@@ -574,3 +574,33 @@
   cursor: pointer; 
   user-select: none; 
 }
+/* NEW: status warna untuk Finished */
+.statusFinished {
+  color: #6c63ff; /* ungu lembut */
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* NEW: area aksi dalam modal */
+.modalActions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* NEW: tombol Finished */
+.finishButton {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #5a54e4 70%, #7a74ff 100%);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(90, 84, 228, 0.25);
+  transition: transform .08s ease, filter .12s ease;
+}
+
+.finishButton:hover { filter: brightness(1.05); }
+.finishButton:active { transform: translateY(1px); }
+.finishButton:disabled { opacity: .6; cursor: not-allowed; }
