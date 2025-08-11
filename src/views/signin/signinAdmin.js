@@ -90,19 +90,17 @@ export default function SignInAdmin() {
               <Image
                 src="/assets/BI-One-Blue.png"
                 alt="Logo BI.ONE"
-                width={110}
-                height={42}
+                width={160}
+                height={44}
                 className={styles.cardBankLogo}
                 priority
               />
             </div>
             <div className={styles.backBtnSpacer} />
           </div>
-
-          <div className={styles.cardTitle}>Login</div>
           <div className={styles.subGreeting}>
             Selamat Datang
-            <div className={styles.adminText}>Admin</div>
+            <div className={styles.adminText}>Admin!</div>
           </div>
 
           <form className={styles.form} autoComplete="off" onSubmit={handleSubmit}>
