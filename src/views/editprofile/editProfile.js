@@ -109,7 +109,7 @@ export default function EditProfile() {
           <div className={styles.topRow}>
             <button className={styles.backBtn}>
               <FaArrowLeft />
-              <Link href="/HalamanUtama/hal-utamauser" passHref legacyBehavior>Kembali</Link>
+              <Link href="/User/HalamanUtama/hal-utamauser" passHref legacyBehavior>Kembali</Link>
             </button>
             <div className={styles.title}>
               EDIT PROFILE

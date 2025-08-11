@@ -28,7 +28,6 @@ export default function SignInAdmin() {
       const res = await fetch('/api/loginAdmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Cookie HttpOnly `token` akan di-set oleh API
         body: JSON.stringify({ email, password }),
       });
 
@@ -42,7 +41,6 @@ export default function SignInAdmin() {
 
       setShowSuccess(true);
 
-      // Pakai ?from= kalau ada (diisi middleware), else ke halaman utama admin
       const from = typeof router.query.from === 'string' ? router.query.from : null;
       const target = from || '/Admin/HalamanUtama/hal-utamaAdmin';
 
@@ -75,7 +73,7 @@ export default function SignInAdmin() {
 
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
-          {/* ROW: Button kembali & Logo Bank Indonesia center */}
+          {/* ROW: Button kembali & Logo center */}
           <div className={styles.cardHeaderRowMod}>
             <button
               className={styles.backBtn}
@@ -85,7 +83,7 @@ export default function SignInAdmin() {
             >
               <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
                 <circle cx="14" cy="12" r="11" fill="#fff" />
-                <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
             <div className={styles.headerLogoWrapper}>
@@ -124,12 +122,13 @@ export default function SignInAdmin() {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Password"
-                className={styles.input}
+                className={`${styles.input} ${styles.inputWithIcon}`}
                 value={password}
                 onChange={e => { setPassword(e.target.value); if (error) setError(''); }}
                 autoComplete="current-password"
                 required
               />
+              {/* Tombol mata – sama dengan halaman user (tanpa box) */}
               <button
                 type="button"
                 className={styles.eyeIcon}
@@ -138,7 +137,7 @@ export default function SignInAdmin() {
                 aria-label={showPassword ? 'Sembunyikan Password' : 'Lihat Password'}
               >
                 {showPassword ? (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M2 2L22 22" stroke="#777" strokeWidth="2" />
                     <path
                       d="M17.94 17.94C16.13 19.25 13.88 20 12 20C7 20 2.73 16.11 1 12C1.65 10.48 2.63 9.09 3.86 7.98M8.46 5.29C9.62 5.09 10.78 5 12 5C17 5 21.27 8.89 23 13C22.38 14.55 21.44 16 20.21 17.13"
@@ -149,7 +148,7 @@ export default function SignInAdmin() {
                     <circle cx="12" cy="12" r="3" stroke="#bbb" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 ) : (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path
                       d="M1 12C2.73 16.11 7 20 12 20C17 20 21.27 16.11 23 12C21.27 7.89 17 4 12 4C7 4 2.73 7.89 1 12Z"
                       stroke="#bbb"
