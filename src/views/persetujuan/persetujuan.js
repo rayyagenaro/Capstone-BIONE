@@ -55,7 +55,7 @@ const BookingCard = React.memo(({ booking }) => {
       tabIndex={0}
       aria-label={`Lihat detail booking tujuan ${booking.tujuan}`}
     >
-      <Image src="/assets/D'MOVE.png" alt="D'MOVE" width={70} height={70} className={styles.cardLogo} priority />
+      <Image src="/assets/D'MOVE.svg" alt="D'MOVE" width={70} height={70} className={styles.cardLogo} priority />
       <div className={styles.cardContent}>
         <div className={styles.layananTitle}>{`Booking D'MOVE | ${booking.tujuan}`}</div>
         <div className={styles.layananSub}>{calculateDuration(booking.start_date, booking.end_date)}</div>

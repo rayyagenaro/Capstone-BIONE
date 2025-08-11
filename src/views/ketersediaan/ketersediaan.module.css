@@ -315,6 +315,11 @@
   border: 1.7px solid #2F4D8E;
   background: #f0f7ff;
 }
+.label {
+  margin-right: 8px;
+  color: #22335e;
+  font-weight: 400;
+}
 .modalBtnGroup {
   display: flex;
   gap: 16px;
@@ -411,8 +416,8 @@
 
 .resultsText {
   font-size: 14px;
-  color: #555;
-  font-weight: 600;
+  color: #22335e;
+  font-weight: 400;
 }
 
 .itemsPerPageDropdown {

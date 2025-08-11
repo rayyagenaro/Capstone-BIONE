@@ -38,9 +38,9 @@ function Modal({ editMode, modalType, formData, handleChange, handleCloseModal, 
           {modalType === 'drivers' ? (
             <>
               <div className={styles.formGroup}>
-                <label>NIM</label>
+                <label>NIP</label>
                 <input
-                  name="nim"
+                  name="nip"
                   value={formData.nim}
                   onChange={handleChange}
                   required
@@ -342,10 +342,10 @@ export default function Ketersediaan() {
                 <table className={styles.dataTable}>
                   <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>NIM</th>
+                      <th>No.</th>
+                      <th>NIP</th>
                       <th>Nama</th>
-                      <th>Phone</th>
+                      <th>No. HP</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -414,7 +414,7 @@ export default function Ketersediaan() {
                       Menampilkan {resultsFrom}-{resultsTo} dari {activeList.length} data
                     </div>
                     <div>
-                      <label htmlFor="perPage" style={{ marginRight: 8 }}>Items per page:</label>
+                      <label htmlFor="perPage" className={styles.label}>Items per page:</label>
                       <select
                         id="perPage"
                         className={styles.itemsPerPageDropdown}
