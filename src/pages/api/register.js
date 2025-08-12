@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   try {
     // Cek apakah email sudah terdaftar
-    const [existing] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
     if (existing.length > 0) {
       return res.status(409).json({ error: 'Email sudah terdaftar' });
     }
@@ -20,13 +20,17 @@ export default async function handler(req, res) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Simpan ke database
+    // Simpan ke database -> default Pending (1) & alasan null
     await db.query(
-      `INSERT INTO users (name, email, phone, nip, password) VALUES (?, ?, ?, ?, ?)`,
-      [nama, email, hp, nip, hashedPassword] // GUNAKAN nim
+      `INSERT INTO users
+        (name, email, phone, nip, password, verification_status_id, rejection_reason)
+       VALUES (?, ?, ?, ?, ?, 1, NULL)`,
+      [nama, email, hp, nip, hashedPassword]
     );
 
-    return res.status(201).json({ message: 'Registrasi berhasil' });
+    return res.status(201).json({
+      message: 'Registrasi berhasil. Akun menunggu verifikasi admin.'
+    });
   } catch (err) {
     console.error('Register error:', err);
     return res.status(500).json({ error: 'Terjadi kesalahan di server' });

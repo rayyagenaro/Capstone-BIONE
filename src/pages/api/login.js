@@ -14,10 +14,28 @@ export default async function handler(req, res) {
   if (!email || !password) return res.status(400).json({ error: 'Email dan password wajib diisi' });
 
   try {
-    const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    // join status verifikasi
+    const [rows] = await db.query(
+      `SELECT u.*, vs.name AS verification_status_name
+       FROM users u
+       JOIN verification_status vs ON vs.id = u.verification_status_id
+       WHERE u.email = ? LIMIT 1`,
+      [email]
+    );
     if (!rows.length) return res.status(401).json({ error: 'Email tidak ditemukan' });
 
     const user = rows[0];
+
+    // Cek status verifikasi
+    if (user.verification_status_id === 1) {
+      return res.status(403).json({ error: 'Akun Anda masih menunggu verifikasi admin (Pending).' });
+    }
+    if (user.verification_status_id === 3) {
+      return res.status(403).json({
+        error: `Akun Anda ditolak.${user.rejection_reason ? ' Alasan: ' + user.rejection_reason : ''}`
+      });
+    }
+
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: 'Password salah' });
 
@@ -44,7 +62,6 @@ export default async function handler(req, res) {
       `token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
       `user_token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
     ]);
-
 
     return res.status(200).json({ message: 'Login berhasil' });
   } catch (e) {

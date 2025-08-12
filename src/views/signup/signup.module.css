@@ -78,17 +78,17 @@
 
 /* === Header dalam card: logo center, tombol back absolute kiri === */
 .cardHeaderRowMod{
-  position: relative;     /* referensi absolute untuk tombol back */
+  position: relative;
   width: 100%;
   min-height: 44px;
   display: flex;
   align-items: center;
-  justify-content: center; /* logo benar2 di tengah */
+  justify-content: center;
   margin-bottom: 12px;
 }
 .backBtn{
   position: absolute;
-  left: 0;               /* menempel kiri card */
+  left: 0;
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
@@ -199,20 +199,62 @@
   .backBtn { width: 34px; height: 34px; padding: 4px; }
 }
 
+/* === POPUP SUKSES === */
 .popupOverlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(44, 52, 83, 0.18);
   display: flex; align-items: center; justify-content: center;
   z-index: 9999;
+  font-family: inherit;
 }
 .popupBox {
-  background: white;
-  padding: 30px;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   position: relative;
+  background: white;
+  padding: 28px 26px 22px;
+  border-radius: 18px;
+  text-align: center;
+  border: 1.2px solid #d6d9e4;
+  box-shadow: 0 8px 32px rgba(70,90,150,0.13);
+  width: min(92vw, 560px);
+  animation: popupFadeIn .2s cubic-bezier(.24,.97,.54,.98);
+  font-family: inherit;
 }
-.popupIcon { margin-bottom: 16px; }
-.popupMsg { font-size: 18px; color: #2F4D8E; }
+@keyframes popupFadeIn {
+  from { opacity: 0; transform: translateY(12px) scale(.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.popupCloseBtn{
+  position: absolute;
+  top: 8px; right: 10px;
+  border: none; background: transparent;
+  font-size: 22px; cursor: pointer; color: #2f4d8e;
+  border-radius: 50%;
+  width: 30px; height: 30px; line-height: 30px;
+}
+.popupCloseBtn:hover{ background: #e8f0fe; }
+.popupIcon { margin-bottom: 8px; display: flex; justify-content: center; }
+.popupTitle {
+  font-size: 20px;
+  color: #2F4D8E;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.popupMsg {
+  font-size: 15.5px;
+  color: #263a5a;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.popupActions { margin-top: 12px; }
+.okBtn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(95deg, #2f4d8e 85%, #3759aa 100%);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 14px rgba(47,77,142,0.14);
+}
+.okBtn:hover { filter: brightness(1.03); }

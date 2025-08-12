@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -19,7 +19,19 @@ export default function Signup() {
   const [showConf, setShowConf] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+
+  // NEW: loading saat submit & popup sukses
+  const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // OPTIONAL: auto-redirect setelah beberapa detik saat popup muncul
+  useEffect(() => {
+    if (!showSuccess) return;
+    const t = setTimeout(() => {
+      router.replace('/Signin/hal-sign');
+    }, 2500); // 2.5 detik
+    return () => clearTimeout(t);
+  }, [showSuccess, router]);
 
   // Validasi wajib isi & password sama
   function validate() {
@@ -49,6 +61,7 @@ export default function Signup() {
 
     if (Object.keys(err).length === 0) {
       try {
+        setLoading(true);
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -61,17 +74,20 @@ export default function Signup() {
           }),
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (res.ok) {
+          // Tampilkan popup sukses + pesan menunggu verifikasi
           setShowSuccess(true);
-          window.location.href = '/Signin/hal-sign';
+          // NOTE: redirect ditangani di useEffect (auto), atau tombol OK di popup di bawah
         } else {
           alert(data.error || 'Terjadi kesalahan saat mendaftar');
         }
       } catch (err) {
         console.error('Error:', err);
         alert('Gagal terhubung ke server');
+      } finally {
+        setLoading(false);
       }
     }
   }
@@ -197,7 +213,12 @@ export default function Signup() {
                 value={fields.password}
                 onChange={handleChange}
               />
-              <span className={styles.eyeIcon} onClick={() => setShowPass(x => !x)} tabIndex={0} />
+              <span
+                className={styles.eyeIcon}
+                onClick={() => setShowPass(x => !x)}
+                tabIndex={0}
+                aria-label="Toggle password"
+              />
               {submitted && errors.password && <div className={styles.errorMsg}>{errors.password}</div>}
             </div>
 
@@ -211,7 +232,12 @@ export default function Signup() {
                 value={fields.konfirmasi}
                 onChange={handleChange}
               />
-              <span className={styles.eyeIcon} onClick={() => setShowConf(x => !x)} tabIndex={0} />
+              <span
+                className={styles.eyeIcon}
+                onClick={() => setShowConf(x => !x)}
+                tabIndex={0}
+                aria-label="Toggle confirm password"
+              />
               {submitted && errors.konfirmasi && <div className={styles.errorMsg}>{errors.konfirmasi}</div>}
             </div>
 
@@ -219,23 +245,49 @@ export default function Signup() {
             <button
               type="submit"
               className={styles.button}
-              disabled={!bolehDaftar}
-              style={{ opacity: bolehDaftar ? 1 : 0.5, cursor: bolehDaftar ? 'pointer' : 'not-allowed' }}
+              disabled={!bolehDaftar || loading}
+              style={{
+                opacity: (!bolehDaftar || loading) ? 0.5 : 1,
+                cursor: (!bolehDaftar || loading) ? 'not-allowed' : 'pointer'
+              }}
             >
-              Daftar
+              {loading ? 'Memproses…' : 'Daftar'}
             </button>
           </form>
 
+          {/* POPUP SUKSES */}
           {showSuccess && (
-            <div className={styles.popupOverlay}>
+            <div className={styles.popupOverlay} role="dialog" aria-modal="true">
               <div className={styles.popupBox}>
+                <button
+                  className={styles.popupCloseBtn}
+                  onClick={() => router.replace('/Signin/hal-sign')}
+                  aria-label="Tutup"
+                >
+                  ×
+                </button>
+
                 <div className={styles.popupIcon}>
-                  <svg width="70" height="70" viewBox="0 0 70 70">
+                  <svg width="70" height="70" viewBox="0 0 70 70" aria-hidden="true">
                     <circle cx="35" cy="35" r="35" fill="#7EDC89" />
                     <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <div className={styles.popupMsg}><b>Berhasil Sign Up</b></div>
+
+                <div className={styles.popupTitle}>Registrasi Berhasil</div>
+                <div className={styles.popupMsg}>
+                  Akun kamu berhasil dibuat dan <b>menunggu verifikasi admin</b>.<br />
+                  Mohon tunggu sebentar ya.
+                </div>
+
+                <div className={styles.popupActions}>
+                  <button
+                    className={styles.okBtn}
+                    onClick={() => router.replace('/Signin/hal-sign')}
+                  >
+                    OK
+                  </button>
+                </div>
               </div>
             </div>
           )}
