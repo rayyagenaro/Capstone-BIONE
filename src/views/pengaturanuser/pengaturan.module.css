@@ -517,3 +517,409 @@
     align-items: center;
   }
 }
+/* === STATUS PILL === */
+.statusPill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 800;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+}
+.pillPending  { background: #fff4d6; color: #a86b00; border: 1px solid #ffe3a1; }
+.pillVerified { background: #e7fbef; color: #0c8a4d; border: 1px solid #bff0d2; }
+.pillRejected { background: #ffe7e7; color: #b42525; border: 1px solid #ffc3c3; }
+
+.rejectNote { margin-top: 4px; font-size: 12px; color: #aa2d2d; }
+
+/* === AKSI VERIFIKASI === */
+.actionCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.verifyGroup {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.verifyBtn {
+  background: #2fbb70;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 1.5px 8px rgba(60, 160, 110, 0.18);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: filter .12s ease;
+}
+.verifyBtn:hover { filter: brightness(1.05); }
+.verifyBtn:disabled { opacity: .55; cursor: not-allowed; }
+
+.rejectBtn {
+  background: #f7e3e3;
+  color: #c62828;
+  border: 1.5px solid #f0b5b5;
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .14s;
+}
+.rejectBtn:hover { background: #ffecec; }
+.rejectBtn:disabled { opacity: .55; cursor: not-allowed; }
+/* === Tabs row === */
+.tabsRow {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0 16px 0;
+}
+.tabBtn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 999px;
+  background: #f1f3fb;
+  color: #5b6b8f;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 1.5px 8px rgba(47,77,142,0.07);
+}
+.tabActive {
+  background: #2F4D8E;
+  color: #fff;
+}
+
+/* === STATUS PILL === */
+.statusPill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.pillPending  { background: #fff4d6; color: #a86b00; border: 1px solid #ffe3a1; }
+.pillVerified { background: #e7fbef; color: #0c8a4d; border: 1px solid #bff0d2; }
+.pillRejected { background: #ffe7e7; color: #b42525; border: 1px solid #ffc3c3; }
+.rejectNote { margin-top: 4px; font-size: 12px; color: #aa2d2d; }
+
+.actionCell { display: flex; align-items: center; gap: 8px; }
+.verifyGroup { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+
+.verifyBtn {
+  background: #2fbb70;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 1.5px 8px rgba(60, 160, 110, 0.18);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.verifyBtn:hover { filter: brightness(1.05); }
+.verifyBtn:disabled { opacity: .55; cursor: not-allowed; }
+
+.rejectBtn {
+  background: #f7e3e3;
+  color: #c62828;
+  border: 1.5px solid #f0b5b5;
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rejectBtn:hover { background: #ffecec; }
+.rejectBtn:disabled { opacity: .55; cursor: not-allowed; }
+/* === POPUP VERIFIKASI USER === */
+.verifyPopupTitle {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0c8a4d;
+  margin-bottom: 18px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  justify-content: center;
+  letter-spacing: 0.03em;
+}
+
+.verifyPopupMsg {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1b4332;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.verifyActionBtn {
+  background: #2fbb70;
+  color: #fff;
+  border: none;
+  border-radius: 13px;
+  padding: 10px 38px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s;
+  box-shadow: 0 2px 10px 0 rgba(30,140,80,0.11);
+}
+.verifyActionBtn:hover {
+  background: #23925b;
+}
+
+/* === POPUP PENOLAKAN VERIFIKASI USER === */
+.rejectPopupTitle {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #b42525;
+  margin-bottom: 18px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  justify-content: center;
+  letter-spacing: 0.03em;
+}
+
+.rejectPopupMsg {
+  font-size: 16px;
+  font-weight: 500;
+  color: #7a1c1c;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.rejectTextarea {
+  border: 1.2px solid #e4b9b9;
+  border-radius: 8px;
+  padding: 10px 13px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #b42525;
+  background: #fff8f8;
+  transition: border .15s;
+  min-height: 85px;
+  resize: vertical;
+}
+.rejectTextarea:focus {
+  border-color: #d64545;
+  background: #fff;
+  outline: none;
+}
+
+.rejectSubmitBtn {
+  background: #b42525;
+  color: #fff;
+  border: none;
+  border-radius: 13px;
+  padding: 10px 38px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s;
+  box-shadow: 0 2px 10px 0 rgba(140,30,30,0.11);
+}
+.rejectSubmitBtn:hover {
+  background: #991f1f;
+}
+/* === Actions layout (rapi) === */
+.actionCell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Edit kiri, group kanan */
+  gap: 12px;
+  white-space: nowrap;
+}
+
+/* Tombol ghost utk Edit (lebih ringan) */
+.editGhostBtn {
+  background: #ffffff;
+  color: #2F4D8E;
+  border: 1.5px solid #e2e8fb;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 1px 6px rgba(47,77,142,0.06);
+}
+.editGhostBtn:hover { background:#f5f8ff; }
+
+/* Kapsul 2 tombol (Verifikasi | Tolak) */
+.splitGroup {
+  display: inline-flex;
+  border: 1.5px solid #e2e8fb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(47,77,142,0.06);
+}
+
+.splitBtn {
+  border: 0;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f7faff;
+}
+.splitBtn + .splitBtn {
+  border-left: 1.5px solid #e2e8fb; /* garis pemisah */
+}
+
+/* Variasi warna */
+.approve { background: #eaf8f1; color:#0d7b49; }
+.approve:hover { filter: brightness(1.05); }
+
+.reject  { background: #ffeeee; color:#bf2626; }
+.reject:hover  { filter: brightness(1.05); }
+
+/* Responsif: tumpuk ke bawah bila sempit */
+@media (max-width: 860px) {
+  .actionCell {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .splitGroup {
+    width: 100%;
+  }
+  .splitBtn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+.actionCell {
+  display: flex;
+  justify-content: center; /* biar semua tombol ada di tengah */
+  gap: 8px; /* jarak antar tombol */
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+}
+
+.editBtn {
+  background: #eef3ff;
+  color: #2f4d8e;
+}
+.editBtn:hover {
+  background: #d9e5ff;
+}
+
+.verifyBtn {
+  background: #1c7f4e;
+  color: #fff;
+}
+.verifyBtn:hover {
+  filter: brightness(1.05);
+}
+
+.rejectBtn {
+  background: #d92d20;
+  color: #fff;
+}
+.rejectBtn:hover {
+  filter: brightness(1.05);
+}
+/* Kolom aksi */
+.actionCell {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Biar tombolnya di tengah kolom */
+  gap: 12px; /* Jarak antara Edit dan group tombol kanan */
+}
+
+/* Tombol Edit (ghost style) */
+.editGhostBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #cfdaf3;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2f4d8e;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.editGhostBtn:hover {
+  background: #eef3ff;
+}
+
+/* Group Verifikasi & Tolak */
+.splitGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Jarak antar tombol */
+}
+
+/* Style tombol Verifikasi dan Tolak */
+.splitBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #fff;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.splitBtn.approve {
+  background: #28a745; /* hijau */
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
+}
+.splitBtn.approve:hover {
+  filter: brightness(1.08);
+}
+
+.splitBtn.reject {
+  background: #dc3545; /* merah */
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.2);
+}
+.splitBtn.reject:hover {
+  filter: brightness(1.08);
+}
+
+/* Biar header "Aksi" di tengah */
+.dataTable th:last-child {
+  text-align: center;
+}

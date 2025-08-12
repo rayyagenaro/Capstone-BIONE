@@ -1,63 +1,56 @@
+// /pages/api/users.js
 import db from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export default async function handler(req, res) {
-  // ================= GET (dengan status & filter) =================
+  // ================== GET (pagination + filter verifikasi) ==================
   if (req.method === "GET") {
     try {
-      const page = parseInt(req.query.page) || 1;
+      const page  = parseInt(req.query.page)  || 1;
       const limit = parseInt(req.query.limit) || 10;
       const offset = (page - 1) * limit;
 
-      // filter opsional ?vstatus=Pending|Verified|Rejected atau angka 1/2/3
-      const rawStatus = (req.query.vstatus || '').toString().trim();
-      let where = '';
+      // optional filter: verification = 1|2|3 atau pending|verified|rejected
+      let verification = req.query.verification?.toString().trim().toLowerCase() || '';
+      const map = { pending: 1, verified: 2, verificated: 2, reject: 3, rejected: 3 };
+      verification = map[verification] || parseInt(verification) || null;
+
+      let totalSql = "SELECT COUNT(*) AS totalItems FROM users";
+      let dataSql  = `
+        SELECT 
+          u.id, u.name, u.email, u.phone, u.nip,                    -- <== tambahkan nip
+          u.verification_status_id,
+          vs.name AS verification_status_name,
+          u.rejection_reason
+        FROM users u
+        LEFT JOIN verification_status vs ON vs.id = u.verification_status_id
+      `;
       const params = [];
 
-      if (rawStatus) {
-        if (/^\d+$/.test(rawStatus)) {
-          where = 'WHERE u.verification_status_id = ?';
-          params.push(parseInt(rawStatus, 10));
-        } else {
-          where = 'WHERE vs.name = ?';
-          params.push(rawStatus);
-        }
+      if (verification === 1 || verification === 2 || verification === 3) {
+        totalSql += " WHERE verification_status_id = ?";
+        dataSql  += " WHERE u.verification_status_id = ?";
+        params.push(verification);
       }
 
-      const [[{ totalItems }]] = await db.query(
-        `SELECT COUNT(*) AS totalItems
-           FROM users u
-           JOIN verification_status vs ON vs.id = u.verification_status_id
-           ${where}`,
-        params
-      );
+      dataSql += " ORDER BY u.id ASC LIMIT ? OFFSET ?";
 
-      const [users] = await db.query(
-        `SELECT u.id, u.name, u.email, u.phone, u.nip,
-                u.verification_status_id, vs.name AS verification_status_name,
-                u.rejection_reason
-           FROM users u
-           JOIN verification_status vs ON vs.id = u.verification_status_id
-           ${where}
-           ORDER BY u.id ASC
-           LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
-      );
+      const totalParams = verification ? [verification] : [];
+      const [[{ totalItems }]] = await db.query(totalSql, totalParams);
+      const [users] = await db.query(dataSql, [...params, limit, offset]);
 
       const totalPages = Math.ceil(totalItems / limit);
-
       return res.status(200).json({
         data: users,
         pagination: { totalItems, totalPages, currentPage: page, itemsPerPage: limit },
       });
-
     } catch (err) {
       console.error("API GET Error:", err);
       return res.status(500).json({ error: "Gagal mengambil data user." });
     }
   }
 
-  // ================= PUT (tidak diubah) =================
+  // ================== PUT (edit profile / ganti password oleh admin) ==================
   if (req.method === "PUT") {
     const { id, name, phone, password, adminPassword, emailAdmin } = req.body;
 
@@ -65,12 +58,11 @@ export default async function handler(req, res) {
       try {
         await db.query("UPDATE users SET name = ?, phone = ? WHERE id = ?", [name, phone, id]);
         return res.status(200).json({ message: "User berhasil diupdate" });
-      } catch (err) {
+      } catch {
         return res.status(500).json({ error: "Gagal update user." });
       }
     }
 
-    // Ganti password user oleh admin (butuh verifikasi admin)
     if (password && id && adminPassword && emailAdmin) {
       try {
         const [adminRows] = await db.query(
@@ -80,14 +72,13 @@ export default async function handler(req, res) {
         if (!adminRows?.length) {
           return res.status(400).json({ error: "Email admin tidak ditemukan. Hubungi developer." });
         }
-        const adminHash = adminRows[0].password;
-        const ok = await bcrypt.compare(adminPassword, adminHash);
+        const ok = await bcrypt.compare(adminPassword, adminRows[0].password);
         if (!ok) return res.status(401).json({ error: "Password admin salah." });
 
         const newHash = await bcrypt.hash(password, 10);
         await db.query("UPDATE users SET password = ? WHERE id = ?", [newHash, id]);
         return res.status(200).json({ message: "Password user berhasil diupdate" });
-      } catch (err) {
+      } catch {
         return res.status(500).json({ error: "Gagal update password user." });
       }
     }
