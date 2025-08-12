@@ -49,7 +49,7 @@ const BookingCard = React.memo(({ booking, onClick }) => {
       role="button"
       tabIndex={0}
     >
-      <Image src={"/assets/D'MOVE.svg"} alt="logo" width={60} height={60} className={styles.cardLogo} />
+      <Image src={"/assets/D'MOVE.svg"} alt="logo" width={70} height={70} className={styles.cardLogo} />
       <div className={styles.cardDetail}>
         <div className={styles.cardTitle}>{`Booking | ${booking.tujuan || 'Tanpa Tujuan'}`}</div>
         <div className={styles.cardSub}>

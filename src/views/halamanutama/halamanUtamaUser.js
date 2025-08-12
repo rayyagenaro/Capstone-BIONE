@@ -49,8 +49,8 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
     },
     { title: "BI.CARE",  logo: "/assets/D'CARE.svg",  desc: "BI.CARE, memfasilitasi pembuatan janji temu dan reservasi layanan klinik Bank Indonesia secara terencana.", link: "#" },
     { title: "BI.MEAL",  logo: "/assets/D'MEAL.svg",  desc: "BI.MEAL, memfasilitasi pemesanan konsumsi secara terjadwal untuk mendukung kelancaran rapat dan tugas dinas.", link: "#" },
-    { title: "BI.MAIL",  logo: "/assets/D'TRACK.svg", desc: "BI.MAIL, menyediakan layanan pelacakan dan penomoran surat dinas secara digital, sehingga administrasi surat-menyurat.", link: "#" },
     { title: "BI.MEET",  logo: "/assets/D'ROOM.svg",  desc: "BI.MEET, menghadirkan kemudahan reservasi ruang rapat dalam penyelenggaraan pertemuan dan kolaborasi antarunit kerja.", link: "#" },
+    { title: "BI.MAIL",  logo: "/assets/D'TRACK.svg", desc: "BI.MAIL, menyediakan layanan pelacakan dan penomoran surat dinas secara digital, sehingga administrasi surat-menyurat.", link: "#" },
     { title: "BI.STAY",  logo: "/assets/D'REST.svg",  desc: "BI.STAY, menyediakan sistem reservasi akomodasi rumah dinas Bank Indonesia selama menjalankan penugasan.", link: "#" },
   ];
 
