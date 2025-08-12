@@ -3,7 +3,7 @@ import db from "@/lib/db";
 export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
-      const query = "SELECT id, name FROM vehicle_types ORDER BY name ASC";
+      const query = "SELECT id, name FROM bidrive_vehicle_types ORDER BY name ASC";
       const [vehicleTypes] = await db.query(query);
       return res.status(200).json(vehicleTypes);
     } catch (error) {

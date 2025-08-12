@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   try {
     // Cek apakah email sudah terdaftar
-    const [existing] = await db.query('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
+    const [existing] = await db.query('SELECT id FROM bidrive_users WHERE email = ? LIMIT 1', [email]);
     if (existing.length > 0) {
       return res.status(409).json({ error: 'Email sudah terdaftar' });
     }
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
     // Simpan ke database -> default Pending (1) & alasan null
     await db.query(
-      `INSERT INTO users
+      `INSERT INTO bidrive_users
         (name, email, phone, nip, password, verification_status_id, rejection_reason)
        VALUES (?, ?, ?, ?, ?, 1, NULL)`,
       [nama, email, hp, nip, hashedPassword]

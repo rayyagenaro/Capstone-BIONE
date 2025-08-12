@@ -146,7 +146,7 @@ export default function DetailsLaporan() {
         throw new Error(errData.error || 'Gagal mengubah status.');
       }
       alert('Status berhasil diperbarui!');
-      router.push('/Persetujuan/hal-persetujuan');
+      router.push('/Admin/Persetujuan/hal-persetujuan');
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {

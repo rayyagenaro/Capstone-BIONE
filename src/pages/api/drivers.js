@@ -25,9 +25,9 @@ export default async function handler(req, res) {
       SELECT
         d.id,
         d.name,
-        d.phone,              -- kolom sesuai tabelmu
+        d.phone,              
         d.driver_status_id
-      FROM drivers d
+      FROM bidrive_drivers d
       ${where}
       ORDER BY d.name ASC
     `;

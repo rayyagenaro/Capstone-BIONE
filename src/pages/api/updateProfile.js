@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     const [result] = await db.execute(
-      'UPDATE users SET name = ?, phone = ? WHERE email = ?', // ✅ Ganti hp → phone
+      'UPDATE bidrive_users SET name = ?, phone = ? WHERE email = ?', // ✅ Ganti hp → phone
       [name, hp, email]
     );
 

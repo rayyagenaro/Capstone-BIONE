@@ -8,7 +8,7 @@ function formatInsertBookingVehicleTypes(bookingId, vehicleDetails) {
   }
   const placeholder = vehicleDetails.map(() => "(?, ?, ?)").join(", ");
   const query = `
-    INSERT INTO booking_vehicle_types (booking_id, vehicle_type_id, quantity)
+    INSERT INTO bidrive_booking_vehicle_types (booking_id, vehicle_type_id, quantity)
     VALUES ${placeholder}
   `;
   const values = vehicleDetails.flatMap((detail) => [
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       // Optional: update status & keterangan
       if (updateStatusTo) {
         await conn.query(
-          "UPDATE bookings SET status_id = ?, keterangan = COALESCE(?, keterangan) WHERE id = ?",
+          "UPDATE bidrive_bookings SET status_id = ?, keterangan = COALESCE(?, keterangan) WHERE id = ?",
           [Number(updateStatusTo), keterangan ?? null, bid]
         );
       }
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
       if (Array.isArray(vehicleIds) && vehicleIds.length) {
         const vals = vehicleIds.map((vid) => [bid, Number(vid), null]);
         await conn.query(
-          `INSERT IGNORE INTO booking_assignments (booking_id, vehicle_id, driver_id)
+          `INSERT IGNORE INTO bidrive_booking_assignments (booking_id, vehicle_id, driver_id)
            VALUES ${vals.map(() => "(?,?,?)").join(",")}`,
           vals.flat()
         );
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       if (Array.isArray(driverIds) && driverIds.length) {
         const vals = driverIds.map((did) => [bid, null, Number(did)]);
         await conn.query(
-          `INSERT IGNORE INTO booking_assignments (booking_id, vehicle_id, driver_id)
+          `INSERT IGNORE INTO bidrive_booking_assignments (booking_id, vehicle_id, driver_id)
            VALUES ${vals.map(() => "(?,?,?)").join(",")}`,
           vals.flat()
         );
@@ -122,10 +122,10 @@ export default async function handler(req, res) {
             ),
             ']'
           ) AS vehicle_types
-        FROM bookings b
-        LEFT JOIN users u ON b.user_id = u.id
-        LEFT JOIN booking_vehicle_types bv ON b.id = bv.booking_id
-        LEFT JOIN vehicle_types vt ON bv.vehicle_type_id = vt.id
+        FROM bidrive_bookings b
+        LEFT JOIN bidrive_users u ON b.user_id = u.id
+        LEFT JOIN bidrive_booking_vehicle_types bv ON b.id = bv.booking_id
+        LEFT JOIN bidrive_vehicle_types vt ON bv.vehicle_type_id = vt.id
         ${whereClause}
         GROUP BY b.id
         ORDER BY b.created_at DESC
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      const query = "UPDATE bookings SET status_id = ? WHERE id = ?";
+      const query = "UPDATE bidrive_bookings SET status_id = ? WHERE id = ?";
       const [result] = await db.query(query, [newStatusId, bookingId]);
 
       if (result.affectedRows === 0) {
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
       await connection.beginTransaction();
 
       const bookingQuery = `
-        INSERT INTO bookings
+        INSERT INTO bidrive_bookings
           (user_id, status_id, tujuan, jumlah_orang, jumlah_kendaraan, volume_kg,
            start_date, end_date, phone, keterangan, file_link, jumlah_driver)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

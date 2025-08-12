@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   try {
     // Cek apakah email sudah terdaftar
-    const [existing] = await db.query('SELECT id FROM admins WHERE email = ?', [email]);
+    const [existing] = await db.query('SELECT id FROM bidrive_admins WHERE email = ?', [email]);
     if (existing.length > 0) {
       return res.status(409).json({ error: 'Email sudah digunakan' });
     }
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     const hashed = await bcrypt.hash(password, 10);
 
     // Simpan ke database
-    await db.query('INSERT INTO admins (nama, email, password) VALUES (?, ?, ?)', [
+    await db.query('INSERT INTO bidrive_admins (nama, email, password) VALUES (?, ?, ?)', [
       nama, email, hashed
     ]);
 

@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      const query = `UPDATE drivers SET driver_status_id = ? WHERE id = ?`;
+      const query = `UPDATE bidrive_drivers SET driver_status_id = ? WHERE id = ?`;
       const [result] = await db.query(query, [newStatusId, driverId]);
 
       return res.status(200).json({ message: "Status driver berhasil diperbarui" });

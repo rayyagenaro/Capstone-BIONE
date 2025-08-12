@@ -1,13 +1,6 @@
 // src/pages/api/vehicles.js  (atau pages/api/vehicles.js)
 import db from "@/lib/db";
 
-/**
- * GET /api/vehicles
- *  - ?status=available|all (default: available)
- *  - ?type_id=1,2,3        (opsional: filter by vehicle_type_id)
- * Return: daftar UNIT kendaraan
- *   { id, plat_nomor, tahun, vehicle_type_id, vehicle_status_id }
- */
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
@@ -49,7 +42,7 @@ export default async function handler(req, res) {
         v.tahun,
         v.vehicle_type_id,
         v.vehicle_status_id
-      FROM vehicles v
+      FROM bidrive_vehicles v
       ${whereClause}
       ORDER BY v.id ASC
     `;

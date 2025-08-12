@@ -20,11 +20,11 @@ export default async function handler(req, res) {
 
     if (vehicleId) {
       // MODE: update per UNIT
-      sql = "UPDATE vehicles SET vehicle_status_id = ? WHERE id = ?";
+      sql = "UPDATE bidrive_vehicles SET vehicle_status_id = ? WHERE id = ?";
       params = [Number(newStatusId), Number(vehicleId)];
     } else {
       // MODE: update per TIPE (legacy, tetap didukung)
-      sql = "UPDATE vehicles SET vehicle_status_id = ? WHERE vehicle_type_id = ?";
+      sql = "UPDATE bidrive_vehicles SET vehicle_status_id = ? WHERE vehicle_type_id = ?";
       params = [Number(newStatusId), Number(vehicleTypeId)];
     }
 

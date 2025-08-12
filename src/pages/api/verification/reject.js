@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   try {
     const [result] = await db.query(
-      `UPDATE users
+      `UPDATE bidrive_users
           SET verification_status_id = 3, rejection_reason = ?
         WHERE id = ?`,
       [reason.trim(), userId]

@@ -1,11 +1,6 @@
 // src/pages/api/reject-booking.js
 import db from "@/lib/db";
 
-/**
- * Endpoint khusus penolakan booking:
- * body: { bookingId: number | string, reason: string }
- * efek: UPDATE bookings SET status_id=3, rejection_reason=? WHERE id=?
- */
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
@@ -26,7 +21,7 @@ export default async function handler(req, res) {
 
       // 3 = Rejected
       const [result] = await connection.query(
-        "UPDATE bookings SET status_id = ?, rejection_reason = ? WHERE id = ?",
+        "UPDATE bidrive_bookings SET status_id = ?, rejection_reason = ? WHERE id = ?",
         [3, reason.trim(), bookingId]
       );
 
@@ -34,12 +29,6 @@ export default async function handler(req, res) {
         await connection.rollback();
         return res.status(404).json({ ok: false, message: "Booking tidak ditemukan." });
         }
-
-      // NOTE: kalau nanti mau simpan histori, aktifkan ini (pastikan tabel 'rejected' ada):
-      // await connection.query(
-      //   "INSERT INTO rejected (booking_id, keterangan) VALUES (?, ?)",
-      //   [bookingId, reason.trim()]
-      // );
 
       await connection.commit();
       return res.status(200).json({ ok: true, message: "Booking berhasil ditolak." });

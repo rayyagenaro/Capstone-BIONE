@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     // Ambil jumlah driver tersedia (opsional, kalau kamu tampilkan di UI)
     const [driverRows] = await db.query(
       `SELECT COUNT(*) AS available_drivers 
-       FROM drivers 
+       FROM bidrive_drivers 
        WHERE driver_status_id = 1`
     );
     const drivers = driverRows?.[0]?.available_drivers ?? 0;
@@ -19,10 +19,10 @@ export default async function handler(req, res) {
     const [vehicleRows] = await db.query(
       `SELECT vt.id AS type_id, vt.name AS type_name, 
               COUNT(v.id) AS available_count
-       FROM vehicle_types vt
-       LEFT JOIN vehicles v 
+       FROM bidrive_vehicle_types vt
+       LEFT JOIN bidrive_vehicles v 
          ON v.vehicle_type_id = vt.id 
-        AND v.vehicle_status_id = 1   -- hanya yang available
+        AND v.vehicle_status_id = 1   
        GROUP BY vt.id, vt.name
        ORDER BY vt.id`
     );

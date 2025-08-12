@@ -11,8 +11,8 @@ export default async function handler(req, res) {
     // 1) data booking + user
     const [[bookingRow]] = await db.query(
       `SELECT b.*, u.name AS user_name
-       FROM bookings b
-       LEFT JOIN users u ON u.id = b.user_id
+       FROM bidrive_bookings b
+       LEFT JOIN bidrive_users u ON u.id = b.user_id
        WHERE b.id = ?
        LIMIT 1`,
       [bookingId]
@@ -24,8 +24,8 @@ export default async function handler(req, res) {
     // 2) tipe kendaraan yang DIMINTA (kuota)
     const [vehicleTypes] = await db.query(
       `SELECT vt.id, vt.name, bvt.quantity
-       FROM booking_vehicle_types bvt
-       JOIN vehicle_types vt ON vt.id = bvt.vehicle_type_id
+       FROM bidrive_booking_vehicle_types bvt
+       JOIN bidrive_vehicle_types vt ON vt.id = bvt.vehicle_type_id
        WHERE bvt.booking_id = ?
        ORDER BY vt.name ASC`,
       [bookingId]
@@ -36,8 +36,8 @@ export default async function handler(req, res) {
     try {
       const [rows] = await db.query(
         `SELECT DISTINCT d.id, d.name, d.phone
-         FROM booking_assignments ba
-         JOIN drivers d ON d.id = ba.driver_id
+         FROM bidrive_booking_assignments ba
+         JOIN bidrive_drivers d ON d.id = ba.driver_id
          WHERE ba.booking_id = ? AND ba.driver_id IS NOT NULL
          ORDER BY d.name ASC`,
         [bookingId]
@@ -61,9 +61,9 @@ export default async function handler(req, res) {
             v.plat_nomor,            
             v.vehicle_type_id,
             vt.name AS type_name
-         FROM booking_assignments ba
-         JOIN vehicles v ON v.id = ba.vehicle_id
-         LEFT JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
+         FROM bidrive_booking_assignments ba
+         JOIN bidrive_vehicles v ON v.id = ba.vehicle_id
+         LEFT JOIN bidrive_vehicle_types vt ON vt.id = v.vehicle_type_id
          WHERE ba.booking_id = ? AND ba.vehicle_id IS NOT NULL
          ORDER BY v.id ASC`,
         [bookingId]
