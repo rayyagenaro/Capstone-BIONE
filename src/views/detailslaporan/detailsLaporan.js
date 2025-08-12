@@ -543,13 +543,8 @@ export default function DetailsLaporan() {
       <KontakDriverPopup
         show={showKontakPopup}
         onClose={() => setShowKontakPopup(false)}
-        drivers={
-          (booking?.assigned_drivers || []).map(d => ({
-            id: d.id,
-            name: d.name || d.driver_name || 'Tanpa Nama',
-            phone: d.phone || d.hp || '',
-          }))
-        }
+        drivers={assignedDrivers /* atau availableDrivers */}
+        booking={booking}
       />
 
       <LogoutPopup

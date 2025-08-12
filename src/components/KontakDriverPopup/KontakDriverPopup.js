@@ -1,47 +1,109 @@
-import React from 'react';
-import styles from './kontakDriverPopup.module.css';
+import React, { useEffect, useMemo, useState } from 'react';
+import styles from './KontakDriverPopup.module.css';
 import { FaTimes } from 'react-icons/fa';
 
-function normalizeIndoPhone(phone = '') {
-  const digits = String(phone || '').replace(/\D/g, '');
-  if (!digits) return '';
-  if (digits.startsWith('0')) return '62' + digits.slice(1);
-  if (digits.startsWith('62')) return digits;
-  return digits;
-}
+// util: normalisasi nomor ke format 62xxxxxxxxx
+const to62 = (p) => {
+  if (!p) return '';
+  let s = String(p).replace(/[^\d+]/g, '');
+  if (s.startsWith('+')) s = s.slice(1);
+  if (s.startsWith('62')) return s;
+  if (s.startsWith('0')) return '62' + s.slice(1);
+  return '62' + s;
+};
+const waLink = (phone, text) =>
+  `https://wa.me/${to62(phone)}?text=${encodeURIComponent(text || '')}`;
 
+const fmt = (d) => {
+  if (!d) return '-';
+  try {
+    return new Date(d).toLocaleString('id-ID', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return String(d);
+  }
+};
+
+/**
+ * Props:
+ *  - show, onClose
+ *  - drivers: [{id, name, phone}]
+ *  - booking: { tujuan, start_date, end_date }
+ *  - template (opsional): string dengan {name}, {tujuan}, {start}, {end}
+ */
 export default function KontakDriverPopup({
-  show = false,          // ← default false
+  show = true,
   onClose = () => {},
-  drivers = [],          // ← default kosong, data datang dari parent (assigned_drivers)
+  drivers = [],
+  booking = {},
+  template,
 }) {
+  const { tujuan, start_date, end_date } = booking || {};
+
+  const defaultTemplate = useMemo(
+    () => `Halo {name}, terkait tugas perjalanan BI.DRIVE.
+
+Tujuan   : {tujuan}
+Mulai    : {start}
+Selesai  : {end}
+
+Mohon konfirmasi kesiapan ya. Terima kasih.`,
+    []
+  );
+
+  const [message, setMessage] = useState('');
+
+  // prefill saat popup dibuka
+  useEffect(() => {
+    if (!show) return;
+    const base = template || defaultTemplate;
+    const seeded = base
+      .replaceAll('{tujuan}', tujuan || '-')
+      .replaceAll('{start}', fmt(start_date))
+      .replaceAll('{end}', fmt(end_date));
+    setMessage(seeded);
+  }, [show, template, defaultTemplate, tujuan, start_date, end_date]);
+
   if (!show) return null;
 
-  const handleHubungi = (name, phone) => {
-    const intl = normalizeIndoPhone(phone);
-    if (!intl) {
-      alert('Nomor HP tidak valid.');
-      return;
-    }
-    const msg = encodeURIComponent(`Halo ${name}, terkait tugas perjalanan D'MOVE...`);
-    const url = `https://wa.me/${intl}?text=${msg}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
+  // build pesan final per-driver
+  const buildMsgFor = (driverName) =>
+    (message || '').replaceAll('{name}', driverName || '');
 
   return (
-    <div className={styles.popupOverlay}>
-      <div className={styles.popupBox}>
+    <div className={styles.popupOverlay} role="dialog" aria-modal="true" onClick={onClose}>
+      <div className={styles.popupBox} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div className={styles.title}>Kontak Driver</div>
-          <button className={styles.closeBtn} onClick={onClose}>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Tutup">
             <FaTimes />
           </button>
         </div>
 
-        <div className={styles.note}>
-          Tekan <b>Hubungi</b> untuk membuka WhatsApp ke driver terkait.
+        {/* editor pesan */}
+        <div className={styles.msgInfo}>
+          Kirim pesan konfirmasi ke driver. Pesan di bawah bisa kamu <b>edit</b>.
         </div>
 
+        <div className={styles.msgBox}>
+          <label className={styles.msgLabel}>Pesan WhatsApp</label>
+          <textarea
+            className={styles.msgTextarea}
+            rows={10}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Tulis pesan untuk driver…"
+            spellCheck={false}
+          />
+        </div>
+
+        {/* daftar driver */}
         <div className={styles.table}>
           <div className={`${styles.row} ${styles.rowHead}`}>
             <div className={styles.colName}>Nama</div>
@@ -49,30 +111,38 @@ export default function KontakDriverPopup({
             <div className={styles.colAction}>Aksi</div>
           </div>
 
-          {drivers.map((d, idx) => {
-            const intl = normalizeIndoPhone(d.phone);
-            const disabled = !intl;
-            return (
-              <div key={d.id ?? idx} className={styles.row}>
-                <div className={styles.colName}>{d.name || 'Tanpa Nama'}</div>
-                <div className={styles.colPhone}>{d.phone || '-'}</div>
-                <div className={styles.colAction}>
-                  <button
-                    className={styles.btnHubungi}
-                    onClick={() => handleHubungi(d.name, d.phone)}
-                    disabled={disabled}                 // ← disable kalau nomor invalid
-                    title={disabled ? 'Nomor HP tidak valid' : 'Hubungi via WhatsApp'}
-                  >
-                    Hubungi
-                  </button>
+          {/* area yang discroll */}
+          <div className={styles.tableScroll}>
+            {drivers.map((d) => {
+              const disabled = !to62(d.phone);
+              const href = waLink(d.phone, buildMsgFor(d.name));
+              return (
+                <div key={d.id} className={styles.row}>
+                  <div className={styles.colName}>{d.name}</div>
+                  <div className={styles.colPhone}>{d.phone || '-'}</div>
+                  <div className={styles.colAction}>
+                    {disabled ? (
+                      <button className={styles.btnHubungi} disabled>Hubungi</button>
+                    ) : (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.btnHubungi}
+                        title="Buka WhatsApp dengan pesan ini"
+                      >
+                        Hubungi
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
-          {drivers.length === 0 && (
-            <div className={styles.empty}>Belum ada driver untuk ditampilkan.</div>
-          )}
+            {drivers.length === 0 && (
+              <div className={styles.empty}>Belum ada driver untuk ditampilkan.</div>
+            )}
+          </div>
         </div>
       </div>
     </div>
