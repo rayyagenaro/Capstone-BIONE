@@ -335,7 +335,7 @@ export default function StatusBooking() {
     } finally {
       setFinishing(false);
     }
-  }, [markTabSeen]); // markTabSeen dideklarasi di bawah, pakai function hoisting (aman)
+  }, []); // markTabSeen dideklarasi di bawah, pakai function hoisting (aman)
 
   // === Hitung jumlah per status (saat ini) ===
   const tabCounts = useMemo(() => {
