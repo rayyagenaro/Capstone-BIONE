@@ -1,0 +1,114 @@
+.popupOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(44, 52, 83, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popupBox {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #d9e2f5;
+  box-shadow: 0 8px 32px rgba(47,77,142,0.13);
+  width: min(760px, 92vw);
+  padding: 22px 22px 18px 22px;
+  animation: pop .18s ease-out;
+}
+
+@keyframes pop {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2f4d8e;
+  letter-spacing: .02em;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: #2f4d8e;
+  font-size: 20px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.closeBtn:hover { background: #eef3ff; }
+
+.note {
+  font-size: 13.5px;
+  color: #51618d;
+  background: #f6f9ff;
+  border: 1px solid #e4ecff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 52vh;
+  overflow: auto;
+  border: 1px solid #edf1fb;
+  border-radius: 10px;
+  padding: 6px;
+  background: #fbfdff;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e8eefb;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.rowHead {
+  background: #f0f5ff;
+  border: 1px solid #dbe6ff;
+  font-weight: 700;
+  color: #2f4d8e;
+}
+
+.colName { font-size: 15px; color: #1f2a4d; }
+.colPhone { font-size: 15px; color: #2c3560; }
+.colAction { display: flex; justify-content: flex-end; }
+
+.btnHubungi {
+  background: #2f4d8e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(47,77,142,0.14);
+}
+.btnHubungi:hover { background: #253e70; }
+
+.empty {
+  padding: 16px;
+  text-align: center;
+  color: #6c789d;
+  font-size: 14px;
+}

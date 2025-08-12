@@ -6,6 +6,7 @@ import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
 import PenolakanPopup from '@/components/penolakanpopup/PenolakanPopup';
+import KontakDriverPopup from '@/components/KontakDriverPopup/KontakDriverPopup';
 
 // Helpers
 const formatDate = (dateString) => {
@@ -57,6 +58,28 @@ export default function DetailsLaporan() {
 
   const [availableDrivers, setAvailableDrivers] = useState([]);
   const [availableVehicles, setAvailableVehicles] = useState([]);
+
+  // Popup kirim pesan ke driver
+  const [showKontakPopup, setShowKontakPopup] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    const run = async () => {
+      try {
+        const res = await fetch(`/api/bookingAssigned?bookingId=${id}`);
+        if (!res.ok) throw new Error("Gagal ambil penugasan");
+        const data = await res.json();
+        // contoh: kalau mau simpan ke state sendiri
+        // setAssignedDrivers(data.drivers || []);
+        // setAssignedVehicles(data.vehicles || []);
+        // atau langsung merge ke booking kalau mau
+        setBooking(prev => prev ? { ...prev, assigned_drivers: data.drivers, assigned_vehicles: data.vehicles } : prev);
+      } catch (e) {
+        console.error("fetch booking-assigned error:", e);
+      }
+    };
+    run();
+  }, [id]);
 
   // Ambil driver available
   useEffect(() => {
@@ -430,8 +453,40 @@ export default function DetailsLaporan() {
               </button>
             </div>
           )}
+
+          {booking.status_id === 2 && (
+            <div className={styles.actionBtnRow}>
+              <div className={styles.kirimPesanWrapper}>
+                <button 
+                  className={styles.btnKirimPesan} 
+                  onClick={() => setShowKontakPopup(true)}
+                >
+                  Kirim Pesan
+                </button>
+                <p className={styles.kirimPesanNote}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+                      strokeWidth="1.5" stroke="currentColor" className={styles.iconInfo}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                  </svg>
+                  Kirim pesan otomatis kepada driver untuk konfirmasi.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </main>
+
+      <KontakDriverPopup
+        show={showKontakPopup}
+        onClose={() => setShowKontakPopup(false)}
+        drivers={
+          (booking?.assigned_drivers || []).map(d => ({
+            id: d.id,
+            name: d.name || d.driver_name || 'Tanpa Nama',
+            phone: d.phone || d.hp || '',
+          }))
+        }
+      />
 
       <LogoutPopup
         open={showLogoutPopup}
