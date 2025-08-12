@@ -7,8 +7,6 @@ import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import { FaArrowLeft, FaTimes } from 'react-icons/fa';
-
-// ⬇️ NEW: tampilkan alasan penolakan
 import RejectionBox from '@/components/RejectionBox/RejectionBox';
 
 // --- KONFIGURASI & HELPER ---
@@ -22,18 +20,18 @@ const STATUS_CONFIG = {
 const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished'];
 const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
 
+// mapping untuk localStorage (per tab)
+const SEEN_KEYS = { Pending: 'pending', Approved: 'approved', Rejected: 'rejected', Finished: 'finished' };
+const DEFAULT_SEEN = { pending: 0, approved: 0, rejected: 0, finished: 0 };
+const seenStorageKey = (userId) => `statusTabSeen:${userId}`;
+
 const formatDate = (dateString) => {
   if (!dateString) return 'Tanggal tidak valid';
   return new Date(dateString).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 };
 
-// fallback ambil nopol dari beberapa kemungkinan kolom
 const getPlate = (v) =>
   v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
 
@@ -51,13 +49,7 @@ const BookingCard = React.memo(({ booking, onClick }) => {
       role="button"
       tabIndex={0}
     >
-      <Image
-        src={"/assets/D'MOVE.svg"}
-        alt="logo"
-        width={60}
-        height={60}
-        className={styles.cardLogo}
-      />
+      <Image src={"/assets/D'MOVE.svg"} alt="logo" width={60} height={60} className={styles.cardLogo} />
       <div className={styles.cardDetail}>
         <div className={styles.cardTitle}>{`Booking | ${booking.tujuan || 'Tanpa Tujuan'}`}</div>
         <div className={styles.cardSub}>
@@ -70,7 +62,6 @@ const BookingCard = React.memo(({ booking, onClick }) => {
         )}
         <div className={statusInfo.className}>{statusInfo.text}</div>
 
-        {/* NEW: Box alasan penolakan (compact) */}
         {isRejected && (
           <div style={{ marginTop: 8 }}>
             <RejectionBox reason={booking.rejection_reason} compact />
@@ -82,24 +73,36 @@ const BookingCard = React.memo(({ booking, onClick }) => {
 });
 BookingCard.displayName = 'BookingCard';
 
-const TabFilter = React.memo(({ currentTab, onTabChange }) => (
+// === TAB dengan DOT INDICATOR (merah bila ada yang baru) ===
+const TabFilter = React.memo(({ currentTab, onTabChange, dotStates }) => (
   <div className={styles.tabRow}>
-    {TABS.map((tabName) => (
-      <button
-        key={tabName}
-        className={`${styles.tabBtn} ${currentTab === tabName ? styles.tabActive : ''}`}
-        onClick={() => onTabChange(tabName)}
-        type="button"
-      >
-        {tabName}
-      </button>
-    ))}
+    {TABS.map((tabName) => {
+      const hasDot = tabName !== 'All';
+      const key = hasDot ? SEEN_KEYS[tabName] : null;
+      const activeDot = hasDot ? !!dotStates[key] : false;
+
+      return (
+        <button
+          key={tabName}
+          className={`${styles.tabBtn} ${currentTab === tabName ? styles.tabActive : ''}`}
+          onClick={() => onTabChange(tabName)}
+          type="button"
+        >
+          <span className={styles.tabLabel}>{tabName}</span>
+          {hasDot && (
+            <span
+              className={`${styles.tabDot} ${activeDot ? styles.tabDotActive : styles.tabDotIdle}`}
+              aria-hidden="true"
+            />
+          )}
+        </button>
+      );
+    })}
   </div>
 ));
 TabFilter.displayName = 'TabFilter';
 
 const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
-  // Tutup dengan ESC
   useEffect(() => {
     if (!booking) return;
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -129,12 +132,9 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
           <p><strong>Selesai:</strong> {formatDate(booking.end_date)}</p>
           <p>
             <strong>Status:</strong>{' '}
-            <span className={`${styles.modalStatus} ${statusInfo.className}`}>
-              {statusInfo.text}
-            </span>
+            <span className={`${styles.modalStatus} ${statusInfo.className}`}>{statusInfo.text}</span>
           </p>
 
-          {/* NEW: Box alasan penolakan (full) */}
           {isRejected && (
             <>
               <hr className={styles.modalDivider} />
@@ -155,13 +155,10 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
           {booking.file_link && (
             <p>
               <strong>Link File:</strong>{' '}
-              <a href={booking.file_link} target="_blank" rel="noopener noreferrer">
-                Lihat Lampiran
-              </a>
+              <a href={booking.file_link} target="_blank" rel="noopener noreferrer">Lihat Lampiran</a>
             </p>
           )}
 
-          {/* === TAMPILKAN PENUGASAN SAAT APPROVED / FINISHED === */}
           {isApprovedOrFinished && (
             <>
               <hr className={styles.modalDivider} />
@@ -193,7 +190,6 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
             </>
           )}
 
-          {/* Tombol “Finished” hanya saat Approved */}
           {Number(booking.status_id) === 2 && (
             <div className={styles.modalActions}>
               <button
@@ -216,41 +212,39 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
 // --- KOMPONEN UTAMA ---
 export default function StatusBooking() {
   const router = useRouter();
+  const [userId, setUserId] = useState(null);
+
   const [allBookings, setAllBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('All');
   const [selectedBooking, setSelectedBooking] = useState(null);
 
-  // Pagination state
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
-  // Popup Logout
+  // Logout
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
   // proses “Finished”
   const [finishing, setFinishing] = useState(false);
 
-  // 🔒 Kunci scroll saat modal terbuka
+  // ====== LAST SEEN COUNTS (localStorage) ======
+  const [seenCounts, setSeenCounts] = useState(DEFAULT_SEEN);
+
   useEffect(() => {
-    if (selectedBooking) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (selectedBooking) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };
   }, [selectedBooking]);
 
   const handleLogout = async () => {
-    try {
-      await fetch('/api/logout', { method: 'POST' });
-    } catch {}
-    finally {
-      router.replace('/Signin/hal-sign');
-    }
+    try { await fetch('/api/logout', { method: 'POST' }); } catch {}
+    finally { router.replace('/Signin/hal-sign'); }
   };
 
+  // Load user, seenCounts, dan data booking
   useEffect(() => {
     let active = true;
 
@@ -259,7 +253,6 @@ export default function StatusBooking() {
       try {
         const meRes = await fetch('/api/me?scope=user', { cache: 'no-store' });
         const meData = await meRes.json();
-
         if (!active) return;
 
         if (!meData.hasToken || meData.payload?.role !== 'user') {
@@ -268,9 +261,17 @@ export default function StatusBooking() {
           return;
         }
 
-        const userId = meData.payload.sub;
+        const uid = meData.payload.sub;
+        setUserId(uid);
 
-        const res = await fetch(`/api/booking?userId=${userId}`);
+        // load last-seen untuk user ini
+        try {
+          const raw = localStorage.getItem(seenStorageKey(uid));
+          setSeenCounts(raw ? { ...DEFAULT_SEEN, ...JSON.parse(raw) } : DEFAULT_SEEN);
+        } catch { setSeenCounts(DEFAULT_SEEN); }
+
+        // ambil data booking
+        const res = await fetch(`/api/booking?userId=${uid}`);
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
           throw new Error(errorData.error || 'Gagal memuat data booking');
@@ -288,29 +289,20 @@ export default function StatusBooking() {
     return () => { active = false; };
   }, []);
 
-  const handleTabChange = useCallback((tabName) => {
-    setActiveTab(tabName);
-    setCurrentPage(1);
-  }, []);
-
-  // Saat klik kartu, ambil DETAIL (supaya dapat assigned_*)
   const handleCardClick = useCallback(async (booking) => {
     try {
-      // tampilkan modal dulu biar UX cepat
       setSelectedBooking(booking);
       const res = await fetch(`/api/bookings-with-vehicle?bookingId=${booking.id}`);
       if (!res.ok) throw new Error('Gagal memuat detail booking.');
       const full = await res.json();
       setSelectedBooking(full);
     } catch (e) {
-      // biarkan modal menampilkan info dasar saja
       console.error('fetch detail error:', e);
     }
   }, []);
 
   const closeModal = useCallback(() => setSelectedBooking(null), []);
 
-  // Tandai Finished
   const markAsFinished = useCallback(async (booking) => {
     try {
       setFinishing(true);
@@ -323,13 +315,10 @@ export default function StatusBooking() {
         const e = await res.json().catch(() => ({}));
         throw new Error(e.error || 'Gagal mengubah status menjadi Finished.');
       }
-
-      // Optimistic update list
       setAllBookings((prev) =>
         prev.map((b) => (b.id === booking.id ? { ...b, status_id: 4 } : b))
       );
 
-      // Re-fetch detail supaya assigned_* tetap ada & status terbarui
       try {
         const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${booking.id}`);
         const full = await r2.json().catch(() => null);
@@ -338,14 +327,52 @@ export default function StatusBooking() {
         setSelectedBooking((prev) => (prev ? { ...prev, status_id: 4 } : prev));
       }
 
+      // pindah ke Finished dan reset dot tab Finished
       setActiveTab('Finished');
+      markTabSeen('Finished');
     } catch (e) {
       alert(e.message);
     } finally {
       setFinishing(false);
     }
-  }, []);
+  }, []); // markTabSeen dideklarasi di bawah, pakai function hoisting (aman)
 
+  // === Hitung jumlah per status (saat ini) ===
+  const tabCounts = useMemo(() => {
+    const c = { pending: 0, approved: 0, rejected: 0, finished: 0 };
+    for (const b of allBookings) {
+      if (b.status_id === 1) c.pending++;
+      else if (b.status_id === 2) c.approved++;
+      else if (b.status_id === 3) c.rejected++;
+      else if (b.status_id === 4) c.finished++;
+    }
+    return c;
+  }, [allBookings]);
+
+  // === Tentukan dot merah/abu-abu dengan membandingkan count vs last-seen ===
+  const dotStates = useMemo(() => ({
+    pending:  tabCounts.pending  > seenCounts.pending,
+    approved: tabCounts.approved > seenCounts.approved,
+    rejected: tabCounts.rejected > seenCounts.rejected,
+    finished: tabCounts.finished > seenCounts.finished,
+  }), [tabCounts, seenCounts]);
+
+  // tandai tab sebagai "sudah dilihat" -> simpan count saat ini ke localStorage
+  const markTabSeen = useCallback((tabName) => {
+    if (!userId || tabName === 'All') return;
+    const key = SEEN_KEYS[tabName];
+    const next = { ...seenCounts, [key]: tabCounts[key] };
+    setSeenCounts(next);
+    try { localStorage.setItem(seenStorageKey(userId), JSON.stringify(next)); } catch {}
+  }, [seenCounts, tabCounts, userId]);
+
+  const handleTabChange = useCallback((tabName) => {
+    setActiveTab(tabName);
+    setCurrentPage(1);
+    markTabSeen(tabName); // reset dot saat tab dibuka
+  }, [markTabSeen]);
+
+  // === FILTER & PAGINATION ===
   const filteredBookings = useMemo(() => {
     if (activeTab === 'All') return allBookings;
     const statusId = TAB_TO_STATUS_ID[activeTab];
@@ -369,13 +396,10 @@ export default function StatusBooking() {
     [filteredBookings, startIndex, endIndex]
   );
 
-  const onPageChange = useCallback(
-    (page) => {
-      if (page < 1 || page > totalPages) return;
-      setCurrentPage(page);
-    },
-    [totalPages]
-  );
+  const onPageChange = useCallback((page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  }, [totalPages]);
 
   const onChangeItemsPerPage = (e) => {
     const val = Number(e.target.value);
@@ -398,7 +422,7 @@ export default function StatusBooking() {
             <div className={styles.title}>STATUS BOOKING</div>
           </div>
 
-          <TabFilter currentTab={activeTab} onTabChange={handleTabChange} />
+          <TabFilter currentTab={activeTab} onTabChange={handleTabChange} dotStates={dotStates} />
 
           <div className={styles.listArea}>
             {isLoading && <div className={styles.emptyState}>Memuat booking...</div>}
@@ -420,9 +444,7 @@ export default function StatusBooking() {
                   Menampilkan {resultsFrom}-{resultsTo} dari {filteredBookings.length} data
                 </div>
                 <div>
-                   <label htmlFor="perPage" className={styles.label}>
-                    Items per page:
-                  </label>
+                  <label htmlFor="perPage" className={styles.label}>Items per page:</label>
                   <select
                     id="perPage"
                     className={styles.itemsPerPageDropdown}
@@ -454,7 +476,6 @@ export default function StatusBooking() {
         finishing={finishing}
       />
 
-      {/* POPUP LOGOUT */}
       <LogoutPopup
         open={showLogoutPopup}
         onCancel={() => setShowLogoutPopup(false)}
