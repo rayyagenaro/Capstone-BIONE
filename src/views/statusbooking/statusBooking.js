@@ -35,11 +35,9 @@ const formatDate = (dateString) => {
 const getPlate = (v) =>
   v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
 
-// === Helper API untuk set AVAILABLE ===
-// Asumsi: 1 = available (ubah jika perlu)
+// === Helper API opsional untuk set AVAILABLE ===
 async function setDriversAvailable(driverIds, availableStatusId = 1) {
   if (!Array.isArray(driverIds) || driverIds.length === 0) return { ok: true, affected: 0 };
-
   const calls = driverIds.map((id) =>
     fetch('/api/updateDriversStatus', {
       method: 'PUT',
@@ -53,18 +51,13 @@ async function setDriversAvailable(driverIds, availableStatusId = 1) {
       return true;
     })
   );
-
   const results = await Promise.allSettled(calls);
   const failed = results.filter(r => r.status === 'rejected');
-  if (failed.length) {
-    throw new Error(failed[0].reason?.message || 'Gagal update sebagian driver');
-  }
+  if (failed.length) throw new Error(failed[0].reason?.message || 'Gagal update sebagian driver');
   return { ok: true, affected: results.length };
 }
-
 async function setVehiclesAvailable(vehicleIds, availableStatusId = 1) {
   if (!Array.isArray(vehicleIds) || vehicleIds.length === 0) return { ok: true, affected: 0 };
-
   const calls = vehicleIds.map((id) =>
     fetch('/api/updateVehiclesStatus', {
       method: 'PUT',
@@ -78,12 +71,9 @@ async function setVehiclesAvailable(vehicleIds, availableStatusId = 1) {
       return true;
     })
   );
-
   const results = await Promise.allSettled(calls);
   const failed = results.filter(r => r.status === 'rejected');
-  if (failed.length) {
-    throw new Error(failed[0].reason?.message || 'Gagal update sebagian kendaraan');
-  }
+  if (failed.length) throw new Error(failed[0].reason?.message || 'Gagal update sebagian kendaraan');
   return { ok: true, affected: results.length };
 }
 
@@ -125,13 +115,14 @@ const BookingCard = React.memo(({ booking, onClick }) => {
 });
 BookingCard.displayName = 'BookingCard';
 
-// === TAB dengan DOT INDICATOR ===
-const TabFilter = React.memo(({ currentTab, onTabChange, dotStates }) => (
+/** ===== TAB dengan NOTIF BADGE BERANGKA ===== */
+const TabFilter = React.memo(({ currentTab, onTabChange, badgeCounts }) => (
   <div className={styles.tabRow}>
     {TABS.map((tabName) => {
-      const hasDot = tabName !== 'All';
-      const key = hasDot ? SEEN_KEYS[tabName] : null;
-      const activeDot = hasDot ? !!dotStates[key] : false;
+      const isAll = tabName === 'All';
+      const key = SEEN_KEYS[tabName];
+      const count = isAll ? 0 : (badgeCounts[key] || 0);
+      const showNumber = !isAll && count > 0;
 
       return (
         <button
@@ -141,11 +132,13 @@ const TabFilter = React.memo(({ currentTab, onTabChange, dotStates }) => (
           type="button"
         >
           <span className={styles.tabLabel}>{tabName}</span>
-          {hasDot && (
-            <span
-              className={`${styles.tabDot} ${activeDot ? styles.tabDotActive : styles.tabDotIdle}`}
-              aria-hidden="true"
-            />
+          {/* Jika ada data baru => badge merah berangka; kalau tidak => dot abu-abu */}
+          {!isAll && (
+            showNumber ? (
+              <span className={`${styles.tabBadge} ${styles.tabBadgeActive}`}>{count}</span>
+            ) : (
+              <span className={`${styles.tabDot} ${styles.tabDotIdle}`} aria-hidden="true" />
+            )
           )}
         </button>
       );
@@ -355,12 +348,12 @@ export default function StatusBooking() {
 
   const closeModal = useCallback(() => setSelectedBooking(null), []);
 
-  // === PATCH: Finish Booking → ubah status + bebaskan resource
+  // Finish Booking → ubah status + bebaskan resource
   const markAsFinished = useCallback(async (booking) => {
     try {
       setFinishing(true);
 
-      // 1) pastikan kita punya detail assignment (drivers & vehicles)
+      // pastikan punya detail assignment
       let fullBooking = selectedBooking && selectedBooking.id === booking.id ? selectedBooking : null;
       if (!fullBooking?.assigned_drivers || !fullBooking?.assigned_vehicles) {
         try {
@@ -371,7 +364,7 @@ export default function StatusBooking() {
       const driverIds = (fullBooking?.assigned_drivers || []).map(d => d.id);
       const vehicleIds = (fullBooking?.assigned_vehicles || []).map(v => v.id);
 
-      // 2) Update status booking => 4 (Finished)
+      // update status → 4
       {
         const res = await fetch('/api/booking', {
           method: 'PUT',
@@ -384,13 +377,12 @@ export default function StatusBooking() {
         }
       }
 
-      // 3) Set resource AVAILABLE (driver lalu vehicle)
-      await setDriversAvailable(driverIds, 1);   // ubah 1 -> id status "available" sesuai mappingmu
-      await setVehiclesAvailable(vehicleIds, 1); // ubah 1 -> id status "available" sesuai mappingmu
+      // set resource available
+      await setDriversAvailable(driverIds, 1);
+      await setVehiclesAvailable(vehicleIds, 1);
 
-      // 4) Sinkronkan UI
+      // sinkron UI
       setAllBookings(prev => prev.map(b => (b.id === booking.id ? { ...b, status_id: 4 } : b)));
-
       try {
         const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${booking.id}`);
         const full = await r2.json().catch(() => null);
@@ -406,9 +398,9 @@ export default function StatusBooking() {
     } finally {
       setFinishing(false);
     }
-  }, [selectedBooking]); // gunakan selectedBooking bila sudah ada
+  }, [selectedBooking]);
 
-  // === Hitung jumlah per status (saat ini) ===
+  // === Hitung jumlah per status (total saat ini) ===
   const tabCounts = useMemo(() => {
     const c = { pending: 0, approved: 0, rejected: 0, finished: 0 };
     for (const b of allBookings) {
@@ -420,15 +412,15 @@ export default function StatusBooking() {
     return c;
   }, [allBookings]);
 
-  // === Tentukan dot merah/abu-abu dengan membandingkan count vs last-seen ===
-  const dotStates = useMemo(() => ({
-    pending:  tabCounts.pending  > seenCounts.pending,
-    approved: tabCounts.approved > seenCounts.approved,
-    rejected: tabCounts.rejected > seenCounts.rejected,
-    finished: tabCounts.finished > seenCounts.finished,
+  // === Hitung JUMLAH BARU (untuk badge) = current - lastSeen, minimal 0 ===
+  const badgeCounts = useMemo(() => ({
+    pending:  Math.max(0, tabCounts.pending  - (seenCounts.pending  || 0)),
+    approved: Math.max(0, tabCounts.approved - (seenCounts.approved || 0)),
+    rejected: Math.max(0, tabCounts.rejected - (seenCounts.rejected || 0)),
+    finished: Math.max(0, tabCounts.finished - (seenCounts.finished || 0)),
   }), [tabCounts, seenCounts]);
 
-  // tandai tab sebagai "sudah dilihat" -> simpan count saat ini ke localStorage
+  // tandai tab sebagai sudah dilihat (simpan count saat ini ke localStorage)
   const markTabSeen = useCallback((tabName) => {
     if (!userId || tabName === 'All') return;
     const key = SEEN_KEYS[tabName];
@@ -440,7 +432,7 @@ export default function StatusBooking() {
   const handleTabChange = useCallback((tabName) => {
     setActiveTab(tabName);
     setCurrentPage(1);
-    markTabSeen(tabName); // reset dot saat tab dibuka
+    markTabSeen(tabName); // reset badge saat tab dibuka
   }, [markTabSeen]);
 
   // === FILTER & PAGINATION ===
@@ -493,7 +485,7 @@ export default function StatusBooking() {
             <div className={styles.title}>STATUS BOOKING</div>
           </div>
 
-          <TabFilter currentTab={activeTab} onTabChange={handleTabChange} dotStates={dotStates} />
+          <TabFilter currentTab={activeTab} onTabChange={handleTabChange} badgeCounts={badgeCounts} />
 
           <div className={styles.listArea}>
             {isLoading && <div className={styles.emptyState}>Memuat booking...</div>}

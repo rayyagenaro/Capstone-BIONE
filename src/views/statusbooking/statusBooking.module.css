@@ -120,7 +120,7 @@
   text-shadow: 0 2px 7px #f5f6fa42;
 }
 
-/* ================== TABS + DOT ================== */
+/* ================== TABS + BADGE ================== */
 .tabRow {
   display: flex; align-items: center; justify-content: center;
   gap: 28px; margin-bottom: 26px;
@@ -131,7 +131,7 @@
   background: #f5f5fa; color: #777; border-radius: 20px;
   box-shadow: 0 2px 9px 0 rgba(100,110,150,0.11);
   cursor: pointer; transition: background 0.12s, color 0.12s;
-  display: inline-flex; align-items: center; gap: 10px; /* label + dot */
+  display: inline-flex; align-items: center; gap: 10px; /* label + badge/dot */
 }
 
 .tabActive {
@@ -141,13 +141,31 @@
 
 .tabLabel { line-height: 1; }
 
-/* dot kecil */
+/* Badge merah berangka */
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
+}
+.tabBadgeActive {
+  background: #e53935;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(229,57,53,.25);
+}
+
+/* Dot abu-abu saat tidak ada item baru */
 .tabDot {
   width: 10px; height: 10px; border-radius: 999px; display: inline-block;
   box-shadow: 0 0 0 2px rgba(0,0,0,0.02) inset;
 }
-.tabDotActive { background: #e53935; }  /* merah: ada yg baru */
-.tabDotIdle   { background: #c9c9cf; }  /* abu-abu: default */
+.tabDotIdle   { background: #c9c9cf; }
 
 /* ================== LIST ================== */
 .listArea { display: flex; flex-direction: column; gap: 24px; margin-top: 10px; }
@@ -160,28 +178,18 @@
   cursor: pointer; user-select: none;
 }
 
-.cardLogo { 
-  width: 60px; 
-  height: 60px; 
-  object-fit: contain; 
-  margin-right: 8px; 
-}
-.cardDetail {
-  flex: 1;
-  display: flex; 
-  flex-direction: column; 
-  justify-content: center; 
-}
+.cardLogo { width: 60px; height: 60px; object-fit: contain; margin-right: 8px; }
+.cardDetail { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .cardTitle { font-size: 1.22rem; font-weight: 700; color: #222; margin-bottom: 4px; }
 .cardSub { font-size: 1rem; color: #858ba1; margin-bottom: 4px; }
 .cardVehicles { font-size: 1rem; color: #1b1b1b; margin-bottom: 4px; }
 
-.statusProcess  { color: #338ef7; font-size: 15px; font-weight: 600; }
+.statusProcess  { color: #727272; font-size: 15px; font-weight: 600; }
 .statusApproved { color: #1ec877; font-size: 15px; font-weight: 600; }
 .statusRejected { color: #e74c3c; font-size: 15px; font-weight: 600; }
 .statusFinished { color: #6c63ff; font-size: 15px; font-weight: 600; }
 
-.emptyState {
+.emptyState { 
   color: #2F4D8E; font-size: 1.1rem; font-weight: 600; text-align: center; margin-top: 28px;
 }
 
