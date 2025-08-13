@@ -65,7 +65,7 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
     { title: "BI.MAIL",  
       logo: "/assets/D'TRACK.svg", 
       desc: "BI.MAIL, menyediakan layanan pelacakan dan penomoran surat dinas secara digital, sehingga administrasi surat-menyurat.", 
-      link: "#" 
+      link: "/User/FiturBImail/hal-BImail" 
     },
     { title: "BI.STAY",  
       logo: "/assets/D'REST.svg",
