@@ -60,7 +60,7 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
     { title: "BI.MEET",  
       logo: "/assets/D'ROOM.svg",  
       desc: "BI.MEET, menghadirkan kemudahan reservasi ruang rapat dalam penyelenggaraan pertemuan dan kolaborasi antarunit kerja.", 
-      link: "/User/Meet/hal-bimeet" 
+      link: "/User/FiturBimeet/hal-bimeet" 
     },
     { title: "BI.MAIL",  
       logo: "/assets/D'TRACK.svg", 

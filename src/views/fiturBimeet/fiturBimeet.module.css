@@ -1,0 +1,326 @@
+/* LATAR & LAYOUT UMUM */
+.background {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #2f4d8e; /* fallback warna solid */
+}
+
+/* Satu layer saja: gabung gradient & image */
+.background::before {
+  content: "";
+  position: fixed;
+  inset: -1px; /* overscan 1px untuk cegah seam */
+  z-index: -1;
+
+  background-image: 
+    linear-gradient(
+      140deg,
+      rgba(231, 235, 245, 0.70) 0%,
+      rgba(181, 195, 232, 0.70) 100%
+    ),
+    url('/assets/bankindonesia.png');
+    
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+
+  transform: translateZ(0); /* cegah subpixel seam */
+}
+
+.mainContent {
+  min-height: 100vh;
+  background: transparent;
+  margin-left: 255px; /* lebar sidebar */
+}
+
+.formBox {
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 4px 20px rgba(47, 77, 142, .11);
+  width: 93%;
+  max-width: 1050px;
+  margin: 20px auto 32px;
+  padding: 38px 42px 34px;
+}
+
+/* TOP BAR */
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.backBtn {
+  background: #f5f8ff;
+  color: #2F4D8E;
+  border: none;
+  font-weight: 600;
+  font-size: 16.5px;
+  border-radius: 21px;
+  padding: 8px 27px 8px 17px;
+  cursor: pointer;
+  box-shadow: 0 1px 6px rgba(47, 77, 142, .10);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.backBtn:hover {
+  background: #d8e2fc;
+  color: #233969;
+}
+
+.logoWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+
+.availabilitySection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 200px;
+  position: relative;
+  z-index: 11;
+}
+
+.availabilityLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: #23263b;
+  margin-bottom: 4px;
+  text-align: right;
+  opacity: .85;
+}
+
+.availabilityDropdownWrap {
+  position: relative;
+  width: 100%;
+}
+
+.availabilityDropdownBtn {
+  width: 100%;
+  min-width: 200px;
+  padding: 8px 14px;
+  border: 1.5px solid #bbbfd8;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 16px;
+  color: #2f4d8e;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.availChevron {
+  color: #7a7da8;
+}
+
+.availabilityDropdown {
+  position: absolute;
+  right: 0;
+  top: 42px;
+  background: #fff;
+  border: 1.2px solid #b5bddb;
+  border-radius: 8px;
+  min-width: 240px;
+  padding: 12px;
+  box-shadow: 0 5px 18px rgba(47, 77, 142, .12);
+  z-index: 100;
+}
+
+.availabilityDropdown table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.availabilityDropdown th,
+.availabilityDropdown td {
+  border: 1px solid #b5bddb;
+  font-size: 15px;
+  padding: 6px 10px;
+  text-align: left;
+  color: #2f4d8e;
+}
+
+.availabilityDropdown th {
+  background: #9aa8c4;
+  color: #fff;
+}
+
+/* FORM */
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.formRow {
+  display: flex;
+  gap: 28px;
+}
+
+.formGroup {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #23263b;
+}
+
+.formGroup input[type="text"],
+.formGroup input[type="number"],
+.formGroup input[type="datetime-local"],
+.formGroup select,
+.formGroup textarea {
+  width: 100%;
+  border: 1.5px solid #cfd4dc;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px 12px;
+  font-size: 15.5px;
+  color: #23263b;
+  outline: none;
+}
+
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+  border-color: #2f4d8e;
+}
+
+.readOnlyInput {
+  background: #f4f6fb;
+  border: 1.5px solid #cfd4dc;
+  border-radius: 8px;
+  padding: 11px 12px;
+}
+
+/* BUTTON */
+.buttonWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.bookingBtn {
+  background: #2f4d8e;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 12px 70px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 8px rgba(47, 77, 142, .10);
+}
+
+.bookingBtn:hover {
+  background: #233969;
+}
+
+/* ERROR UI */
+.errorInput {
+  border-color: #e74c3c !important;
+  background: #fff9f8 !important;
+}
+
+.errorMsg {
+  font-size: 13px;
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+/* POPUP */
+.popupOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(40, 54, 82, .15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popupBox {
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 4px 32px rgba(60, 60, 60, .10),
+              0 1.5px 6px rgba(70, 90, 150, .05);
+  width: 97vw;
+  max-width: 370px;
+  padding: 30px 22px;
+  text-align: center;
+  position: relative;
+}
+
+.popupClose {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  border: none;
+  background: none;
+  color: #888;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.popupClose:hover {
+  color: #f05a5a;
+}
+
+.popupIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.popupMsg {
+  font-size: 18px;
+  color: #253e70;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .topRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .formRow {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 720px) {
+  .mainContent {
+    margin-left: 0;
+  }
+  .formBox {
+    padding: 16px;
+    border-radius: 12px;
+  }
+}
+.badge {
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:12px;
+  font-size:13px;
+  font-weight:600;
+}
+.badgeGreen { background:#e8fff0; color:#119a40; }
+.badgeRed { background:#fff0f0; color:#d93025; }
+.badgeGray { background:#f1f3f8; color:#6b7280; }
