@@ -1,5 +1,5 @@
 // src/pages/BIMail/hal-bimail.js
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -11,20 +11,6 @@ import 'react-datepicker/dist/react-datepicker.css';
 
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
-
-// (opsional, template lama — tidak dipakai di form ini)
-const useDropdown = (initialState = false) => {
-  const [isOpen, setIsOpen] = useState(initialState);
-  const ref = useRef(null);
-  const handleClickOutside = useCallback((event) => {
-    if (ref.current && !ref.current.contains(event.target)) setIsOpen(false);
-  }, []);
-  useEffect(() => {
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [handleClickOutside]);
-  return { isOpen, setIsOpen, ref };
-};
 
 const SuccessPopup = ({ onClose, message = "Data BI.MAIL berhasil disimpan!" }) => (
   <div className={styles.popupOverlay}>
@@ -47,33 +33,81 @@ export default function HalBIMail() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [errors, setErrors] = useState({});
 
-  // opsi dropdown
+  // Dropdown data
   const JENIS_DOKUMEN = [
-    'Surat Masuk', 'Surat Keluar', 'Nota Dinas', 'Memo',
-    'Pengumuman', 'Laporan', 'Kontrak', 'Berita Acara', 'Dokumen Lain'
+    { label: 'Surat Masuk', code: 'Sm' },
+    { label: 'Surat Keluar', code: 'Sk' },
+    { label: 'Nota Dinas', code: 'Nd' },
+    { label: 'Memo', code: 'M' },
+    { label: 'Pengumuman', code: 'P' },
+    { label: 'Laporan', code: 'L' },
+    { label: 'Kontrak', code: 'K' },
+    { label: 'Berita Acara', code: 'Ba' },
+    { label: 'Dokumen Lain', code: 'Dl' },
   ];
   const TIPE_DOKUMEN = [
     { label: 'Tipe Biasa', value: 'B' },
     { label: 'Tipe Rahasia', value: 'RHS' },
   ];
-  const UNIT_KERJA = ['SP', 'PUR', 'HUMAS']; // sementara
+  const UNIT_KERJA = [
+    // kalau kamu nanti punya kode seperti "M.01", taruh di "code"
+    { label: 'SP', code: 'SP' },
+    { label: 'PUR', code: 'PUR' },
+    { label: 'HUMAS', code: 'HUMAS' },
+  ];
 
-  // state form
+  // State form
   const [fields, setFields] = useState({
     tanggalDokumen: new Date(),
-    jenisDokumen: '',
+    jenisDokumen: '',    // simpan label
     tipeDokumen: '',
-    unitKerja: '',
+    unitKerja: '',       // simpan label
     perihal: '',
     dari: '',
     kepada: '',
     linkDokumen: '',
   });
 
-  const [errors, setErrors] = useState({});
+  // Next running number (preview)
+  const [nextNumber, setNextNumber] = useState(null); // angka urut, contoh 491
+  const [loadingNext, setLoadingNext] = useState(false);
 
-  // handlers
+  const getJenisCode = useCallback(() => {
+    const f = JENIS_DOKUMEN.find(x => x.label === fields.jenisDokumen);
+    return f?.code || '';
+  }, [fields.jenisDokumen]);
+
+  const getUnitCode = useCallback(() => {
+    const u = UNIT_KERJA.find(x => x.label === fields.unitKerja);
+    return u?.code || '';
+  }, [fields.unitKerja]);
+
+  // Ambil next number (preview) saat jenis dokumen atau tahun berubah
+  useEffect(() => {
+    const run = async () => {
+      setNextNumber(null);
+      if (!fields.jenisDokumen || !fields.tanggalDokumen) return;
+      const kategoriCode = getJenisCode();     // kode kategori dari dropdown jenis
+      const year = fields.tanggalDokumen.getFullYear();
+
+      try {
+        setLoadingNext(true);
+        const res = await fetch(`/api/bi-mail/next-number?kategoriCode=${encodeURIComponent(kategoriCode)}&tahun=${year}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Gagal mengambil preview nomor.');
+        const data = await res.json();
+        setNextNumber(data.next_number ?? null);
+      } catch (e) {
+        setNextNumber(null);
+      } finally {
+        setLoadingNext(false);
+      }
+    };
+    run();
+  }, [fields.jenisDokumen, fields.tanggalDokumen, getJenisCode]);
+
+  // Handlers
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFields(prev => ({ ...prev, [name]: value }));
@@ -85,7 +119,7 @@ export default function HalBIMail() {
     if (errors.tanggalDokumen) setErrors(prev => ({ ...prev, tanggalDokumen: null }));
   };
 
-  // validasi
+  // Validasi
   const validate = () => {
     const err = {};
     if (!fields.tanggalDokumen) err.tanggalDokumen = 'Tanggal Dokumen wajib diisi';
@@ -104,7 +138,18 @@ export default function HalBIMail() {
     return err;
   };
 
-  // submit
+  // Preview string
+  const nomorSuratPreview = () => {
+    const yy = String(fields.tanggalDokumen?.getFullYear() || '').slice(-2) || '--';
+    const urut = (nextNumber != null) ? nextNumber : (loadingNext ? '...' : '---');
+    const kodeKategori = getJenisCode() || '--';  // contoh "Sb"
+    const kodeUnit = getUnitCode() || '--';       // contoh "M.01" / "SP"
+    const tipe = fields.tipeDokumen || '--';      // "B" / "RHS"
+    // Format: No.<yy>/<urut>/<kodeKategori>/<kodeUnit>/<tipe>
+    return `No.${yy}/${urut}/${kodeKategori}-${kodeUnit}/${tipe}`;
+  };
+
+  // Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
@@ -123,9 +168,10 @@ export default function HalBIMail() {
       const payload = {
         user_id: userId,
         tanggal_dokumen: fields.tanggalDokumen?.toISOString(),
-        jenis_dokumen: fields.jenisDokumen,
+        // kirim kode kategori & unit supaya backend pakai untuk penomoran
+        kategori_code: getJenisCode(),
+        unit_code: getUnitCode(),
         tipe_dokumen: fields.tipeDokumen,   // "B" | "RHS"
-        unit_kerja: fields.unitKerja,
         perihal: fields.perihal,
         dari: fields.dari,
         kepada: fields.kepada,
@@ -206,7 +252,7 @@ export default function HalBIMail() {
                   className={errors.jenisDokumen ? styles.errorInput : ''}
                 >
                   <option value="">-- Pilih Jenis Dokumen --</option>
-                  {JENIS_DOKUMEN.map(j => <option key={j} value={j}>{j}</option>)}
+                  {JENIS_DOKUMEN.map(j => <option key={j.code} value={j.label}>{j.label}</option>)}
                 </select>
                 {errors.jenisDokumen && <span className={styles.errorMsg}>{errors.jenisDokumen}</span>}
               </div>
@@ -241,19 +287,19 @@ export default function HalBIMail() {
                   className={errors.unitKerja ? styles.errorInput : ''}
                 >
                   <option value="">-- Pilih Unit Kerja --</option>
-                  {UNIT_KERJA.map(u => <option key={u} value={u}>{u}</option>)}
+                  {UNIT_KERJA.map(u => <option key={u.code} value={u.label}>{u.label}</option>)}
                 </select>
                 {errors.unitKerja && <span className={styles.errorMsg}>{errors.unitKerja}</span>}
               </div>
             </div>
 
-            {/* Perihal (textarea) - full width */}
+            {/* Perihal (textarea) - full width, pendek */}
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
               <label htmlFor="perihal">Perihal</label>
               <textarea
                 id="perihal"
                 name="perihal"
-                rows={1}
+                rows={2}
                 value={fields.perihal}
                 onChange={handleChange}
                 className={errors.perihal ? styles.errorInput : ''}
@@ -268,11 +314,11 @@ export default function HalBIMail() {
               <textarea
                 id="dari"
                 name="dari"
-                rows={1}
+                rows={2}
                 value={fields.dari}
                 onChange={handleChange}
                 className={errors.dari ? styles.errorInput : ''}
-                placeholder="Pihak pengirim (boleh panjang)"
+                placeholder="Pihak pengirim"
               />
               {errors.dari && <span className={styles.errorMsg}>{errors.dari}</span>}
             </div>
@@ -283,13 +329,18 @@ export default function HalBIMail() {
               <textarea
                 id="kepada"
                 name="kepada"
-                rows={1}
+                rows={2}
                 value={fields.kepada}
                 onChange={handleChange}
                 className={errors.kepada ? styles.errorInput : ''}
-                placeholder="Pihak penerima (boleh panjang)"
+                placeholder="Pihak penerima"
               />
               {errors.kepada && <span className={styles.errorMsg}>{errors.kepada}</span>}
+            </div>
+
+            {/* PREVIEW NOMOR */}
+            <div className={styles.previewNomor} style={{ gridColumn: '1 / -1' }}>
+              <b>Preview Nomor Surat:</b> {nomorSuratPreview()}
             </div>
 
             {/* Link Dokumen (full width, paling bawah) */}
