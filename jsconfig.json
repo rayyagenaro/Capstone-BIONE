@@ -5,5 +5,5 @@
     },
   "jsx": "preserve"
   },
-  "include": ["next-env.d.ts", "**/*.js", "**/*.jsx"]
+  "include": ["next-env.d.ts", "**/*.js", "**/*.jsx", "src/pages/api/bimeet/availability.js"]
 }
