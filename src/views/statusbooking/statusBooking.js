@@ -35,6 +35,58 @@ const formatDate = (dateString) => {
 const getPlate = (v) =>
   v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
 
+// === Helper API untuk set AVAILABLE ===
+// Asumsi: 1 = available (ubah jika perlu)
+async function setDriversAvailable(driverIds, availableStatusId = 1) {
+  if (!Array.isArray(driverIds) || driverIds.length === 0) return { ok: true, affected: 0 };
+
+  const calls = driverIds.map((id) =>
+    fetch('/api/updateDriversStatus', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ driverId: id, newStatusId: availableStatusId }),
+    }).then(async (r) => {
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error || `Gagal update driver ${id}`);
+      }
+      return true;
+    })
+  );
+
+  const results = await Promise.allSettled(calls);
+  const failed = results.filter(r => r.status === 'rejected');
+  if (failed.length) {
+    throw new Error(failed[0].reason?.message || 'Gagal update sebagian driver');
+  }
+  return { ok: true, affected: results.length };
+}
+
+async function setVehiclesAvailable(vehicleIds, availableStatusId = 1) {
+  if (!Array.isArray(vehicleIds) || vehicleIds.length === 0) return { ok: true, affected: 0 };
+
+  const calls = vehicleIds.map((id) =>
+    fetch('/api/updateVehiclesStatus', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vehicleId: id, newStatusId: availableStatusId }),
+    }).then(async (r) => {
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error || `Gagal update vehicle ${id}`);
+      }
+      return true;
+    })
+  );
+
+  const results = await Promise.allSettled(calls);
+  const failed = results.filter(r => r.status === 'rejected');
+  if (failed.length) {
+    throw new Error(failed[0].reason?.message || 'Gagal update sebagian kendaraan');
+  }
+  return { ok: true, affected: results.length };
+}
+
 // --- SUB-KOMPONEN ---
 const BookingCard = React.memo(({ booking, onClick }) => {
   const statusInfo =
@@ -73,7 +125,7 @@ const BookingCard = React.memo(({ booking, onClick }) => {
 });
 BookingCard.displayName = 'BookingCard';
 
-// === TAB dengan DOT INDICATOR (merah bila ada yang baru) ===
+// === TAB dengan DOT INDICATOR ===
 const TabFilter = React.memo(({ currentTab, onTabChange, dotStates }) => (
   <div className={styles.tabRow}>
     {TABS.map((tabName) => {
@@ -303,31 +355,50 @@ export default function StatusBooking() {
 
   const closeModal = useCallback(() => setSelectedBooking(null), []);
 
+  // === PATCH: Finish Booking → ubah status + bebaskan resource
   const markAsFinished = useCallback(async (booking) => {
     try {
       setFinishing(true);
-      const res = await fetch('/api/booking', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: booking.id, newStatusId: 4 }),
-      });
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.error || 'Gagal mengubah status menjadi Finished.');
+
+      // 1) pastikan kita punya detail assignment (drivers & vehicles)
+      let fullBooking = selectedBooking && selectedBooking.id === booking.id ? selectedBooking : null;
+      if (!fullBooking?.assigned_drivers || !fullBooking?.assigned_vehicles) {
+        try {
+          const r = await fetch(`/api/bookings-with-vehicle?bookingId=${booking.id}`);
+          if (r.ok) fullBooking = await r.json();
+        } catch {}
       }
-      setAllBookings((prev) =>
-        prev.map((b) => (b.id === booking.id ? { ...b, status_id: 4 } : b))
-      );
+      const driverIds = (fullBooking?.assigned_drivers || []).map(d => d.id);
+      const vehicleIds = (fullBooking?.assigned_vehicles || []).map(v => v.id);
+
+      // 2) Update status booking => 4 (Finished)
+      {
+        const res = await fetch('/api/booking', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: booking.id, newStatusId: 4 }),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error || 'Gagal mengubah status menjadi Finished.');
+        }
+      }
+
+      // 3) Set resource AVAILABLE (driver lalu vehicle)
+      await setDriversAvailable(driverIds, 1);   // ubah 1 -> id status "available" sesuai mappingmu
+      await setVehiclesAvailable(vehicleIds, 1); // ubah 1 -> id status "available" sesuai mappingmu
+
+      // 4) Sinkronkan UI
+      setAllBookings(prev => prev.map(b => (b.id === booking.id ? { ...b, status_id: 4 } : b)));
 
       try {
         const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${booking.id}`);
         const full = await r2.json().catch(() => null);
         setSelectedBooking(full || { ...booking, status_id: 4 });
       } catch {
-        setSelectedBooking((prev) => (prev ? { ...prev, status_id: 4 } : prev));
+        setSelectedBooking(prev => (prev ? { ...prev, status_id: 4 } : prev));
       }
 
-      // pindah ke Finished dan reset dot tab Finished
       setActiveTab('Finished');
       markTabSeen('Finished');
     } catch (e) {
@@ -335,7 +406,7 @@ export default function StatusBooking() {
     } finally {
       setFinishing(false);
     }
-  }, []); // markTabSeen dideklarasi di bawah, pakai function hoisting (aman)
+  }, [selectedBooking]); // gunakan selectedBooking bila sudah ada
 
   // === Hitung jumlah per status (saat ini) ===
   const tabCounts = useMemo(() => {
