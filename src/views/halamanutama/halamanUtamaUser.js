@@ -50,7 +50,7 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
     { title: "BI.CARE",  
       logo: "/assets/D'CARE.svg",  
       desc: "BI.CARE, memfasilitasi pembuatan janji temu dan reservasi layanan klinik Bank Indonesia secara terencana.", 
-      link: "#" 
+      link: "/User/FiturBIcare/hal-BIcare" 
     },
     { title: "BI.MEAL",  
       logo: "/assets/D'MEAL.svg",  
