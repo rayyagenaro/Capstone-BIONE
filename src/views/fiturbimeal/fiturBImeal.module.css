@@ -1,0 +1,585 @@
+/* Background & overlay */
+.background {
+  min-height: 100vh;
+  position: relative;
+  z-index: 0;
+  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+  overflow: hidden;
+}
+
+.background::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -2;
+  background: url('/assets/bankindonesia.png') center center / cover no-repeat;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.background::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Layout */
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #2f4d8e;
+  min-height: 100vh;
+  margin-left: 255px;
+}
+
+.formBox {
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 4px 20px 0 rgba(47,77,142,0.11);
+  width: 93%;
+  max-width: 1050px;
+  margin: 20px auto 32px auto;
+  padding: 38px 42px 34px 42px;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.backBtn {
+  background: #f5f8ff;
+  color: #2F4D8E;
+  border: none;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 17px;
+  border-radius: 21px;
+  padding: 8px 27px 8px 17px;
+  cursor: pointer;
+  box-shadow: 0 1px 6px 0 rgba(47,77,142,0.10);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.14s, color 0.14s;
+}
+
+.backBtn:hover {
+  background: #d8e2fc;
+  color: #233969;
+}
+
+.topRow {
+  position: relative;          /* <— penting buat absolute child */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;  /* tombol tetap di kiri */
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 20px;
+  min-height: 60px;            /* beri tinggi minimum agar logo tidak “nyundul” */
+}
+
+/* pusatkan logo di baris */
+.logoStayWrapper {
+  position: absolute;          /* <— pusat absolut */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;        /* biar klik tidak ketahan logo */
+}
+
+.availabilitySection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 180px;
+  position: relative;
+}
+
+.availabilityLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: #23263b;
+  margin-bottom: 3px;
+  opacity: .85;
+}
+
+.availabilityDropdownWrap {
+  position: relative;
+  width: 100%;
+}
+
+.availabilityDropdownBtn {
+  width: 100%;
+  min-width: 170px;
+  padding: 8px 16px;
+  border: 1.5px solid #bbbfd8;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 16px;
+  color: #2f4d8e;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 11px;
+  cursor: pointer;
+  transition: border-color .16s, box-shadow .18s;
+}
+
+.availabilityDropdownBtn:hover,
+.availabilityDropdownBtn:focus {
+  border-color: #2f4d8e;
+  box-shadow: 0 2px 10px rgba(47,77,142,.09);
+  outline: none;
+}
+
+.availChevron {
+  font-size: 16px;
+  color: #7a7da8;
+  margin-left: 10px;
+}
+
+.availabilityDropdown {
+  position: absolute;
+  right: 0;
+  top: 42px;
+  background: #fff;
+  border: 1.2px solid #b5bddb;
+  border-radius: 8px;
+  min-width: 178px;
+  box-shadow: 0 5px 18px rgba(47,77,142,.12);
+  padding: 14px 16px 12px 16px;
+  z-index: 100;
+  animation: fadein .19s;
+}
+
+@keyframes fadein {
+  from { opacity:0; transform: translateY(-7px); }
+  to { opacity:1; transform: translateY(0); }
+}
+
+.availabilityDropdown table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.availabilityDropdown th,
+.availabilityDropdown td {
+  border: 1px solid #b5bddb;
+  font-size: 15px;
+  padding: 5px 12px;
+  text-align: left;
+  color: #2f4d8e;
+}
+
+.availabilityDropdown th {
+  background: #9aa8c4;
+  font-weight: bold;
+}
+
+.availabilityDropdown tr:nth-child(even) {
+  background: #f8fafd;
+}
+
+/* FORM GRID */
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px 32px;
+  width: 100%;
+}
+
+.colFull {
+  grid-column: 1 / -1;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #23263b;
+  margin-bottom: 3px;
+}
+
+.formGroup textarea {
+  min-height: 48px;
+  max-height: 120px;
+  resize: vertical;
+}
+
+.formGroup input[type="text"],
+.formGroup select,
+.formGroup textarea {
+  width: 100%;
+  border: 1.5px solid #cfd4dc;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px 12px;
+  font-size: 16px;
+  color: #23263b;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .18s;
+  box-sizing: border-box;
+}
+
+.formGroup input[type="text"]:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+  border-color: #2f4d8e;
+}
+
+/* select caret */
+.select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position-x: 98%;
+  background-position-y: 13px;
+
+}
+/* ===== Pesanan (daftar dinamis) ===== */
+.orderGroup { 
+  /* tidak wajib, tetapi bisa dipakai jika ingin jarak ekstra */
+}
+
+.orderList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Satu baris pesanan: input + tombol hapus */
+.orderRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Tambahan gaya khusus untuk input pesanan (opsional)
+   Sebenarnya input ini sudah mengikuti .formGroup input[type="text"] */
+.orderRow input[type="text"] {
+  /* biarkan mewarisi dari .formGroup input[...] */
+}
+
+/* Tombol + Tambah Pesanan */
+.addItemBtn {
+  background: #2f4d8e;
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  padding: 9px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, box-shadow .18s;
+  box-shadow: 0 1px 6px rgba(47,77,142,.10);
+}
+
+.addItemBtn:hover {
+  background: #233969;
+}
+
+/* Tombol hapus di tiap baris */
+.removeItemBtn {
+  border: 1px solid #e4e6ef;
+  background: #f6f8fd;
+  color: #2F4D8E;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .14s, color .14s, border-color .14s;
+  line-height: 1;
+  min-width: 44px;
+  text-align: center;
+}
+
+.removeItemBtn:hover {
+  background: #edf2fa;
+  color: #16336c;
+  border-color: #d9dff0;
+}
+
+/* Wrapper untuk area aksi (tombol +) */
+.orderActions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+
+/* Responsif: baris menjadi kolom jika layar kecil */
+@media (max-width: 720px) {
+  .orderRow {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+
+/* react-datepicker */
+.formGroup :global(.react-datepicker-wrapper) input {
+  width: 100%;
+  border: 1.5px solid #cfd4dc;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px 12px;
+  font-size: 16px;
+  color: #23263b;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .18s;
+  box-sizing: border-box;
+}
+
+.formGroup :global(.react-datepicker-wrapper) input:focus {
+  border-color: #2f4d8e;
+}
+
+/* errors */
+.errorInput {
+  border-color: #e74c3c !important;
+  background: #fff9f8 !important;
+}
+
+.errorMsg {
+  font-size: 13px;
+  color: #e74c3c;
+  margin-top: 1px;
+  font-weight: 500;
+  min-height: 18px;
+  line-height: 1.2;
+}
+
+/* Button */
+.buttonWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.bookingBtn {
+  background: #2f4d8e;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 12px 70px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s;
+  box-shadow: 0 1px 8px rgba(47,77,142,.10);
+}
+
+.bookingBtn:hover {
+  background: #233969;
+}
+
+/* Popup */
+.popupOverlay {
+  position: fixed;
+  z-index: 1400;
+  inset: 0;
+  background: rgba(40,54,82,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2.2px);
+  animation: popupfade .19s;
+}
+
+@keyframes popupfade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.popupBox {
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 4px 32px rgba(60,60,60,0.10), 0 1.5px 6px rgba(70,90,150,0.05);
+  text-align: center;
+  width: 97vw;
+  max-width: 370px;
+  padding: 36px 22px 28px;
+  position: relative;
+  animation: fadeinpop .23s cubic-bezier(0.23,1,0.32,1);
+}
+
+@keyframes fadeinpop {
+  from { transform: scale(.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.popupIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 13px;
+  margin-top: 2px;
+}
+
+.popupIcon svg {
+  filter: drop-shadow(0 2px 12px #ffe4807a);
+}
+
+.popupMsg {
+  font-size: 1.13rem;
+  color: #253e70;
+  margin-bottom: 25px;
+  margin-top: 5px;
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+
+.popupClose {
+  position: absolute;
+  right: 13px;
+  top: 11px;
+  border: none;
+  background: none;
+  color: #888;
+  font-size: 23px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.popupClose:hover {
+  color: #f05a5a;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .topRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .logoStayWrapper {
+    justify-content: center;
+    margin-bottom: 7px;
+    min-width: 0;
+  }
+  .availabilitySection {
+    align-items: flex-end;
+    width: 100%;
+    margin-top: 6px;
+  }
+}
+
+@media (max-width: 720px) {
+  .mainContent {
+    margin-left: 0;
+  }
+  .formBox {
+    padding: 12px 2vw;
+    border-radius: 10px;
+    margin: 12px 0;
+  }
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .bookingBtn {
+    width: 100%;
+    padding: 11px 0;
+    font-size: 18px;
+  }
+}
+
+/* ===== Pesanan (daftar dinamis dengan qty) ===== */
+.orderList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.orderRow {
+  display: grid;
+  grid-template-columns: 1fr 86px auto; /* item | qty kecil | tombol hapus */
+  gap: 10px;
+  align-items: center;
+}
+
+/* input jumlah kecil */
+.qtyInput {
+  width: 86px;
+  min-width: 70px;
+  text-align: center;
+  border: 1.5px solid #cfd4dc;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 8px;
+  font-size: 15px;
+  color: #23263b;
+  outline: none;
+  transition: border-color .18s;
+  box-sizing: border-box;
+}
+
+.qtyInput:focus { border-color: #2f4d8e; }
+
+/* tombol + tambah */
+.addItemBtn {
+  background: #2f4d8e;
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  padding: 9px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, box-shadow .18s;
+  box-shadow: 0 1px 6px rgba(47,77,142,.10);
+}
+
+.addItemBtn:hover { background: #233969; }
+
+/* tombol hapus */
+.removeItemBtn {
+  border: 1px solid #e4e6ef;
+  background: #f6f8fd;
+  color: #2F4D8E;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .14s, color .14s, border-color .14s;
+  line-height: 1;
+  min-width: 44px;
+  text-align: center;
+}
+
+.removeItemBtn:hover {
+  background: #edf2fa;
+  color: #16336c;
+  border-color: #d9dff0;
+}
+
+.orderActions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+
+@media (max-width: 720px) {
+  .orderRow { grid-template-columns: 1fr 70px auto; }
+}

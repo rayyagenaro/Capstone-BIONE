@@ -55,7 +55,7 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
     { title: "BI.MEAL",  
       logo: "/assets/D'MEAL.svg",  
       desc: "BI.MEAL, memfasilitasi pemesanan konsumsi secara terjadwal untuk mendukung kelancaran rapat dan tugas dinas.", 
-      link: "#" 
+      link: "/User/FiturBImeal/hal-BImeal" 
     },
     { title: "BI.MEET",  
       logo: "/assets/D'ROOM.svg",  
