@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   if (!email || !password) return res.status(400).json({ error: 'Email dan password wajib diisi' });
 
   try {
-    const [rows] = await db.query('SELECT * FROM bidrive_admins WHERE email = ?', [email]);
+    const [rows] = await db.query('SELECT * FROM admins WHERE email = ?', [email]);
     if (!rows.length) return res.status(401).json({ error: 'Admin tidak ditemukan' });
 
     const admin = rows[0];

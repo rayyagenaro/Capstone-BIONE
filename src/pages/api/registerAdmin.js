@@ -7,15 +7,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metode tidak diizinkan' });
   }
 
-  const { nama, email, password } = req.body;
+  const { nama, email, password, role_id } = req.body;
 
-  if (!nama || !email || !password) {
+  if (!nama || !email || !password || !role_id) {
     return res.status(400).json({ error: 'Semua field wajib diisi' });
   }
 
   try {
     // Cek apakah email sudah terdaftar
-    const [existing] = await db.query('SELECT id FROM bidrive_admins WHERE email = ?', [email]);
+    const [existing] = await db.query('SELECT id FROM admins WHERE email = ?', [email]);
     if (existing.length > 0) {
       return res.status(409).json({ error: 'Email sudah digunakan' });
     }
@@ -24,9 +24,10 @@ export default async function handler(req, res) {
     const hashed = await bcrypt.hash(password, 10);
 
     // Simpan ke database
-    await db.query('INSERT INTO bidrive_admins (nama, email, password) VALUES (?, ?, ?)', [
-      nama, email, hashed
-    ]);
+    await db.query(
+      'INSERT INTO admins (nama, email, password, role_id) VALUES (?, ?, ?, ?)',
+      [nama, email, hashed, role_id]
+    );
 
     return res.status(200).json({ message: 'Admin berhasil didaftarkan' });
   } catch (err) {

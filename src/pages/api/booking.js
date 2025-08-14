@@ -123,7 +123,7 @@ export default async function handler(req, res) {
             ']'
           ) AS vehicle_types
         FROM bidrive_bookings b
-        LEFT JOIN bidrive_users u ON b.user_id = u.id
+        LEFT JOIN users u ON b.user_id = u.id
         LEFT JOIN bidrive_booking_vehicle_types bv ON b.id = bv.booking_id
         LEFT JOIN bidrive_vehicle_types vt ON bv.vehicle_type_id = vt.id
         ${whereClause}

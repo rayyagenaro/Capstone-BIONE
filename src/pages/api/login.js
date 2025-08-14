@@ -17,8 +17,8 @@ export default async function handler(req, res) {
     // join status verifikasi
     const [rows] = await db.query(
       `SELECT u.*, vs.name AS verification_status_name
-       FROM bidrive_users u
-       JOIN bidrive_verification_status vs ON vs.id = u.verification_status_id
+       FROM users u
+       JOIN verification_status vs ON vs.id = u.verification_status_id
        WHERE u.email = ? LIMIT 1`,
       [email]
     );

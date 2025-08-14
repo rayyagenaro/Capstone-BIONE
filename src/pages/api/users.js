@@ -15,15 +15,15 @@ export default async function handler(req, res) {
       const map = { pending: 1, verified: 2, verificated: 2, reject: 3, rejected: 3 };
       verification = map[verification] || parseInt(verification) || null;
 
-      let totalSql = "SELECT COUNT(*) AS totalItems FROM bidrive_users";
+      let totalSql = "SELECT COUNT(*) AS totalItems FROM users";
       let dataSql  = `
         SELECT 
           u.id, u.name, u.email, u.phone, u.nip,                    
           u.verification_status_id,
           vs.name AS verification_status_name,
           u.rejection_reason
-        FROM bidrive_users u
-        LEFT JOIN bidrive_verification_status vs ON vs.id = u.verification_status_id
+        FROM users u
+        LEFT JOIN verification_status vs ON vs.id = u.verification_status_id
       `;
       const params = [];
 
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
     if (name && phone && id && !password) {
       try {
-        await db.query("UPDATE bidrive_users SET name = ?, phone = ? WHERE id = ?", [name, phone, id]);
+        await db.query("UPDATE users SET name = ?, phone = ? WHERE id = ?", [name, phone, id]);
         return res.status(200).json({ message: "User berhasil diupdate" });
       } catch {
         return res.status(500).json({ error: "Gagal update user." });
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     if (password && id && adminPassword && emailAdmin) {
       try {
         const [adminRows] = await db.query(
-          "SELECT password FROM bidrive_admins WHERE email = ? LIMIT 1",
+          "SELECT password FROM admins WHERE email = ? LIMIT 1",
           [emailAdmin]
         );
         if (!adminRows?.length) {
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
         if (!ok) return res.status(401).json({ error: "Password admin salah." });
 
         const newHash = await bcrypt.hash(password, 10);
-        await db.query("UPDATE bidrive_users SET password = ? WHERE id = ?", [newHash, id]);
+        await db.query("UPDATE users SET password = ? WHERE id = ?", [newHash, id]);
         return res.status(200).json({ message: "Password user berhasil diupdate" });
       } catch {
         return res.status(500).json({ error: "Gagal update password user." });
