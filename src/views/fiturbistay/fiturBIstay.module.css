@@ -54,7 +54,7 @@
   flex-direction: column;
 }
 
-/* Top row: grid 3 kolom agar logo tetap center */
+/* Top row */
 .topRow {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -275,7 +275,7 @@
   font-size: 14px;
 }
 
-/* Popup */
+/* Popup sukses */
 .popupOverlay {
   position: fixed;
   z-index: 1400;
@@ -289,12 +289,8 @@
 }
 
 @keyframes popupfade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .popupBox {
@@ -310,14 +306,8 @@
 }
 
 @keyframes fadeinpop {
-  from {
-    transform: scale(0.92);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
 }
 
 .popupIcon {
@@ -357,26 +347,87 @@
   color: #f05a5a;
 }
 
+/* ===== Popup SOP (pre-form) ===== */
+.sopOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(42, 55, 88, 0.25);
+  backdrop-filter: blur(3px);
+}
+
+.sopBox {
+  position: relative;
+  width: 96vw;
+  max-width: 560px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 10px 40px rgba(27, 48, 104, 0.18);
+  padding: 28px 26px 24px;
+  text-align: center;
+}
+
+.sopClose {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  border: none;
+  background: none;
+  color: #9aa0b5;
+  font-size: 22px;
+  cursor: pointer;
+}
+.sopClose:hover { color: #e14d4d; }
+
+.sopWarnIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.sopTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #233969;
+  margin-bottom: 6px;
+}
+
+.sopSubtitle {
+  font-size: 14px;
+  color: #5a607b;
+  margin-bottom: 16px;
+}
+
+.sopLinkBtn {
+  display: inline-block;
+  border: 1.5px solid #2f4d8e;
+  background: #f5f8ff;
+  color: #2f4d8e;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.sopLinkBtn:hover {
+  background: #e6edff;
+  box-shadow: 0 3px 12px rgba(47, 77, 142, 0.15);
+}
+
+.sopHint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #7b819b;
+}
+
 /* Responsive */
 @media (max-width: 720px) {
-  .mainContent {
-    margin-left: 0;
-  }
-
-  .formBox {
-    padding: 12px 2vw;
-    border-radius: 10px;
-    margin: 12px 0;
-  }
-
-  .formGrid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .bookingBtn {
-    width: 100%;
-    padding: 11px 0;
-    font-size: 18px;
-  }
+  .mainContent { margin-left: 0; }
+  .formBox { padding: 12px 2vw; border-radius: 10px; margin: 12px 0; }
+  .formGrid { grid-template-columns: 1fr; gap: 14px; }
+  .bookingBtn { width: 100%; padding: 11px 0; font-size: 18px; }
 }

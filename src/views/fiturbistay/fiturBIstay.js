@@ -12,7 +12,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import idLocale from 'date-fns/locale/id';
 import { addDays } from 'date-fns';
 
-/* ---------------- Popup ---------------- */
+/* ---------------- Popup Sukses ---------------- */
 
 const SuccessPopup = ({ onClose }) => (
   <div className={styles.popupOverlay} role="dialog" aria-modal="true">
@@ -39,6 +39,50 @@ const SuccessPopup = ({ onClose }) => (
     </div>
   </div>
 );
+
+/* ---------------- Popup SOP (selalu muncul saat masuk halaman) ---------------- */
+
+const SOPPopup = ({ onClose, onOpenLink }) => {
+  // ganti dengan link SOP Anda
+  const SOP_URL = 'https://github.com/RafiefChalvani/ProjectBI-D-ONE';
+
+  const handleOpenSOP = () => {
+    onOpenLink?.(); // beri tahu parent bahwa link diklik
+    window.open(SOP_URL, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <div className={styles.sopOverlay} role="dialog" aria-modal="true">
+      <div className={styles.sopBox}>
+        <button className={styles.sopClose} onClick={onClose} aria-label="Tutup">
+          ×
+        </button>
+
+        <div className={styles.sopWarnIcon} aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="64" height="64">
+            <path d="M24 6l18 32H6L24 6z" fill="#fff" stroke="#e14d4d" strokeWidth="2.5" />
+            <rect x="22.5" y="18" width="3" height="12" rx="1.2" fill="#e14d4d" />
+            <circle cx="24" cy="34" r="1.8" fill="#e14d4d" />
+          </svg>
+        </div>
+
+        <div className={styles.sopTitle}>
+          Harap Membaca dan Mengakses <b>SOP Booking</b> BI.STAY
+        </div>
+        <div className={styles.sopSubtitle}>
+          Silakan buka tautan di bawah ini. Setelah Anda kembali ke tab ini, form akan otomatis
+          tersedia.
+        </div>
+
+        <button className={styles.sopLinkBtn} onClick={handleOpenSOP}>
+          Link SOP Booking BI.STAY
+        </button>
+
+        <div className={styles.sopHint}>(Tautan akan terbuka di tab baru)</div>
+      </div>
+    </div>
+  );
+};
 
 /* -------------- Helpers waktu tetap -------------- */
 
@@ -78,10 +122,24 @@ export default function FiturBIstay() {
         router.replace('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath));
       }
     })();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [router]);
+
+  /* ---------- SOP gate: selalu tampil saat masuk halaman ---------- */
+  const [showSOP, setShowSOP] = useState(true);
+  const sopLinkClickedRef = useRef(false);
+
+  // Tutup otomatis saat kembali fokus hanya jika user sempat klik link SOP
+  useEffect(() => {
+    const onFocus = () => {
+      if (sopLinkClickedRef.current) {
+        setShowSOP(false);
+        sopLinkClickedRef.current = false; // reset
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -94,8 +152,8 @@ export default function FiturBIstay() {
     wa: '',
     status: '',
     asalKPw: '',
-    checkIn: null, // Date (jam 14:00)
-    checkOut: null, // Date (jam 12:00)
+    checkIn: null, // jam 14:00
+    checkOut: null, // jam 12:00
     ket: '',
   });
   const [errors, setErrors] = useState({});
@@ -109,17 +167,14 @@ export default function FiturBIstay() {
   // Date only (jam check-in/out otomatis)
   const handleDateChange = (date, key) => {
     if (key === 'checkIn') {
-      const ci = atTime(date, 14, 0); // 14:00
+      const ci = atTime(date, 14, 0);
       setFields((prev) => {
         const next = { ...prev, checkIn: ci };
         if (prev.checkOut) {
           const nights = diffNights(ci, prev.checkOut);
           if (nights < 1 || nights > 2) {
             next.checkOut = null;
-            setErrors((p) => ({
-              ...p,
-              checkOut: 'Pilih ulang. Maksimal 2 malam & minimal 1 malam.',
-            }));
+            setErrors((p) => ({ ...p, checkOut: 'Pilih ulang. Maksimal 2 malam & minimal 1 malam.' }));
           }
         }
         return next;
@@ -129,10 +184,9 @@ export default function FiturBIstay() {
     }
 
     if (key === 'checkOut') {
-      const co = atTime(date, 12, 0); // 12:00
+      const co = atTime(date, 12, 0);
       const nights = diffNights(fields.checkIn, co);
       setFields((prev) => ({ ...prev, checkOut: co }));
-
       if (!fields.checkIn) {
         setErrors((p) => ({ ...p, checkOut: 'Pilih tanggal check-in terlebih dulu.' }));
       } else if (nights < 1 || nights > 2) {
@@ -153,7 +207,6 @@ export default function FiturBIstay() {
     if (!fields.asalKPw.trim()) e.asalKPw = 'Asal KPw wajib diisi';
     if (!fields.checkIn) e.checkIn = 'Tanggal check in wajib diisi';
     if (!fields.checkOut) e.checkOut = 'Tanggal check out wajib diisi';
-
     if (fields.checkIn && fields.checkOut) {
       const nights = diffNights(fields.checkIn, fields.checkOut);
       if (nights < 1) e.checkOut = 'Minimal 1 malam.';
@@ -163,7 +216,6 @@ export default function FiturBIstay() {
   };
 
   /* -------- Custom dropdown: Status Pegawai -------- */
-
   const statusRef = useRef(null);
   const [statusOpen, setStatusOpen] = useState(false);
 
@@ -183,7 +235,6 @@ export default function FiturBIstay() {
   };
 
   /* ----------------------- Submit ----------------------- */
-
   const onSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
@@ -203,14 +254,14 @@ export default function FiturBIstay() {
       const userId = me?.payload?.sub || me?.payload?.user_id || null;
 
       const payload = {
-        user_id: userId ?? null, // tabel Anda mengizinkan NULL
+        user_id: userId ?? null,
         nama_pemesan: fields.nama.trim(),
         nip: fields.nip.trim(),
         no_wa: fields.wa.trim(),
-        status: fields.status, // 'Pegawai' | 'Pensiun' atau ID
+        status: fields.status,
         asal_kpw: fields.asalKPw.trim(),
-        check_in: fields.checkIn.toISOString(), // 14:00 lokal -> ISO
-        check_out: fields.checkOut.toISOString(), // 12:00 lokal -> ISO
+        check_in: fields.checkIn.toISOString(),
+        check_out: fields.checkOut.toISOString(),
         keterangan: fields.ket?.trim() || null,
       };
 
@@ -227,14 +278,8 @@ export default function FiturBIstay() {
 
       setShowSuccess(true);
       setFields({
-        nama: '',
-        nip: '',
-        wa: '',
-        status: '',
-        asalKPw: '',
-        checkIn: null,
-        checkOut: null,
-        ket: '',
+        nama: '', nip: '', wa: '', status: '', asalKPw: '',
+        checkIn: null, checkOut: null, ket: '',
       });
     } catch (err) {
       setSubmitError(err.message);
@@ -246,9 +291,7 @@ export default function FiturBIstay() {
   const closeSuccess = () => setShowSuccess(false);
 
   const handleLogout = async () => {
-    try {
-      await fetch('/api/logout', { method: 'POST' });
-    } catch {}
+    try { await fetch('/api/logout', { method: 'POST' }); } catch {}
     router.replace('/Signin/hal-sign');
   };
 
@@ -266,14 +309,7 @@ export default function FiturBIstay() {
             <Link href="/User/HalamanUtama/hal-utamauser">
               <button className={styles.backBtn}>
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M15 18l-6-6 6-6"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 Kembali
               </button>
@@ -283,12 +319,11 @@ export default function FiturBIstay() {
               <Image src="/assets/D'REST.svg" alt="BI.STAY" width={200} height={80} priority />
             </div>
 
-            <div /> {/* spacer kanan */}
+            <div />
           </div>
 
           {/* Form */}
           <form className={styles.formGrid} onSubmit={onSubmit} autoComplete="off">
-            {/* Nama */}
             <div className={`${styles.formGroup} ${styles.colFull}`}>
               <label htmlFor="nama">Nama Pemesan</label>
               <input
@@ -303,7 +338,6 @@ export default function FiturBIstay() {
               {errors.nama && <span className={styles.errorMsg}>{errors.nama}</span>}
             </div>
 
-            {/* NIP */}
             <div className={styles.formGroup}>
               <label htmlFor="nip">NIP</label>
               <input
@@ -318,7 +352,6 @@ export default function FiturBIstay() {
               {errors.nip && <span className={styles.errorMsg}>{errors.nip}</span>}
             </div>
 
-            {/* WA */}
             <div className={styles.formGroup}>
               <label htmlFor="wa">No WA</label>
               <input
@@ -333,7 +366,6 @@ export default function FiturBIstay() {
               {errors.wa && <span className={styles.errorMsg}>{errors.wa}</span>}
             </div>
 
-            {/* Status */}
             <div className={styles.formGroup}>
               <label htmlFor="status">Status Pegawai</label>
               <div className={styles.customSelectWrap} ref={statusRef}>
@@ -350,14 +382,7 @@ export default function FiturBIstay() {
                   </span>
                   <span className={styles.caret} aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24">
-                      <path
-                        d="M6 9l6 6 6-6"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </span>
                 </button>
@@ -386,7 +411,6 @@ export default function FiturBIstay() {
               {errors.status && <span className={styles.errorMsg}>{errors.status}</span>}
             </div>
 
-            {/* Asal KPw */}
             <div className={styles.formGroup}>
               <label htmlFor="asalKPw">Asal KPw</label>
               <input
@@ -401,7 +425,6 @@ export default function FiturBIstay() {
               {errors.asalKPw && <span className={styles.errorMsg}>{errors.asalKPw}</span>}
             </div>
 
-            {/* Check-in */}
             <div className={styles.formGroup}>
               <label htmlFor="checkIn">Tanggal Check In (14:00)</label>
               <DatePicker
@@ -416,7 +439,6 @@ export default function FiturBIstay() {
               {errors.checkIn && <span className={styles.errorMsg}>{errors.checkIn}</span>}
             </div>
 
-            {/* Check-out */}
             <div className={styles.formGroup}>
               <label htmlFor="checkOut">Tanggal Check Out (12:00)</label>
               <DatePicker
@@ -433,13 +455,11 @@ export default function FiturBIstay() {
               {errors.checkOut && <span className={styles.errorMsg}>{errors.checkOut}</span>}
             </div>
 
-            {/* Keterangan */}
             <div className={`${styles.formGroup} ${styles.colFull}`}>
               <label htmlFor="ket">Keterangan</label>
               <textarea id="ket" name="ket" rows={2} value={fields.ket} onChange={handleChange} />
             </div>
 
-            {/* Submit */}
             <div className={`${styles.buttonWrapper} ${styles.colFull}`}>
               <button type="submit" className={styles.bookingBtn} disabled={isSubmitting}>
                 {isSubmitting ? 'Menyimpan...' : 'Booking'}
@@ -453,6 +473,13 @@ export default function FiturBIstay() {
         </div>
 
         {showSuccess && <SuccessPopup onClose={closeSuccess} />}
+
+        {showSOP && (
+          <SOPPopup
+            onClose={() => setShowSOP(false)}
+            onOpenLink={() => { sopLinkClickedRef.current = true; }}
+          />
+        )}
       </main>
 
       <LogoutPopup
@@ -465,7 +492,6 @@ export default function FiturBIstay() {
 }
 
 /* -------------- SSR guard (no flicker) -------------- */
-
 export async function getServerSideProps(ctx) {
   const token = ctx.req.cookies?.user_session || null;
   if (!token) {
