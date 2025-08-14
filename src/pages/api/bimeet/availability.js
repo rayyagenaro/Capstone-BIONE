@@ -1,7 +1,19 @@
 // /pages/api/bimeet/availability.js
-import db from "@/lib/db"; // <-- SESUAIKAN path pool mysql2/promise kamu
+import db from "@/lib/db";
 
-// fallback kalau DB belum lengkap
+// sama dengan di createbooking.js: "YYYY-MM-DD HH:mm:ss"
+function toSqlDateTime(isoOrDate) {
+  const d = new Date(isoOrDate);
+  const pad = (n) => String(n).padStart(2, "0");
+  const y = d.getFullYear();
+  const m = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const h = pad(d.getHours());
+  const mi = pad(d.getMinutes());
+  const s = pad(d.getSeconds());
+  return `${y}-${m}-${day} ${h}:${mi}:${s}`;
+}
+
 const FALLBACK_ROOMS = [
   { id: 1, name: "SP", floor: 2, capacity: 15 },
   { id: 2, name: "MI", floor: 3, capacity: 15 },
@@ -18,65 +30,54 @@ export default async function handler(req, res) {
 
   try {
     const { start, end } = req.query;
-    if (!start || !end) {
-      return res.status(400).json({ error: "start & end are required (ISO string)" });
-    }
+    if (!start || !end) return res.status(400).json({ error: "start & end are required (ISO string)" });
 
-    // Validasi tanggal
     const startDt = new Date(start);
     const endDt = new Date(end);
     if (isNaN(startDt) || isNaN(endDt) || endDt <= startDt) {
       return res.status(400).json({ error: "Invalid datetime range" });
     }
 
-    // --- Ambil dari tabel bimeet_* ---
+    const startSQL = toSqlDateTime(startDt);
+    const endSQL   = toSqlDateTime(endDt);
+
     try {
+      // Pakai EXISTS (aman untuk ONLY_FULL_GROUP_BY).
+      // Perbaikan utama: cek kolom STATUS_ID (Approved = 2), bukan b.status.
       const [rows] = await db.query(
         `
         SELECT
-          r.id,
-          r.name,
-          r.floor,
-          r.capacity,
-          rs.id   AS status_id,
-          rs.name AS status_name,
-          -- hitung apakah ada booking bentrok pada [start, end)
-          SUM(
-            CASE
-              WHEN b.id IS NULL THEN 0
-              WHEN b.status IN ('pending','approved')
-               AND NOT (b.end_datetime <= ? OR b.start_datetime >= ?) THEN 1
-              ELSE 0
-            END
-          ) AS conflicts
+          r.id, r.name, r.floor, r.capacity,
+          rs.id AS status_id, rs.name AS status_name,
+          EXISTS(
+            SELECT 1
+            FROM bimeet_bookings b
+            WHERE b.room_id = r.id
+              AND b.status_id = 2
+              AND NOT (b.end_datetime <= ? OR b.start_datetime >= ?)
+            LIMIT 1
+          ) AS has_conflict
         FROM bimeet_rooms r
-        JOIN bimeet_room_status rs
-          ON rs.id = r.status_id
-        LEFT JOIN bimeet_bookings b
-          ON b.room_id = r.id
-        GROUP BY r.id
+        JOIN bimeet_room_status rs ON rs.id = r.status_id
         ORDER BY r.floor, r.name
         `,
-        [startDt.toISOString(), endDt.toISOString()]
+        [startSQL, endSQL]
       );
 
-      const data = rows.map((r) => {
-        const hasConflict = Number(r.conflicts) > 0;
-        const isActive = Number(r.status_id) === 1; // 1 = Available (operasional)
-        return {
-          id: r.id,
-          name: r.name,
-          floor: r.floor,
-          capacity: r.capacity,
-          status_id: r.status_id,
-          status_name: r.status_name, // Available / Unavailable / Maintenance
-          available: isActive && !hasConflict, // ini yang dipakai UI
-        };
-      });
+      const data = rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        floor: r.floor,
+        capacity: r.capacity,
+        status_id: r.status_id,
+        status_name: r.status_name,
+        // available = status master AVAILABLE (1) dan tidak ada booking Approved yang overlap
+        available: Number(r.status_id) === 1 && Number(r.has_conflict) === 0,
+      }));
 
       return res.status(200).json({ rooms: data });
     } catch (e) {
-      // --- Fallback (DB belum lengkap) ---
+      // Fallback: tetap coba cek konflik pakai status_id Approved (2).
       let conflictMap = {};
       try {
         const [crows] = await db.query(
@@ -84,15 +85,13 @@ export default async function handler(req, res) {
           SELECT room_id, COUNT(*) AS conflicts
           FROM bimeet_bookings
           WHERE NOT (end_datetime <= ? OR start_datetime >= ?)
-            AND status IN ('pending','approved')
+            AND status_id = 2
           GROUP BY room_id
           `,
-          [startDt.toISOString(), endDt.toISOString()]
+          [startSQL, endSQL]
         );
         conflictMap = Object.fromEntries(crows.map((r) => [r.room_id, Number(r.conflicts) > 0]));
-      } catch {
-        // biarkan kosong
-      }
+      } catch {}
 
       const data = FALLBACK_ROOMS.map((r) => ({
         ...r,

@@ -26,19 +26,12 @@ const FALLBACK_ROOMS = [
 
 /* ====== DIVISI (ringkas) ====== */
 const UNIT_KERJA_BI = [
-  "Divisi Kebijakan Moneter",
-  "Divisi Pasar Keuangan",
-  "Divisi Stabilitas Sistem Keuangan",
-  "Divisi Sistem Pembayaran & Pengelolaan Uang",
-  "Divisi Internasional & Statistik",
-  "Divisi Manajemen Risiko & Kepatuhan",
-  "Divisi Komunikasi",
-  "Divisi Sumber Daya Manusia",
-  "Divisi Teknologi Informasi & Keamanan Siber",
-  "Divisi Keuangan & Pengadaan",
-  "Divisi Audit Intern",
-  "Divisi Pengelolaan Aset",
-  "Divisi Pendidikan & Regional",
+  "Hubungan Masyarakat",
+  "Sistem Pembayaran",
+  "Pengolahan Uang Rupiah",
+  "Fungsi Data & Statistik Ekonomi & Keuangan",
+  "Kelompok Perumusan Kebijakan Daerah",
+  "Tim Manajemen Internal",
 ];
 
 /* ====== POPUP SUKSES ====== */

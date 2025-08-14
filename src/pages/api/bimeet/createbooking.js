@@ -61,29 +61,33 @@ export default async function handler(req, res) {
     }
 
     // ===== Kapasitas ruangan
-    const [rooms] = await db.query("SELECT capacity FROM bimeet_rooms WHERE id=?", [room_id]);
+    const [rooms] = await db.query("SELECT capacity FROM bimeet_rooms WHERE id = ?", [room_id]);
     if (!rooms.length) return res.status(404).json({ error: "Ruangan tidak ditemukan" });
     if (Number(participants) > Number(rooms[0].capacity)) {
       return res.status(400).json({ error: `Melebihi kapasitas (${rooms[0].capacity} org)` });
     }
 
     // ===== Cek bentrok
+    // HANYA booking Approved (status_id = 2) yang mengunci ruangan
     const [conflict] = await db.query(
       `SELECT id FROM bimeet_bookings
        WHERE room_id = ?
-         AND status IN ('pending','approved')
+         AND status_id = 2
          AND NOT (end_datetime <= ? OR start_datetime >= ?)
        LIMIT 1`,
       [room_id, toSqlDateTime(start), toSqlDateTime(end)]
     );
-    if (conflict.length) return res.status(409).json({ error: "Jadwal bentrok dengan pemakaian lain" });
+    if (conflict.length) {
+      return res.status(409).json({ error: "Jadwal bentrok dengan pemakaian lain" });
+    }
 
     // ===== Insert
+    // Default status PENDING = 1 (lihat tabel booking_statuses)
     const [result] = await db.query(
       `INSERT INTO bimeet_bookings
         (user_id, room_id, unit_kerja, title, description,
-         start_datetime, end_datetime, participants, contact_phone, pic_name, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+         start_datetime, end_datetime, participants, contact_phone, pic_name, status_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
       [
         user_id || payload.sub,
         room_id,
@@ -92,7 +96,7 @@ export default async function handler(req, res) {
         description || null,
         toSqlDateTime(start),
         toSqlDateTime(end),
-        participants,
+        Number(participants),
         contact_phone,
         pic_name,
       ]
@@ -100,7 +104,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true, id: result.insertId });
   } catch (e) {
-    // ====> sementara tampilkan detail supaya kamu tahu persis masalahnya
+    // tampilkan detail supaya mudah debug
     console.error("createbooking error:", e);
     return res.status(500).json({
       error: "Server error",
