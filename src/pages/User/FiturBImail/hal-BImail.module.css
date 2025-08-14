@@ -365,7 +365,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
 }
 .formRow {
   display: flex;
@@ -773,4 +773,48 @@
 .textarea{
   resize: vertical;
   min-height: 38px; /* biar awalnya tidak kebesaran */
+}
+
+.refreshBtn {
+  border: 1px solid #cfd4dc;
+  background: #f8fafd;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.refreshBtn:hover:not(:disabled) {
+  background: #eef3ff;
+  border-color: #b9c6ff;
+}
+.refreshBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.refreshIconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+.refreshIcon {
+  width: 18px;
+  height: 18px;
+  color: #374151;
+  /* penting agar rotasi di tengah */
+  transform-origin: 50% 50%;
+}
+
+/* animasi muter sekali selama 1 detik */
+@keyframes bimail-spin-once {
+  to { transform: rotate(360deg); }
+}
+.spinOnce .refreshIcon {
+  animation: bimail-spin-once 1s linear 1;
 }
