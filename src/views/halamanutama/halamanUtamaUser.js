@@ -8,38 +8,53 @@ import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import { jwtVerify } from 'jose';
 
+// ===== Helpers =====
+const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+const withNs = (url, ns) => {
+  if (!ns) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}ns=${encodeURIComponent(ns)}`;
+};
+
 export default function HalamanUtamaUser({ initialName = 'User' }) {
+  const router = useRouter();
+  const ns = typeof router.query.ns === 'string' && NS_RE.test(router.query.ns) ? router.query.ns : '';
+
   const [namaUser, setNamaUser] = useState(initialName);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
-  const router = useRouter();
 
+  // ✅ Client guard: pastikan sesi untuk ns ini valid
   useEffect(() => {
     let active = true;
     (async () => {
+      if (!router.isReady) return;
+
+      if (!ns) {
+        router.replace(`/Signin/hal-sign?from=${encodeURIComponent(router.asPath)}`);
+        return;
+      }
+
       try {
-        // ✅ panggil scope=user biar bentuk responsnya {hasToken, payload}
-        const r = await fetch('/api/me?scope=user', { cache: 'no-store' });
+        const r = await fetch(withNs('/api/me?scope=user', ns), { cache: 'no-store' });
         const d = await r.json();
+
         if (!active) return;
 
-        // izinkan user biasa; (kalau admin juga boleh masuk sini, tambahkan cek admin di bawah)
         const ok = d?.hasToken && d?.payload?.role === 'user';
         if (!ok) {
-          // kalau mau admin juga boleh pakai halaman ini, gunakan:
-          // if (!(d?.hasToken && ['user','admin'].includes(d?.payload?.role))) ...
-          router.replace('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath));
+          router.replace(`/Signin/hal-sign?from=${encodeURIComponent(router.asPath)}`);
           return;
         }
 
         setNamaUser(d?.payload?.name || initialName);
       } catch {
-        router.replace('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath));
+        router.replace(`/Signin/hal-sign?from=${encodeURIComponent(router.asPath)}`);
       }
     })();
     return () => { active = false; };
-  }, [router, initialName]);
+  }, [router.isReady, router.asPath, ns, initialName, router]);
 
-  // ✅ daftar fitur: tambahkan "title"
+  // ✅ daftar fitur: semua link di-append ?ns=
   const fiturLayanan = [
     {
       title: "BI.DRIVE",
@@ -47,35 +62,48 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
       desc: "BI.DRIVE, mendukung pemesanan layanan pengemudi secara terjadwal untuk mendukung pelaksanaan tugas dinas.",
       link: "/User/FiturDmove/hal-dmove"
     },
-    { title: "BI.CARE",  
-      logo: "/assets/D'CARE.svg",  
-      desc: "BI.CARE, memfasilitasi pembuatan janji temu dan reservasi layanan klinik Bank Indonesia secara terencana.", 
-      link: "/User/FiturBIcare/hal-BIcare" 
+    {
+      title: "BI.CARE",
+      logo: "/assets/D'CARE.svg",
+      desc: "BI.CARE, memfasilitasi pembuatan janji temu dan reservasi layanan klinik Bank Indonesia secara terencana.",
+      link: "/User/FiturBIcare/hal-BIcare"
     },
-    { title: "BI.MEAL",  
-      logo: "/assets/D'MEAL.svg",  
-      desc: "BI.MEAL, memfasilitasi pemesanan konsumsi secara terjadwal untuk mendukung kelancaran rapat dan tugas dinas.", 
-      link: "/User/FiturBImeal/hal-BImeal" 
+    {
+      title: "BI.MEAL",
+      logo: "/assets/D'MEAL.svg",
+      desc: "BI.MEAL, memfasilitasi pemesanan konsumsi secara terjadwal untuk mendukung kelancaran rapat dan tugas dinas.",
+      link: "/User/FiturBImeal/hal-BImeal"
     },
-    { title: "BI.MEET",  
-      logo: "/assets/D'ROOM.svg",  
-      desc: "BI.MEET, menghadirkan kemudahan reservasi ruang rapat dalam penyelenggaraan pertemuan dan kolaborasi antarunit kerja.", 
-      link: "/User/FiturBimeet/hal-bimeet" 
+    {
+      title: "BI.MEET",
+      logo: "/assets/D'ROOM.svg",
+      desc: "BI.MEET, menghadirkan kemudahan reservasi ruang rapat dalam penyelenggaraan pertemuan dan kolaborasi antarunit kerja.",
+      link: "/User/FiturBimeet/hal-bimeet"
     },
-    { title: "BI.MAIL",  
-      logo: "/assets/D'TRACK.svg", 
-      desc: "BI.MAIL, menyediakan layanan pelacakan dan penomoran surat dinas secara digital, sehingga administrasi surat-menyurat.", 
-      link: "/User/FiturBImail/hal-BImail" 
+    {
+      title: "BI.MAIL",
+      logo: "/assets/D'TRACK.svg",
+      desc: "BI.MAIL, menyediakan layanan pelacakan dan penomoran surat dinas secara digital, sehingga administrasi surat-menyurat.",
+      link: "/User/FiturBImail/hal-BImail"
     },
-    { title: "BI.STAY",  
+    {
+      title: "BI.STAY",
       logo: "/assets/D'REST.svg",
       desc: "BI.STAY, menyediakan sistem reservasi akomodasi rumah dinas Bank Indonesia selama menjalankan penugasan.",
       link: "/User/FiturBIstay/hal-BIstay"
     },
   ];
 
+  // ✅ Logout per-namespace (tidak menendang tab lain)
   const handleLogout = async () => {
-    try { await fetch('/api/logout', { method: 'POST' }); } catch {}
+    try {
+     const ns = new URLSearchParams(location.search).get('ns');
+     await fetch('/api/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area: 'user', ns }), 
+    });
+    } catch {}
     router.replace('/Signin/hal-sign');
   };
 
@@ -98,8 +126,8 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
                   <div className={styles.cardTitle}>{fitur.title}</div>
                   <div className={styles.cardDesc}>{fitur.desc}</div>
                   {fitur.link && fitur.link !== "#" ? (
-                    <Link href={fitur.link} legacyBehavior>
-                      <a className={styles.bookingBtn}>Booking</a>
+                    <Link href={withNs(fitur.link, ns)} className={styles.bookingBtn}>
+                      Booking
                     </Link>
                   ) : (
                     <button className={styles.bookingBtn} disabled>Booking</button>
@@ -115,24 +143,55 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
   );
 }
 
-// ✅ SSR guard (no flicker). Izinkan user (atau admin jika memang diinginkan).
+// ✅ SSR guard: cek cookie namespaced user_session__{ns}
 export async function getServerSideProps(ctx) {
-  const token = ctx.req.cookies?.user_session || null;
-  if (!token) {
-    return { redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, permanent: false } };
+  const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+  const withNs = (url, ns) => {
+    if (!ns) return url;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}ns=${encodeURIComponent(ns)}`;
+  };
+
+  const { ns: nsRaw } = ctx.query;
+  const ns = Array.isArray(nsRaw) ? nsRaw[0] : nsRaw;
+  const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
+
+  const from = ctx.resolvedUrl || '/User/HalamanUtama/hal-utamauser';
+
+  if (!nsValid) {
+    return {
+      redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(from)}`, permanent: false },
+    };
   }
+
+  const cookieName = `user_session__${nsValid}`;
+  const token = ctx.req.cookies?.[cookieName] || null;
+
+  if (!token) {
+    return {
+      redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(withNs(from, nsValid))}`, permanent: false },
+    };
+  }
+
   try {
     const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('missing-secret');
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
       algorithms: ['HS256'],
       clockTolerance: 10,
     });
-    // kalau admin juga boleh, ubah kondisinya jadi: if (!['user','admin'].includes(payload?.role))
+
+    // Hanya user yang boleh (ubah jika admin juga boleh)
     if (payload?.role !== 'user') {
-      return { redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, permanent: false } };
+      return {
+        redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(withNs(from, nsValid))}`, permanent: false },
+      };
     }
+
     return { props: { initialName: payload?.name || 'User' } };
   } catch {
-    return { redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, permanent: false } };
+    return {
+      redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(withNs(from, nsValid))}`, permanent: false },
+    };
   }
 }

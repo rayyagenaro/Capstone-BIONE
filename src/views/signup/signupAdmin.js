@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import styles from './signupadmin.module.css';
+import styles from './signupAdmin.module.css';
+
+const ROLES = [
+  { label: 'Super Admin', value: 1 },
+  { label: 'Admin Fitur', value: 2 },
+];
 
 export default function SignupAdmin() {
   const router = useRouter();
@@ -11,14 +16,38 @@ export default function SignupAdmin() {
     nama: '',
     email: '',
     password: '',
-    konfirmasi: ''
+    konfirmasi: '',
+    role_id: '',
   });
 
+  const [services, setServices] = useState([]);
+  const [selectedServices, setSelectedServices] = useState([]); // maks 2
   const [showPass, setShowPass] = useState(false);
   const [showConf, setShowConf] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const roleIsAdminFitur = String(fields.role_id) === '2';
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const r = await fetch('/api/services', { cache: 'no-store' });
+        if (!active) return;
+        if (r.ok) {
+          const data = await r.json();
+          setServices(Array.isArray(data) ? data : []);
+        } else {
+          setServices([]);
+        }
+      } catch {
+        setServices([]);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   function validate() {
     const e = {};
@@ -29,12 +58,42 @@ export default function SignupAdmin() {
     if (fields.password && fields.konfirmasi && fields.password !== fields.konfirmasi) {
       e.konfirmasi = 'Konfirmasi tidak cocok';
     }
+    if (!fields.role_id) e.role_id = 'Pilih role';
+
+    if (roleIsAdminFitur) {
+      if (selectedServices.length < 1) e.services = 'Pilih minimal 1 layanan';
+      if (selectedServices.length > 2) e.services = 'Maksimal pilih 2 layanan';
+    }
     return e;
   }
 
   function handleChange(e) {
-    setFields({ ...fields, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: undefined });
+    const { name, value } = e.target;
+    setFields(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: undefined }));
+
+    if (name === 'role_id' && value === '1') {
+      setSelectedServices([]);
+      setErrors(prev => ({ ...prev, services: undefined }));
+    }
+  }
+
+  function toggleService(id) {
+    setSelectedServices(prev => {
+      const exists = prev.includes(id);
+      if (exists) {
+        const next = prev.filter(x => x !== id);
+        if (submitted) setErrors(s => ({ ...s, services: undefined }));
+        return next;
+        }
+      if (prev.length >= 2) {
+        setErrors(s => ({ ...s, services: 'Maksimal pilih 2 layanan' }));
+        return prev;
+      }
+      const next = [...prev, id];
+      if (submitted) setErrors(s => ({ ...s, services: undefined }));
+      return next;
+    });
   }
 
   async function handleSubmit(e) {
@@ -45,14 +104,18 @@ export default function SignupAdmin() {
 
     if (Object.keys(err).length === 0) {
       try {
+        const payload = {
+          nama: fields.nama,
+          email: fields.email,
+          password: fields.password,
+          role_id: Number(fields.role_id),
+          service_ids: roleIsAdminFitur ? selectedServices : [],
+        };
+
         const res = await fetch('/api/registerAdmin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nama: fields.nama,
-            email: fields.email,
-            password: fields.password
-          })
+          body: JSON.stringify(payload),
         });
 
         const data = await res.json();
@@ -69,10 +132,15 @@ export default function SignupAdmin() {
   }
 
   const bolehDaftar =
-    Object.values(fields).every(Boolean) && fields.password === fields.konfirmasi;
+    fields.nama &&
+    fields.email &&
+    fields.password &&
+    fields.konfirmasi &&
+    fields.role_id &&
+    fields.password === fields.konfirmasi &&
+    (!roleIsAdminFitur || (selectedServices.length >= 1 && selectedServices.length <= 2));
 
   function handleBack() {
-    // samakan rute balik seperti di signin admin
     router.push('/Login/hal-login');
   }
 
@@ -93,7 +161,7 @@ export default function SignupAdmin() {
 
       <div className={styles.contentWrapper}>
         <div className={styles.card}>
-          {/* HEADER: logo center, tombol back absolute di kiri */}
+          {/* HEADER */}
           <div className={styles.cardHeaderRowMod}>
             <button
               className={styles.backBtn}
@@ -146,6 +214,52 @@ export default function SignupAdmin() {
               {submitted && errors.email && <div className={styles.errorMsg}>{errors.email}</div>}
             </div>
 
+            {/* SERVICES untuk Admin Fitur */}
+            
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className={styles.mutedText}>Pilih Layanan (maks 2)</label>
+                  <span className={styles.badgeSmall} aria-live="polite">
+                    {selectedServices.length} / 2
+                  </span>
+                </div>
+
+                <div className={styles.checkboxGrid} role="group" aria-label="Pilih layanan">
+                  {services.length === 0 ? (
+                    <div className={styles.mutedText}>Daftar layanan kosong / gagal diambil</div>
+                  ) : (
+                    services.map((s) => {
+                      const id = s.id;
+                      const checked = selectedServices.includes(id);
+                      const disabled = !checked && selectedServices.length >= 2;
+
+                      return (
+                        <label
+                          key={id}
+                          className={[
+                            styles.checkboxItem,
+                            checked ? styles.checked : '',
+                            disabled ? styles.disabled : '',
+                          ].join(' ')}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={disabled}
+                            onChange={() => toggleService(id)}
+                          />
+                          <span>{s.name}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+
+                {submitted && errors.services && (
+                  <div className={styles.errorMsg}>{errors.services}</div>
+                )}
+              </div>
+            
             <div className={styles.formGroup} style={{ position: 'relative' }}>
               <input
                 className={styles.input}

@@ -127,21 +127,27 @@
 
 /* Form */
 .form { width: 100%; display: flex; flex-direction: column; gap: 13px; margin-bottom: 14px; }
-.formGroup { width: 100%; display: flex; flex-direction: column; gap: 1px; position: relative; }
+.formGroup { 
+  width: 100%; 
+  display: flex; 
+  flex-direction: column;
+  gap: 1px; 
+  position: relative;
+  border-radius: 12px;
+  background-color: #f0f7ff; 
+  color: #1e3a8a
+}
 .input {
   width: 100%;
   padding: 14px 16px;
-  border-radius: 19px;
-  border: 1.5px solid #e1e5f3;
+  border-radius: 12px;
+  border: 2px solid #e1e5f3;
   font-size: 1.1rem;
   font-weight: 500;
   outline: none;
-  background: #f7faff;
-  transition: border 0.18s;
-  color: #253e70;
 }
-.input:focus { border: 1.5px solid #2F4D8E; background: #fff; color: #253e70; }
-.input::placeholder { color: #bbc6e6; }
+.input:focus { border: 2px solid #2F4D8E; border-radius: 12px; background: #fff; color: #253e70; }
+.input::placeholder { color: #587adf; }
 
 .eyeIcon {
   position: absolute;
@@ -153,6 +159,48 @@
   padding: 2px;
   z-index: 3;
 }
+
+
+/* Grid & item */
+.checkboxGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.checkboxItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 2px solid #2563eb; /* biru tegas */
+  border-radius: 12px;
+  background-color: #f0f7ff; /* biru muda */
+  color: #1e3a8a; /* teks biru tua */
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.checkboxItem:hover {
+  background-color: #dbeafe; /* hover lebih terang */
+  border-color: #1e40af;
+}
+
+.badgeSmall {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #1e40af; /* biru gelap */
+  color: white ;
+}
+
+.mutedText {
+  color: #000; /* hitam pekat */
+  font-size: 14px;
+}
+
+
 
 .errorMsg { font-size: 13px; color: #d62c2c; margin-top: 2px; margin-left: 10px; }
 

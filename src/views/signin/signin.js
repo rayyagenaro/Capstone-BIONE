@@ -4,7 +4,11 @@ import Link from 'next/link';
 import styles from './signin.module.css';
 import { useRouter } from 'next/router';
 import SuccessPopup from '@/components/SuccessPopup/SuccessPopup';
-import { set } from 'date-fns';
+
+function makeNs() {
+  const rnd = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
+  return rnd.replace(/-/g, '').slice(0, 8);
+}
 
 export default function SignIn() {
   const router = useRouter();
@@ -18,6 +22,7 @@ export default function SignIn() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (loading) return;
 
     if (!email.trim() || !password) {
       setError('Email dan password wajib diisi.');
@@ -28,10 +33,13 @@ export default function SignIn() {
     setLoading(true);
 
     try {
+      // tetap buat ns agar server bisa set cookie namespaced (user_session__{ns})
+      const ns = makeNs();
+
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, ns }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -44,17 +52,22 @@ export default function SignIn() {
 
       setShowSuccess(true);
 
-      const from = typeof router.query.from === 'string' ? router.query.from : null;
-      const target = from || '/User/HalamanUtama/hal-utamauser';
+      // gunakan redirect dari server jika ada, kalau tidak pakai path final yang kamu mau
+      const target =
+        typeof data?.redirect === 'string'
+          ? data.redirect
+          : `/User/HalamanUtama/hal-utamauser?ns=${encodeURIComponent(ns)}`;
 
+      // opsi: beri sedikit delay agar popup sukses sempat terlihat
       setTimeout(() => {
         router.replace(target);
-      }, 800);
+      }, 600);
     } catch (err) {
       setError('Terjadi kesalahan saat login.');
       setLoading(false);
     }
-  }
+}
+
 
   function handleForgotPassword(e) {
     e.preventDefault();
@@ -90,7 +103,7 @@ export default function SignIn() {
           {/* HEADER CARD */}
           <div className={styles.cardHeaderRowMod}>
             <button className={styles.backBtn} type="button" onClick={handleBack} aria-label="Kembali">
-              <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="14" cy="12" r="11" fill="#fff" />
                 <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -136,7 +149,7 @@ export default function SignIn() {
                 required
               />
 
-              {/* Tombol mata — kini full transparent tanpa kotak hitam */}
+              {/* Tombol mata */}
               <button
                 type="button"
                 className={styles.eyeIcon}

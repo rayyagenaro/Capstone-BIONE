@@ -4,6 +4,11 @@ import { useRouter } from 'next/router';
 import styles from './signinAdmin.module.css';
 import SuccessPopup from '@/components/SuccessPopup/SuccessPopup';
 
+function makeNs() {
+  const rnd = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
+  return rnd.replace(/-/g, '').slice(0, 8);
+}
+
 export default function SignInAdmin() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -25,10 +30,13 @@ export default function SignInAdmin() {
     setLoading(true);
 
     try {
+      // tetap buat ns agar server bisa set cookie namespaced (user_session__{ns})
+      const ns = makeNs();
+
       const res = await fetch('/api/loginAdmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, ns }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -41,12 +49,16 @@ export default function SignInAdmin() {
 
       setShowSuccess(true);
 
-      const from = typeof router.query.from === 'string' ? router.query.from : null;
-      const target = from || '/Admin/HalamanUtama/hal-utamaAdmin';
+      // gunakan redirect dari server jika ada, kalau tidak pakai path final yang kamu mau
+      const target =
+        typeof data?.redirect === 'string'
+          ? data.redirect
+          : `/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`;
 
+      // opsi: beri sedikit delay agar popup sukses sempat terlihat
       setTimeout(() => {
         router.replace(target);
-      }, 800);
+      }, 600);
     } catch (err) {
       setError('Terjadi kesalahan saat login.');
       setLoading(false);
