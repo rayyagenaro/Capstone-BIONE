@@ -772,5 +772,5 @@
 }
 .textarea{
   resize: vertical;
-  min-height: 38px;
+  min-height: 38px; /* biar awalnya tidak kebesaran */
 }
