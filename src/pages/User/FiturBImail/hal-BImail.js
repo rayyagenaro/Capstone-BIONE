@@ -35,43 +35,54 @@ export default function HalBIMail() {
   const [submitError, setSubmitError] = useState('');
   const [errors, setErrors] = useState({});
 
-  // Dropdown data
+  // ===== Dropdowns (disesuaikan dengan catatan barumu) =====
   const JENIS_DOKUMEN = [
-    { label: 'Surat Masuk', code: 'Sm' },
-    { label: 'Surat Keluar', code: 'Sk' },
-    { label: 'Nota Dinas', code: 'Nd' },
-    { label: 'Memo', code: 'M' },
-    { label: 'Pengumuman', code: 'P' },
-    { label: 'Laporan', code: 'L' },
-    { label: 'Kontrak', code: 'K' },
-    { label: 'Berita Acara', code: 'Ba' },
-    { label: 'Dokumen Lain', code: 'Dl' },
+    { label: 'Lembar Disposisi Pejabat', code: 'LDP' },
+    { label: 'Memorandum 01', code: 'M.01' },
+    { label: 'Memorandum Koordinasi Kerjasama', code: 'M.01-KK' },
+    { label: 'Memorandum 02', code: 'M.02' },
+    { label: 'Lembar Pendapat', code: 'LP' },
+    { label: 'Faksimili', code: 'FAKS' },
+    { label: 'Surat', code: 'SRT' },
+    { label: 'Pengumuman', code: 'PENG' },
+    { label: 'Berita Acara', code: 'BA' },
+    { label: 'Risalah Rapat', code: 'RSL' },
+    { label: 'Surat Kuasa', code: 'SRT.K' },
+    { label: 'Perjanjian', code: 'P' },
+    { label: 'Sertifikat', code: 'SERTIF' },
+    { label: 'Keputusan Kepala Perwakilan', code: 'KEP.KKPW' },
+    { label: 'Dokumen Lain', code: 'DL' },
+    { label: 'Nota Dinas', code: 'ND' },
   ];
   const TIPE_DOKUMEN = [
     { label: 'Tipe Biasa', value: 'B' },
     { label: 'Tipe Rahasia', value: 'RHS' },
   ];
+  // Unit kerja opsional setelah 'Sb-'
   const UNIT_KERJA = [
-    // kalau kamu nanti punya kode seperti "M.01", taruh di "code"
-    { label: 'SP', code: 'SP' },
-    { label: 'PUR', code: 'PUR' },
+    { label: '— Tanpa Unit —', code: '' },   // opsional
+    { label: 'TMI', code: 'TMI' },
+    { label: 'KP', code: 'KP' },
     { label: 'HUMAS', code: 'HUMAS' },
+    { label: 'KPKW', code: 'KPKW' },
+    { label: 'FDSEK', code: 'FDSEK' },
+    { label: 'SPPUR', code: 'SPPUR' },
+    { label: 'FIKSP', code: 'FIKSP' },
+    { label: 'FIPSP', code: 'FIPSP' },
   ];
 
-  // State form
   const [fields, setFields] = useState({
     tanggalDokumen: new Date(),
-    jenisDokumen: '',    // simpan label
+    jenisDokumen: '',
     tipeDokumen: '',
-    unitKerja: '',       // simpan label
+    unitKerja: '— Tanpa Unit —',  // default opsional
     perihal: '',
     dari: '',
     kepada: '',
     linkDokumen: '',
   });
 
-  // Next running number (preview)
-  const [nextNumber, setNextNumber] = useState(null); // angka urut, contoh 491
+  const [nextNumber, setNextNumber] = useState(null);
   const [loadingNext, setLoadingNext] = useState(false);
 
   const getJenisCode = useCallback(() => {
@@ -81,24 +92,25 @@ export default function HalBIMail() {
 
   const getUnitCode = useCallback(() => {
     const u = UNIT_KERJA.find(x => x.label === fields.unitKerja);
-    return u?.code || '';
+    return (u?.code || '').trim();
   }, [fields.unitKerja]);
 
-  // Ambil next number (preview) saat jenis dokumen atau tahun berubah
+  // Live preview: ambil next-number saat jenis/tahun berubah
   useEffect(() => {
     const run = async () => {
       setNextNumber(null);
       if (!fields.jenisDokumen || !fields.tanggalDokumen) return;
-      const kategoriCode = getJenisCode();     // kode kategori dari dropdown jenis
+      const jenisCode = getJenisCode();
       const year = fields.tanggalDokumen.getFullYear();
+      if (!jenisCode) return;
 
       try {
         setLoadingNext(true);
-        const res = await fetch(`/api/bi-mail/next-number?kategoriCode=${encodeURIComponent(kategoriCode)}&tahun=${year}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error('Gagal mengambil preview nomor.');
+        const res = await fetch(`/api/BImail/nextNumber?kategoriCode=${encodeURIComponent(jenisCode)}&tahun=${year}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error('gagal');
         const data = await res.json();
-        setNextNumber(data.next_number ?? null);
-      } catch (e) {
+        setNextNumber(data?.next_number ?? null);
+      } catch {
         setNextNumber(null);
       } finally {
         setLoadingNext(false);
@@ -107,7 +119,6 @@ export default function HalBIMail() {
     run();
   }, [fields.jenisDokumen, fields.tanggalDokumen, getJenisCode]);
 
-  // Handlers
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFields(prev => ({ ...prev, [name]: value }));
@@ -119,18 +130,16 @@ export default function HalBIMail() {
     if (errors.tanggalDokumen) setErrors(prev => ({ ...prev, tanggalDokumen: null }));
   };
 
-  // Validasi
+  // === VALIDASI (unit kerja TIDAK wajib) ===
   const validate = () => {
     const err = {};
     if (!fields.tanggalDokumen) err.tanggalDokumen = 'Tanggal Dokumen wajib diisi';
-    if (!fields.jenisDokumen) err.jenisDokumen = 'Pilih jenis dokumen';
-    if (!fields.tipeDokumen) err.tipeDokumen = 'Pilih tipe dokumen';
-    if (!fields.unitKerja) err.unitKerja = 'Pilih unit kerja';
-
+    if (!fields.jenisDokumen)  err.jenisDokumen  = 'Pilih jenis dokumen';
+    if (!fields.tipeDokumen)   err.tipeDokumen   = 'Pilih tipe dokumen';
+    // unitKerja opsional → tidak divalidasi wajib
     if (!fields.perihal.trim()) err.perihal = 'Perihal wajib diisi';
-    if (!fields.dari.trim()) err.dari = 'Dari wajib diisi';
-    if (!fields.kepada.trim()) err.kepada = 'Kepada wajib diisi';
-
+    if (!fields.dari.trim())    err.dari    = 'Dari wajib diisi';
+    if (!fields.kepada.trim())  err.kepada  = 'Kepada wajib diisi';
     if (!fields.linkDokumen.trim()) err.linkDokumen = 'Link Dokumen wajib diisi';
     else if (!/^https?:\/\//i.test(fields.linkDokumen.trim())) {
       err.linkDokumen = 'Link harus diawali http:// atau https://';
@@ -138,18 +147,18 @@ export default function HalBIMail() {
     return err;
   };
 
-  // Preview string
   const nomorSuratPreview = () => {
-    const yy = String(fields.tanggalDokumen?.getFullYear() || '').slice(-2) || '--';
+    const tahun = fields.tanggalDokumen?.getFullYear?.() || null;
+    const yyPlus2 = tahun ? String((tahun + 2) % 100).padStart(2, '0') : '--'; // 2025 -> 27
     const urut = (nextNumber != null) ? nextNumber : (loadingNext ? '...' : '---');
-    const kodeKategori = getJenisCode() || '--';  // contoh "Sb"
-    const kodeUnit = getUnitCode() || '--';       // contoh "M.01" / "SP"
-    const tipe = fields.tipeDokumen || '--';      // "B" / "RHS"
-    // Format: No.<yy>/<urut>/<kodeKategori>/<kodeUnit>/<tipe>
-    return `No.${yy}/${urut}/${kodeKategori}-${kodeUnit}/${tipe}`;
+    const wilayah = 'Sb';
+    const unit = getUnitCode();
+    const wilayahUnit = unit ? `${wilayah}-${unit}` : wilayah;
+    const jenis = getJenisCode() || '--';
+    const tipe  = fields.tipeDokumen || '--';
+    return `No.${yyPlus2}/${urut}/${wilayahUnit}/${jenis}/${tipe}`;
   };
 
-  // Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
@@ -168,17 +177,16 @@ export default function HalBIMail() {
       const payload = {
         user_id: userId,
         tanggal_dokumen: fields.tanggalDokumen?.toISOString(),
-        // kirim kode kategori & unit supaya backend pakai untuk penomoran
-        kategori_code: getJenisCode(),
-        unit_code: getUnitCode(),
-        tipe_dokumen: fields.tipeDokumen,   // "B" | "RHS"
+        kategori_code: getJenisCode(),    // kode jenis untuk counter
+        unit_code: getUnitCode(),         // opsional; '' akan diperlakukan NULL di backend
+        tipe_dokumen: fields.tipeDokumen,
         perihal: fields.perihal,
         dari: fields.dari,
         kepada: fields.kepada,
         link_dokumen: fields.linkDokumen,
       };
 
-      const res = await fetch('/api/bi-mail', {
+      const res = await fetch('/api/BImail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -196,16 +204,6 @@ export default function HalBIMail() {
     }
   };
 
-  const handleLogout = async () => {
-    try { await fetch('/api/logout', { method: 'POST' }); }
-    finally { router.replace('/Signin/hal-sign'); }
-  };
-
-  const closeSuccess = () => {
-    setShowSuccess(false);
-    router.push('/User/HalamanUtama/hal-utamauser');
-  };
-
   return (
     <div className={styles.background}>
       <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
@@ -220,14 +218,14 @@ export default function HalBIMail() {
             </Link>
 
             <div className={styles.logoDmoveWrapper}>
-              <Image src="/assets/D'MOVE.svg" alt="BI.DRIVE" width={180} height={85} priority />
+              <Image src="/assets/BI-MAIL.svg" alt="BI-MAIL" width={180} height={85} priority />
             </div>
 
             <div style={{ minWidth: 180 }} />
           </div>
 
           <form className={styles.formGrid} autoComplete="off" onSubmit={handleSubmit}>
-            {/* Row 1: Tanggal dokumen | Jenis dokumen */}
+            {/* Row 1 */}
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label htmlFor="tanggalDokumen">Tanggal Dokumen</label>
@@ -252,13 +250,15 @@ export default function HalBIMail() {
                   className={errors.jenisDokumen ? styles.errorInput : ''}
                 >
                   <option value="">-- Pilih Jenis Dokumen --</option>
-                  {JENIS_DOKUMEN.map(j => <option key={j.code} value={j.label}>{j.label}</option>)}
+                  {JENIS_DOKUMEN.map(j => (
+                    <option key={j.code} value={j.label}>{j.label} ({j.code})</option>
+                  ))}
                 </select>
                 {errors.jenisDokumen && <span className={styles.errorMsg}>{errors.jenisDokumen}</span>}
               </div>
             </div>
 
-            {/* Row 2: Tipe Dokumen | Unit kerja */}
+            {/* Row 2 */}
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label htmlFor="tipeDokumen">Tipe Dokumen</label>
@@ -278,7 +278,7 @@ export default function HalBIMail() {
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="unitKerja">Unit Kerja</label>
+                <label htmlFor="unitKerja">Unit Kerja (opsional)</label>
                 <select
                   id="unitKerja"
                   name="unitKerja"
@@ -286,14 +286,15 @@ export default function HalBIMail() {
                   onChange={handleChange}
                   className={errors.unitKerja ? styles.errorInput : ''}
                 >
-                  <option value="">-- Pilih Unit Kerja --</option>
-                  {UNIT_KERJA.map(u => <option key={u.code} value={u.label}>{u.label}</option>)}
+                  {UNIT_KERJA.map(u => (
+                    <option key={u.code || 'none'} value={u.label}>{u.label}</option>
+                  ))}
                 </select>
-                {errors.unitKerja && <span className={styles.errorMsg}>{errors.unitKerja}</span>}
+                {/* tidak ada error karena opsional */}
               </div>
             </div>
 
-            {/* Perihal (textarea) - full width, pendek */}
+            {/* Perihal */}
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
               <label htmlFor="perihal">Perihal</label>
               <textarea
@@ -308,7 +309,7 @@ export default function HalBIMail() {
               {errors.perihal && <span className={styles.errorMsg}>{errors.perihal}</span>}
             </div>
 
-            {/* Dari (textarea) - full width */}
+            {/* Dari */}
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
               <label htmlFor="dari">Dari</label>
               <textarea
@@ -323,7 +324,7 @@ export default function HalBIMail() {
               {errors.dari && <span className={styles.errorMsg}>{errors.dari}</span>}
             </div>
 
-            {/* Kepada (textarea) - full width */}
+            {/* Kepada */}
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
               <label htmlFor="kepada">Kepada</label>
               <textarea
@@ -343,7 +344,7 @@ export default function HalBIMail() {
               <b>Preview Nomor Surat:</b> {nomorSuratPreview()}
             </div>
 
-            {/* Link Dokumen (full width, paling bawah) */}
+            {/* Link Dokumen */}
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <label htmlFor="linkDokumen">Link Dokumen (SharePoint)</label>
@@ -377,13 +378,18 @@ export default function HalBIMail() {
           </form>
         </div>
 
-        {showSuccess && <SuccessPopup onClose={closeSuccess} />}
+        {showSuccess && (
+          <SuccessPopup onClose={() => { setShowSuccess(false); router.push('/User/HalamanUtama/hal-utamauser'); }} />
+        )}
       </main>
 
       <LogoutPopup
-        open={showLogoutPopup}
+        open={true === showLogoutPopup}
         onCancel={() => setShowLogoutPopup(false)}
-        onLogout={handleLogout}
+        onLogout={async () => {
+          try { await fetch('/api/logout', { method: 'POST' }); }
+          finally { router.replace('/Signin/hal-sign'); }
+        }}
       />
     </div>
   );
