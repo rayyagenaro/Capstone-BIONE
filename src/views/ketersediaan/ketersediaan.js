@@ -1,7 +1,6 @@
 // src/pages/Ketersediaan/hal-ketersediaan.js
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import {  useRouter } from 'next/router';
 import styles from './ketersediaan.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
@@ -157,6 +156,7 @@ export default function Ketersediaan() {
   const [drivers, setDrivers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);

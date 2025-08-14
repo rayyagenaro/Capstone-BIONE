@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import styles from './pengaturan.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
-import Router from 'next/router';
+import {useRouter} from 'next/router';
 import { FaEdit, FaCheck, FaTimes, FaLock } from 'react-icons/fa';
 import Pagination from '@/components/Pagination/Pagination';
 
@@ -35,6 +35,7 @@ const waLink = (phone, text) =>
   `https://wa.me/${to62(phone)}?text=${encodeURIComponent(text || '')}`;
 
 export default function Pengaturan() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('verified');
 
   // data & paging
