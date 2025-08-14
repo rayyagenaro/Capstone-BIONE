@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   try {
     const [rows] = await db.query(
       `SELECT u.id, u.name, u.email, u.phone, u.nip, u.created_at
-         FROM bidrive_users u
+         FROM users u
         WHERE u.verification_status_id = 1
         ORDER BY u.created_at ASC`
     );
