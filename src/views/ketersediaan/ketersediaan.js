@@ -167,12 +167,14 @@ export default function Ketersediaan() {
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const handleLogout = async () => {
     try {
-      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
-    } catch (e) {
-      // optional: log error
-    } finally {
-      router.replace('/Signin/hal-signAdmin'); // balik ke login admin
-    }
+     const ns = new URLSearchParams(location.search).get('ns');
+     await fetch('/api/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area: 'admin', ns }), 
+    });
+    } catch {}
+    router.replace('/Signin/hal-signAdmin');
   };
 
   // ---------- PAGINATION STATE (per tab) ----------

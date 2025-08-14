@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     const [[bookingRow]] = await db.query(
       `SELECT b.*, u.name AS user_name
        FROM bidrive_bookings b
-       LEFT JOIN bidrive_users u ON u.id = b.user_id
+       LEFT JOIN users u ON u.id = b.user_id
        WHERE b.id = ?
        LIMIT 1`,
       [bookingId]

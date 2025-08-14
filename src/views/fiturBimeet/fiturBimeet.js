@@ -288,11 +288,11 @@ export default function FiturBimeet() {
         <div className={styles.formBox}>
           {/* TOP ROW */}
           <div className={styles.topRow}>
-            <Link href="/User/HalamanUtama/hal-utamauser">
-              <button className={styles.backBtn}>
-                <FaArrowLeft /> Kembali
+
+              <button className={styles.backBtn} onClick={() => router.back()} type="button">
+              <FaArrowLeft /> Kembali
               </button>
-            </Link>
+            
 
             <div className={styles.logoWrapper}>
               <Image src="/assets/D'ROOM.svg" alt="BI.MEET" width={180} height={85} priority />

@@ -181,7 +181,7 @@ export async function getServerSideProps(ctx) {
       clockTolerance: 10,
     });
 
-    // Hanya user yang boleh (ubah jika admin juga boleh)
+    // Hanya user yang boleh
     if (payload?.role !== 'user') {
       return {
         redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(withNs(from, nsValid))}`, permanent: false },

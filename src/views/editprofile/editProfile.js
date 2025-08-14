@@ -7,10 +7,22 @@ import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaArrowLeft } from 'react-icons/fa';
 
+const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+const withNs = (url, ns) => (ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url);
+
 export default function EditProfile() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const router = useRouter();
+  const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
+  const nsFromAsPath = (() => {
+    const q = router.asPath.split('?')[1];
+    if (!q) return '';
+    const params = new URLSearchParams(q);
+    const v = params.get('ns') || '';
+    return NS_RE.test(v) ? v : '';
+  })();
+  const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
   const [profile, setProfile] = useState({
     email: '',
@@ -113,12 +125,14 @@ export default function EditProfile() {
   // Fungsi Logout
   const handleLogout = async () => {
     try {
-      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
-    } catch (e) {
-      // optional: log error
-    } finally {
-      router.replace('/Signin/hal-sign'); // balik ke login admin
-    }
+     const ns = new URLSearchParams(location.search).get('ns');
+     await fetch('/api/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area: 'admin', ns }), 
+    });
+    } catch {}
+    router.replace('/Signin/hal-signAdmin');
   };
 
   return (
@@ -130,7 +144,7 @@ export default function EditProfile() {
           <div className={styles.topRow}>
             <button className={styles.backBtn}>
               <FaArrowLeft />
-              <Link href="/User/HalamanUtama/hal-utamauser" passHref legacyBehavior>Kembali</Link>
+              <Link href={withNs('/User/HalamanUtama/hal-utamauser', ns)}>Kembali</Link>
             </button>
             <div className={styles.title}>
               EDIT PROFILE

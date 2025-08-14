@@ -265,8 +265,15 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
 
   // ===== Logout =====
   const handleLogout = async () => {
-    try { await fetch('/api/logout', { method: 'POST' }); }
-    finally { Router.replace('/Signin/hal-signAdmin'); }
+    try {
+     const ns = new URLSearchParams(location.search).get('ns');
+     await fetch('/api/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area: 'admin', ns }), 
+    });
+    } catch {}
+    router.replace('/Signin/hal-signAdmin');
   };
 
   const pillOf = (id) => STATUS_PILL[id] || STATUS_PILL[1];

@@ -304,12 +304,14 @@ export default function FiturDmove() {
     };
     const handleLogout = async () => {
         try {
-        await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
-        } catch (e) {
-        // optional: log error
-        } finally {
-        router.replace('/Signin/hal-sign'); // balik ke login admin
-        }
+        const ns = new URLSearchParams(location.search).get('ns');
+        await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ area: 'admin', ns }), 
+        });
+        } catch {}
+        router.replace('/Signin/hal-signAdmin');
     };
 
     return (
@@ -318,7 +320,9 @@ export default function FiturDmove() {
             <main className={styles.mainContent}>
                 <div className={styles.formBox}>
                     <div className={styles.topRow}>
-                        <Link href="/User/HalamanUtama/hal-utamauser"><button className={styles.backBtn}><FaArrowLeft /> Kembali</button></Link>
+                        <button className={styles.backBtn} onClick={() => router.back()} type="button">
+                        <FaArrowLeft /> Kembali
+                        </button>
                         <div className={styles.logoDmoveWrapper}><Image src="/assets/D'MOVE.svg" alt="BI.DRIVE" width={180} height={85} priority /></div>
                         <AvailabilitySection />
                     </div>

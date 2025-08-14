@@ -282,11 +282,9 @@ export default function HalBIMail() {
       <main className={styles.mainContent}>
         <div className={styles.formBox}>
           <div className={styles.topRow}>
-            <Link href="/User/HalamanUtama/hal-utamauser">
-              <button className={styles.backBtn} type="button">
-                <FaArrowLeft /> Kembali
-              </button>
-            </Link>
+            <button className={styles.backBtn} onClick={() => router.back()} type="button">
+            <FaArrowLeft /> Kembali
+            </button>
 
             <div className={styles.logoDmoveWrapper}>
               <Image

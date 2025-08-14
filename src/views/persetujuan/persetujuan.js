@@ -26,6 +26,10 @@ const calculateDuration = (start, end) => {
   return `${diffDays} Hari`;
 };
 
+// 🔧 CHANGED: helper ns
+const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+const withNs = (url, ns) => (ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url);
+
 const TabFilter = React.memo(({ currentTab, onTabChange }) => (
   <div className={styles.tabRow} role="tablist" aria-label="Filter status persetujuan">
     {TABS.map((tabName) => (
@@ -44,15 +48,19 @@ const TabFilter = React.memo(({ currentTab, onTabChange }) => (
 ));
 TabFilter.displayName = 'TabFilter';
 
-const BookingCard = React.memo(({ booking }) => {
+// 🔧 CHANGED: terima ns dan gunakan withNs saat navigate ke detail
+const BookingCard = React.memo(({ booking, ns }) => {
   const router = useRouter();
   const statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: '' };
+
+  const goDetail = () =>
+    router.push(withNs(`/Admin/DetailsLaporan/hal-detailslaporan?id=${booking.id}`, ns));
 
   return (
     <div
       className={styles.cardLayanan}
-      onClick={() => router.push(`/Admin/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)}
-      onKeyDown={(e) => e.key === 'Enter' && router.push(`/Admin/DetailsLaporan/hal-detailslaporan?id=${booking.id}`)}
+      onClick={goDetail}
+      onKeyDown={(e) => e.key === 'Enter' && goDetail()}
       role="button"
       tabIndex={0}
       aria-label={`Lihat detail booking tujuan ${booking.tujuan}`}
@@ -71,6 +79,18 @@ BookingCard.displayName = 'BookingCard';
 // --- KOMPONEN UTAMA ---
 export default function PersetujuanBooking() {
   const router = useRouter();
+
+  // 🔧 CHANGED: ambil ns dari query/asPath
+  const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
+  const nsFromAsPath = (() => {
+    const q = router.asPath.split('?')[1];
+    if (!q) return '';
+    const params = new URLSearchParams(q);
+    const v = params.get('ns') || '';
+    return NS_RE.test(v) ? v : '';
+  })();
+  const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
+
   const [allBookings, setAllBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -85,7 +105,12 @@ export default function PersetujuanBooking() {
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const handleLogout = async () => {
     try {
-      await fetch('/api/logout', { method: 'POST' }); // hapus cookie `token`
+      // 🔧 CHANGED: logout per-NS
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ area: 'admin', ns }),
+      });
     } catch (e) {
       // optional: log error
     } finally {
@@ -94,12 +119,14 @@ export default function PersetujuanBooking() {
   };
 
   useEffect(() => {
+    if (!router.isReady) return; // 🔧 CHANGED: tunggu router siap
     const fetchAllBookings = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch('/api/booking');
+        // 🔧 CHANGED: bawa ns ke API
+        const res = await fetch(withNs('/api/booking', ns), { cache: 'no-store' });
         if (!res.ok) {
-          const errorData = await res.json();
+          const errorData = await res.json().catch(() => ({}));
           throw new Error(errorData.error || 'Gagal memuat data booking');
         }
         const data = await res.json();
@@ -111,7 +138,7 @@ export default function PersetujuanBooking() {
       }
     };
     fetchAllBookings();
-  }, []);
+  }, [router.isReady, ns]); // 🔧 CHANGED: depend ns
 
   const handleTabChange = useCallback((tabName) => {
     setActiveTab(tabName);
@@ -161,16 +188,17 @@ export default function PersetujuanBooking() {
   const resultsFrom = filteredBookings.length ? startIndex + 1 : 0;
   const resultsTo = Math.min(endIndex, filteredBookings.length);
 
+  const pathnameOnly = router.asPath.split('?')[0]; // 🔧 CHANGED: active state tanpa query
+
   return (
     <div className={styles.background}>
       <SidebarAdmin onLogout={() => setShowLogoutPopup(true)} />
       <main className={styles.mainContent}>
         <div className={styles.boxLayanan}>
-          {/* Back + Title (opsional) */}
+          {/* Back + Title */}
           <div className="topRowPersetujuan">
-            <button className={styles.backBtn}>
-              <FaArrowLeft />
-              <Link href="/Admin/HalamanUtama/hal-utamaAdmin" passHref legacyBehavior>Kembali</Link>
+            <button className={styles.backBtn} onClick={() => router.back()} type="button">
+              <FaArrowLeft /> Kembali
             </button>
           </div>
 
@@ -189,7 +217,8 @@ export default function PersetujuanBooking() {
             ) : paginated.length === 0 ? (
               <p className={styles.emptyText}>Tidak ada booking dengan status ini.</p>
             ) : (
-              paginated.map((item) => <BookingCard key={item.id} booking={item} />)
+              // 🔧 CHANGED: lempar ns ke BookingCard
+              paginated.map((item) => <BookingCard key={item.id} booking={item} ns={ns} />)
             )}
           </div>
 
@@ -226,11 +255,11 @@ export default function PersetujuanBooking() {
         </div>
       </main>
 
-      <LogoutPopup 
-      open={showLogoutPopup}
-       onCancel={() => setShowLogoutPopup(false)} 
-       onLogout={handleLogout}
-        />
+      <LogoutPopup
+        open={showLogoutPopup}
+        onCancel={() => setShowLogoutPopup(false)}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }

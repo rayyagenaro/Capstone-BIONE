@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { FaArrowLeft } from 'react-icons/fa';
 import styles from './hal-BIcare.module.css';
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import DatePicker from 'react-datepicker';
@@ -101,14 +102,9 @@ export default function FiturBICare() {
         <div className={styles.formBox}>
           {/* Top Row */}
           <div className={styles.topRow}>
-            <Link href="/User/HalamanUtama/hal-utamauser">
-              <button className={styles.backBtn}>
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Kembali
+              <button className={styles.backBtn} onClick={() => router.back()} type="button">
+              <FaArrowLeft /> Kembali
               </button>
-            </Link>
 
             <div className={styles.logoCareWrapper}>
               <Image src="/assets/D'CARE.svg" alt="BI.CARE" width={190} height={86} priority />
