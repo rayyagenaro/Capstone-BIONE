@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     const newStatus = action === 'verify' ? 2 : 3;
 
     const [result] = await db.query(
-      'UPDATE bidrive_users SET verification_status_id = ?, rejection_reason = ? WHERE id = ?',
+      'UPDATE users SET verification_status_id = ?, rejection_reason = ? WHERE id = ?',
       [newStatus, action === 'reject' ? String(reason).trim() : null, uid]
     );
 
