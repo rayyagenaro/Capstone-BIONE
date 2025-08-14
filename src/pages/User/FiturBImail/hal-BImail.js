@@ -49,7 +49,7 @@ export default function HalBIMail() {
       spinTimerRef.current = setTimeout(() => {
         setSpinning(false);
         spinTimerRef.current = null;
-      }, 1000); // muter 1 detik
+      }, 2000); // muter 1 detik
     });
   }, []);
 
@@ -128,21 +128,22 @@ export default function HalBIMail() {
   }, []);
 
   const fetchEstimasi = useCallback(async () => {
-    // Nyalakan animasi 1 detik SETIAP refresh
-    startSpinOnce();
-
     if (!fields.jenisDokumen || !fields.tanggalDokumen) return;
     const jenisCode = getJenisCode();
     const year = fields.tanggalDokumen.getFullYear();
     if (!jenisCode) return;
-
     if (isFetchingRef.current) return;
+
+    // >>> baru spin di sini, setelah semua guard lolos
+    startSpinOnce();
+
     isFetchingRef.current = true;
     setLoadingNext(true);
+    const ac = new AbortController(); // optional cancel
     try {
       const res = await fetch(
         `/api/BImail/nextNumber?kategoriCode=${encodeURIComponent(jenisCode)}&tahun=${year}`,
-        { cache: 'no-store' }
+        { cache: 'no-store', signal: ac.signal }
       );
       if (!res.ok) throw new Error('gagal');
       const data = await res.json();
@@ -153,6 +154,7 @@ export default function HalBIMail() {
       setLoadingNext(false);
       isFetchingRef.current = false;
     }
+    return () => ac.abort(); // optional cleanup kalau kamu panggil fetchEstimasi dari effect yang bisa unmount
   }, [fields.jenisDokumen, fields.tanggalDokumen, getJenisCode, startSpinOnce]);
 
   // Ambil estimasi saat field kunci berubah
@@ -166,7 +168,7 @@ export default function HalBIMail() {
     if (!fields.jenisDokumen || !fields.tanggalDokumen) return;
     intervalRef.current = setInterval(() => {
       fetchEstimasi();
-    }, 10000); // 10 detik
+    }, 7000); // 10 detik
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
