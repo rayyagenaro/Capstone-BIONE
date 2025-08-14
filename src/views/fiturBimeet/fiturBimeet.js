@@ -28,7 +28,7 @@ const FALLBACK_ROOMS = [
 const UNIT_KERJA_BI = [
   "Hubungan Masyarakat",
   "Sistem Pembayaran",
-  "Pengolahan Uang Rupiah",
+  "Pengelolaan Uang Rupiah",
   "Fungsi Data & Statistik Ekonomi & Keuangan",
   "Kelompok Perumusan Kebijakan Daerah",
   "Tim Manajemen Internal",
