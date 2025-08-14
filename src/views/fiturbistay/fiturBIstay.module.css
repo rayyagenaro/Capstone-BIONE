@@ -6,21 +6,25 @@
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
   overflow: hidden;
 }
+
 .background::before {
   content: "";
   position: fixed;
   inset: 0;
-  width: 100vw; height: 100vh;
+  width: 100vw;
+  height: 100vh;
   z-index: -2;
-  background: url('/assets/bankindonesia.png') center center / cover no-repeat;
+  background: url("/assets/bankindonesia.png") center center / cover no-repeat;
   opacity: 0.35;
   pointer-events: none;
 }
+
 .background::after {
   content: "";
   position: fixed;
   inset: 0;
-  width: 100vw; height: 100vh;
+  width: 100vw;
+  height: 100vh;
   z-index: -1;
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
   opacity: 0.7;
@@ -37,10 +41,11 @@
   min-height: 100vh;
   margin-left: 255px;
 }
+
 .formBox {
   background: #fff;
   border-radius: 22px;
-  box-shadow: 0 4px 20px 0 rgba(47,77,142,0.11);
+  box-shadow: 0 4px 20px 0 rgba(47, 77, 142, 0.11);
   width: 93%;
   max-width: 1050px;
   margin: 20px auto 32px auto;
@@ -57,10 +62,11 @@
   gap: 18px;
   margin-bottom: 20px;
 }
+
 .backBtn {
   justify-self: start;
   background: #f5f8ff;
-  color: #2F4D8E;
+  color: #2f4d8e;
   border: none;
   font-family: inherit;
   font-weight: 600;
@@ -68,41 +74,76 @@
   border-radius: 21px;
   padding: 8px 27px 8px 17px;
   cursor: pointer;
-  box-shadow: 0 1px 6px 0 rgba(47,77,142,0.10);
+  box-shadow: 0 1px 6px 0 rgba(47, 77, 142, 0.1);
   display: inline-flex;
   align-items: center;
   gap: 10px;
   transition: background 0.14s, color 0.14s;
 }
-.backBtn:hover { background: #d8e2fc; color: #233969; }
 
-.logoStayWrapper { justify-self: center; display: flex; align-items: center; }
+.backBtn:hover {
+  background: #d8e2fc;
+  color: #233969;
+}
 
-/* FORM GRID – 2 kolom, dengan util .colFull */
+.logoStayWrapper {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+}
+
+/* Form grid */
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 22px 32px;
   width: 100%;
 }
-.colFull { grid-column: 1 / -1; }
 
-.formGroup { display: flex; flex-direction: column; gap: 8px; }
-.formGroup label { font-size: 16px; font-weight: 700; color: #23263b; margin-bottom: 3px; }
+.colFull {
+  grid-column: 1 / -1;
+}
 
-.formGroup textarea { min-height: 48px; max-height: 120px; resize: vertical; }
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #23263b;
+  margin-bottom: 3px;
+}
+
+.formGroup textarea {
+  min-height: 48px;
+  max-height: 120px;
+  resize: vertical;
+}
 
 .formGroup input[type="text"],
 .formGroup textarea {
   width: 100%;
-  border: 1.5px solid #cfd4dc; border-radius: 8px;
-  background: #fff; padding: 11px 12px; font-size: 16px; color: #23263b;
-  font-family: inherit; outline: none; transition: border-color .18s; box-sizing: border-box;
+  border: 1.5px solid #cfd4dc;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px 12px;
+  font-size: 16px;
+  color: #23263b;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s;
+  box-sizing: border-box;
 }
-.formGroup input[type="text"]:focus,
-.formGroup textarea:focus { border-color: #2f4d8e; }
 
-/* react-datepicker input -> samakan style input lain */
+.formGroup input[type="text"]:focus,
+.formGroup textarea:focus {
+  border-color: #2f4d8e;
+}
+
+/* Datepicker input agar seragam */
 .formGroup :global(.react-datepicker-wrapper) input {
   width: 100%;
   border: 1.5px solid #cfd4dc;
@@ -113,15 +154,19 @@
   color: #23263b;
   font-family: inherit;
   outline: none;
-  transition: border-color .18s;
+  transition: border-color 0.18s;
   box-sizing: border-box;
 }
+
 .formGroup :global(.react-datepicker-wrapper) input:focus {
   border-color: #2f4d8e;
 }
 
-/* --- CUSTOM SELECT (rounded dropdown list) --- */
-.customSelectWrap { position: relative; }
+/* Custom select (rounded) */
+.customSelectWrap {
+  position: relative;
+}
+
 .customSelect {
   width: 100%;
   border: 1.5px solid #cfd4dc;
@@ -135,12 +180,29 @@
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  transition: border-color .18s;
+  transition: border-color 0.18s;
 }
-.customSelect:focus { outline: none; border-color: #2f4d8e; }
-.placeholder { color: #a0a0a0; }
-.selectedText { color: #23263b; }
-.caret { margin-left: 10px; color: #7a7da8; display: inline-flex; align-items: center; }
+
+.customSelect:focus {
+  outline: none;
+  border-color: #2f4d8e;
+}
+
+.placeholder {
+  color: #a0a0a0;
+}
+
+.selectedText {
+  color: #23263b;
+}
+
+.caret {
+  margin-left: 10px;
+  color: #7a7da8;
+  display: inline-flex;
+  align-items: center;
+}
+
 .customSelectDropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -149,25 +211,61 @@
   background: #fff;
   border: 1.2px solid #cfd4dc;
   border-radius: 8px;
-  box-shadow: 0 3px 14px 0 rgba(47,77,142,0.11);
+  box-shadow: 0 3px 14px 0 rgba(47, 77, 142, 0.11);
   z-index: 20;
   overflow: hidden;
 }
-.customSelectOption { padding: 10px 12px; font-size: 16px; color: #23263b; cursor: pointer; }
-.customSelectOption:hover { background: #f3f5fb; }
 
-/* errors */
-.errorInput { border-color: #e74c3c !important; background: #fff9f8 !important; }
-.errorMsg { font-size: 13px; color: #e74c3c; margin-top: 1px; font-weight: 500; min-height: 18px; line-height: 1.2; }
+.customSelectOption {
+  padding: 10px 12px;
+  font-size: 16px;
+  color: #23263b;
+  cursor: pointer;
+}
+
+.customSelectOption:hover {
+  background: #f3f5fb;
+}
+
+/* Errors */
+.errorInput {
+  border-color: #e74c3c !important;
+  background: #fff9f8 !important;
+}
+
+.errorMsg {
+  font-size: 13px;
+  color: #e74c3c;
+  margin-top: 1px;
+  font-weight: 500;
+  min-height: 18px;
+  line-height: 1.2;
+}
 
 /* Button & submit error */
-.buttonWrapper { display: flex; justify-content: center; margin-top: 6px; }
-.bookingBtn {
-  background: #2f4d8e; color: #fff; border: none;
-  border-radius: 20px; padding: 12px 70px; font-size: 20px; font-weight: 700;
-  cursor: pointer; transition: background .18s; box-shadow: 0 1px 8px rgba(47,77,142,.10);
+.buttonWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
 }
-.bookingBtn:hover { background: #233969; }
+
+.bookingBtn {
+  background: #2f4d8e;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 12px 70px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s;
+  box-shadow: 0 1px 8px rgba(47, 77, 142, 0.1);
+}
+
+.bookingBtn:hover {
+  background: #233969;
+}
+
 .submitErrorMsg {
   color: #c0392b;
   background: #fff1f0;
@@ -179,29 +277,106 @@
 
 /* Popup */
 .popupOverlay {
-  position: fixed; z-index: 1400; inset: 0;
-  background: rgba(40,54,82,0.15);
-  display: flex; align-items: center; justify-content: center;
-  backdrop-filter: blur(2.2px); animation: popupfade .19s;
+  position: fixed;
+  z-index: 1400;
+  inset: 0;
+  background: rgba(40, 54, 82, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2.2px);
+  animation: popupfade 0.19s;
 }
-@keyframes popupfade { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes popupfade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .popupBox {
-  background: #fff; border-radius: 22px;
-  box-shadow: 0 4px 32px rgba(60,60,60,0.10), 0 1.5px 6px rgba(70,90,150,0.05);
-  text-align: center; width: 97vw; max-width: 370px;
-  padding: 36px 22px 28px; position: relative; animation: fadeinpop .23s cubic-bezier(0.23,1,0.32,1);
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 4px 32px rgba(60, 60, 60, 0.1), 0 1.5px 6px rgba(70, 90, 150, 0.05);
+  text-align: center;
+  width: 97vw;
+  max-width: 370px;
+  padding: 36px 22px 28px;
+  position: relative;
+  animation: fadeinpop 0.23s cubic-bezier(0.23, 1, 0.32, 1);
 }
-@keyframes fadeinpop { from { transform: scale(.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.popupIcon { display: flex; justify-content: center; align-items: center; margin-bottom: 13px; margin-top: 2px; }
-.popupIcon svg { filter: drop-shadow(0 2px 12px #ffe4807a); }
-.popupMsg { font-size: 1.13rem; color: #253e70; margin-bottom: 25px; margin-top: 5px; font-weight: 500; letter-spacing: .01em; }
-.popupClose { position: absolute; right: 13px; top: 11px; border: none; background: none; color: #888; font-size: 23px; cursor: pointer; font-weight: 600; }
-.popupClose:hover { color: #f05a5a; }
+
+@keyframes fadeinpop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.popupIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 13px;
+  margin-top: 2px;
+}
+
+.popupIcon svg {
+  filter: drop-shadow(0 2px 12px #ffe4807a);
+}
+
+.popupMsg {
+  font-size: 1.13rem;
+  color: #253e70;
+  margin-bottom: 25px;
+  margin-top: 5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.popupClose {
+  position: absolute;
+  right: 13px;
+  top: 11px;
+  border: none;
+  background: none;
+  color: #888;
+  font-size: 23px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.popupClose:hover {
+  color: #f05a5a;
+}
 
 /* Responsive */
 @media (max-width: 720px) {
-  .mainContent { margin-left: 0; }
-  .formBox { padding: 12px 2vw; border-radius: 10px; margin: 12px 0; }
-  .formGrid { grid-template-columns: 1fr; gap: 14px; }
-  .bookingBtn { width: 100%; padding: 11px 0; font-size: 18px; }
+  .mainContent {
+    margin-left: 0;
+  }
+
+  .formBox {
+    padding: 12px 2vw;
+    border-radius: 10px;
+    margin: 12px 0;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .bookingBtn {
+    width: 100%;
+    padding: 11px 0;
+    font-size: 18px;
+  }
 }

@@ -12,22 +12,36 @@ import 'react-datepicker/dist/react-datepicker.css';
 import idLocale from 'date-fns/locale/id';
 import { addDays } from 'date-fns';
 
+/* ---------------- Popup ---------------- */
+
 const SuccessPopup = ({ onClose }) => (
   <div className={styles.popupOverlay} role="dialog" aria-modal="true">
     <div className={styles.popupBox}>
-      <button className={styles.popupClose} onClick={onClose} aria-label="Tutup">×</button>
+      <button className={styles.popupClose} onClick={onClose} aria-label="Tutup">
+        ×
+      </button>
       <div className={styles.popupIcon}>
         <svg width="70" height="70" viewBox="0 0 70 70" aria-hidden="true">
           <circle cx="35" cy="35" r="35" fill="#7EDC89" />
-          <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+          <polyline
+            points="23,36 33,46 48,29"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </div>
-      <div className={styles.popupMsg}><b>Booking BI.STAY Telah Berhasil!</b></div>
+      <div className={styles.popupMsg}>
+        <b>Booking BI.STAY Telah Berhasil!</b>
+      </div>
     </div>
   </div>
 );
 
-// helpers waktu tetap
+/* -------------- Helpers waktu tetap -------------- */
+
 const atTime = (date, h, m = 0) => {
   const d = new Date(date);
   d.setHours(h, m, 0, 0);
@@ -42,9 +56,10 @@ const diffNights = (checkIn, checkOut) => {
   if (!checkIn || !checkOut) return 0;
   const a = startOfDay(checkIn);
   const b = startOfDay(checkOut);
-  // jumlah malam = selisih hari kalender
   return Math.round((b - a) / (1000 * 60 * 60 * 24));
 };
+
+/* ===================== Page ===================== */
 
 export default function FiturBIstay() {
   const router = useRouter();
@@ -63,7 +78,9 @@ export default function FiturBIstay() {
         router.replace('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath));
       }
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
@@ -77,8 +94,8 @@ export default function FiturBIstay() {
     wa: '',
     status: '',
     asalKPw: '',
-    checkIn: null,   // Date dengan jam 14:00
-    checkOut: null,  // Date dengan jam 12:00
+    checkIn: null, // Date (jam 14:00)
+    checkOut: null, // Date (jam 12:00)
     ket: '',
   });
   const [errors, setErrors] = useState({});
@@ -86,38 +103,42 @@ export default function FiturBIstay() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFields((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(p => ({ ...p, [name]: null }));
+    if (errors[name]) setErrors((p) => ({ ...p, [name]: null }));
   };
 
-  // === Date only (jam auto) ===
+  // Date only (jam check-in/out otomatis)
   const handleDateChange = (date, key) => {
     if (key === 'checkIn') {
-      const ci = atTime(date, 14, 0); // Check-In jam 14:00
-      setFields(prev => {
+      const ci = atTime(date, 14, 0); // 14:00
+      setFields((prev) => {
         const next = { ...prev, checkIn: ci };
         if (prev.checkOut) {
           const nights = diffNights(ci, prev.checkOut);
           if (nights < 1 || nights > 2) {
             next.checkOut = null;
-            setErrors(p => ({ ...p, checkOut: 'Pilih ulang. Maksimal 2 malam & minimal 1 malam.' }));
+            setErrors((p) => ({
+              ...p,
+              checkOut: 'Pilih ulang. Maksimal 2 malam & minimal 1 malam.',
+            }));
           }
         }
         return next;
       });
-      if (errors.checkIn) setErrors(p => ({ ...p, checkIn: null }));
+      if (errors.checkIn) setErrors((p) => ({ ...p, checkIn: null }));
       return;
     }
 
     if (key === 'checkOut') {
-      const co = atTime(date, 12, 0); // Check-Out jam 12:00
+      const co = atTime(date, 12, 0); // 12:00
       const nights = diffNights(fields.checkIn, co);
-      setFields(prev => ({ ...prev, checkOut: co }));
+      setFields((prev) => ({ ...prev, checkOut: co }));
+
       if (!fields.checkIn) {
-        setErrors(p => ({ ...p, checkOut: 'Pilih tanggal check-in terlebih dulu.' }));
+        setErrors((p) => ({ ...p, checkOut: 'Pilih tanggal check-in terlebih dulu.' }));
       } else if (nights < 1 || nights > 2) {
-        setErrors(p => ({ ...p, checkOut: 'Durasi hanya 1–2 malam (maks 3 hari).' }));
+        setErrors((p) => ({ ...p, checkOut: 'Durasi hanya 1–2 malam (maks 3 hari).' }));
       } else if (errors.checkOut) {
-        setErrors(p => ({ ...p, checkOut: null }));
+        setErrors((p) => ({ ...p, checkOut: null }));
       }
       return;
     }
@@ -141,9 +162,11 @@ export default function FiturBIstay() {
     return e;
   };
 
-  // ---- Custom dropdown: Status Pegawai (rounded) ----
+  /* -------- Custom dropdown: Status Pegawai -------- */
+
   const statusRef = useRef(null);
   const [statusOpen, setStatusOpen] = useState(false);
+
   useEffect(() => {
     const onDoc = (ev) => {
       if (!statusRef.current) return;
@@ -152,30 +175,41 @@ export default function FiturBIstay() {
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
+
   const selectStatus = (val) => {
     setFields((p) => ({ ...p, status: val }));
     if (errors.status) setErrors((p) => ({ ...p, status: null }));
     setStatusOpen(false);
   };
 
-  // ---- Submit -> call API /api/BIstaybook/bistaybooking ----
+  /* ----------------------- Submit ----------------------- */
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
 
     const v = validate();
-    if (Object.keys(v).length) { setErrors(v); return; }
+    if (Object.keys(v).length) {
+      setErrors(v);
+      return;
+    }
     setErrors({});
     setIsSubmitting(true);
 
     try {
+      // ambil user id dari token (API me)
+      const meRes = await fetch('/api/me?scope=user', { cache: 'no-store' });
+      const me = await meRes.json().catch(() => ({}));
+      const userId = me?.payload?.sub || me?.payload?.user_id || null;
+
       const payload = {
+        user_id: userId ?? null, // tabel Anda mengizinkan NULL
         nama_pemesan: fields.nama.trim(),
         nip: fields.nip.trim(),
         no_wa: fields.wa.trim(),
-        status: fields.status,                 // 'Pegawai' | 'Pensiun'
+        status: fields.status, // 'Pegawai' | 'Pensiun' atau ID
         asal_kpw: fields.asalKPw.trim(),
-        check_in: fields.checkIn.toISOString(),   // 14:00 lokal -> ISO
+        check_in: fields.checkIn.toISOString(), // 14:00 lokal -> ISO
         check_out: fields.checkOut.toISOString(), // 12:00 lokal -> ISO
         keterangan: fields.ket?.trim() || null,
       };
@@ -193,8 +227,14 @@ export default function FiturBIstay() {
 
       setShowSuccess(true);
       setFields({
-        nama: '', nip: '', wa: '', status: '', asalKPw: '',
-        checkIn: null, checkOut: null, ket: '',
+        nama: '',
+        nip: '',
+        wa: '',
+        status: '',
+        asalKPw: '',
+        checkIn: null,
+        checkOut: null,
+        ket: '',
       });
     } catch (err) {
       setSubmitError(err.message);
@@ -206,11 +246,12 @@ export default function FiturBIstay() {
   const closeSuccess = () => setShowSuccess(false);
 
   const handleLogout = async () => {
-    try { await fetch('/api/logout', { method: 'POST' }); } catch {}
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } catch {}
     router.replace('/Signin/hal-sign');
   };
 
-  // batasan tanggal checkout di kalender
   const minCheckoutDate = fields.checkIn ? addDays(fields.checkIn, 1) : null;
   const maxCheckoutDate = fields.checkIn ? addDays(fields.checkIn, 2) : null;
 
@@ -220,62 +261,79 @@ export default function FiturBIstay() {
 
       <main className={styles.mainContent}>
         <div className={styles.formBox}>
-          {/* Top Row: Back (kiri) • Logo (tengah) */}
+          {/* Header */}
           <div className={styles.topRow}>
             <Link href="/User/HalamanUtama/hal-utamauser">
               <button className={styles.backBtn}>
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path
+                    d="M15 18l-6-6 6-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
                 Kembali
               </button>
             </Link>
+
             <div className={styles.logoStayWrapper}>
-              <Image
-                src="/assets/D'REST.svg"
-                alt="BI.STAY"
-                width={200}
-                height={80}
-                priority
-              />
+              <Image src="/assets/D'REST.svg" alt="BI.STAY" width={200} height={80} priority />
             </div>
-            <div /> {/* spacer kanan agar logo tetap center */}
+
+            <div /> {/* spacer kanan */}
           </div>
 
-          {/* FORM GRID */}
+          {/* Form */}
           <form className={styles.formGrid} onSubmit={onSubmit} autoComplete="off">
-            {/* Nama Pemesan – full width */}
+            {/* Nama */}
             <div className={`${styles.formGroup} ${styles.colFull}`}>
               <label htmlFor="nama">Nama Pemesan</label>
               <input
-                id="nama" name="nama" type="text" placeholder="Masukkan Nama Anda"
-                value={fields.nama} onChange={handleChange}
+                id="nama"
+                name="nama"
+                type="text"
+                placeholder="Masukkan Nama Anda"
+                value={fields.nama}
+                onChange={handleChange}
                 className={errors.nama ? styles.errorInput : ''}
               />
               {errors.nama && <span className={styles.errorMsg}>{errors.nama}</span>}
             </div>
 
-            {/* NIP | No WA */}
+            {/* NIP */}
             <div className={styles.formGroup}>
               <label htmlFor="nip">NIP</label>
               <input
-                id="nip" name="nip" type="text" placeholder="Masukkan NIP Anda"
-                value={fields.nip} onChange={handleChange}
+                id="nip"
+                name="nip"
+                type="text"
+                placeholder="Masukkan NIP Anda"
+                value={fields.nip}
+                onChange={handleChange}
                 className={errors.nip ? styles.errorInput : ''}
               />
               {errors.nip && <span className={styles.errorMsg}>{errors.nip}</span>}
             </div>
+
+            {/* WA */}
             <div className={styles.formGroup}>
               <label htmlFor="wa">No WA</label>
               <input
-                id="wa" name="wa" type="text" placeholder="Masukkan No WA Anda"
-                value={fields.wa} onChange={handleChange}
+                id="wa"
+                name="wa"
+                type="text"
+                placeholder="Masukkan No WA Anda"
+                value={fields.wa}
+                onChange={handleChange}
                 className={errors.wa ? styles.errorInput : ''}
               />
               {errors.wa && <span className={styles.errorMsg}>{errors.wa}</span>}
             </div>
 
-            {/* Status (custom dropdown rounded) | Asal KPw */}
+            {/* Status */}
             <div className={styles.formGroup}>
               <label htmlFor="status">Status Pegawai</label>
               <div className={styles.customSelectWrap} ref={statusRef}>
@@ -283,7 +341,7 @@ export default function FiturBIstay() {
                   type="button"
                   id="status"
                   className={`${styles.customSelect} ${errors.status ? styles.errorInput : ''}`}
-                  onClick={() => setStatusOpen(o => !o)}
+                  onClick={() => setStatusOpen((o) => !o)}
                   aria-expanded={statusOpen}
                   aria-haspopup="listbox"
                 >
@@ -292,7 +350,14 @@ export default function FiturBIstay() {
                   </span>
                   <span className={styles.caret} aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24">
-                      <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path
+                        d="M6 9l6 6 6-6"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </span>
                 </button>
@@ -321,17 +386,22 @@ export default function FiturBIstay() {
               {errors.status && <span className={styles.errorMsg}>{errors.status}</span>}
             </div>
 
+            {/* Asal KPw */}
             <div className={styles.formGroup}>
               <label htmlFor="asalKPw">Asal KPw</label>
               <input
-                id="asalKPw" name="asalKPw" type="text" placeholder="Masukkan Asal KPw Anda"
-                value={fields.asalKPw} onChange={handleChange}
+                id="asalKPw"
+                name="asalKPw"
+                type="text"
+                placeholder="Masukkan Asal KPw Anda"
+                value={fields.asalKPw}
+                onChange={handleChange}
                 className={errors.asalKPw ? styles.errorInput : ''}
               />
               {errors.asalKPw && <span className={styles.errorMsg}>{errors.asalKPw}</span>}
             </div>
 
-            {/* Check In | Check Out (date only, jam auto) */}
+            {/* Check-in */}
             <div className={styles.formGroup}>
               <label htmlFor="checkIn">Tanggal Check In (14:00)</label>
               <DatePicker
@@ -345,6 +415,8 @@ export default function FiturBIstay() {
               />
               {errors.checkIn && <span className={styles.errorMsg}>{errors.checkIn}</span>}
             </div>
+
+            {/* Check-out */}
             <div className={styles.formGroup}>
               <label htmlFor="checkOut">Tanggal Check Out (12:00)</label>
               <DatePicker
@@ -361,12 +433,13 @@ export default function FiturBIstay() {
               {errors.checkOut && <span className={styles.errorMsg}>{errors.checkOut}</span>}
             </div>
 
-            {/* Keterangan – full width */}
+            {/* Keterangan */}
             <div className={`${styles.formGroup} ${styles.colFull}`}>
               <label htmlFor="ket">Keterangan</label>
               <textarea id="ket" name="ket" rows={2} value={fields.ket} onChange={handleChange} />
             </div>
 
+            {/* Submit */}
             <div className={`${styles.buttonWrapper} ${styles.colFull}`}>
               <button type="submit" className={styles.bookingBtn} disabled={isSubmitting}>
                 {isSubmitting ? 'Menyimpan...' : 'Booking'}
@@ -374,9 +447,7 @@ export default function FiturBIstay() {
             </div>
 
             {submitError && (
-              <div className={`${styles.colFull} ${styles.submitErrorMsg}`}>
-                {submitError}
-              </div>
+              <div className={`${styles.colFull} ${styles.submitErrorMsg}`}>{submitError}</div>
             )}
           </form>
         </div>
@@ -393,11 +464,17 @@ export default function FiturBIstay() {
   );
 }
 
-// SSR guard (no flicker)
+/* -------------- SSR guard (no flicker) -------------- */
+
 export async function getServerSideProps(ctx) {
   const token = ctx.req.cookies?.user_session || null;
   if (!token) {
-    return { redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, permanent: false } };
+    return {
+      redirect: {
+        destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`,
+        permanent: false,
+      },
+    };
   }
   try {
     const secret = process.env.JWT_SECRET;
@@ -406,10 +483,20 @@ export async function getServerSideProps(ctx) {
       clockTolerance: 10,
     });
     if (payload?.role !== 'user') {
-      return { redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, permanent: false } };
+      return {
+        redirect: {
+          destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`,
+          permanent: false,
+        },
+      };
     }
     return { props: {} };
   } catch {
-    return { redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, permanent: false } };
+    return {
+      redirect: {
+        destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`,
+        permanent: false,
+      },
+    };
   }
 }

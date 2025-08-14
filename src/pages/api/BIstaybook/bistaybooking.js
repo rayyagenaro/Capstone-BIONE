@@ -1,8 +1,10 @@
-// pages/api/bistaybooking.js
-import mysql from 'mysql2/promise';
+// pages/api/BIstaybook/bistaybooking.js
+import db from '@/lib/db';               // ganti sesuai alias/proyekmu
+import { jwtVerify } from 'jose';
+
+/* ---------- Helpers ---------- */
 
 function toMySQLDateTime(value) {
-  // Terima ISO string / Date / number -> 'YYYY-MM-DD HH:mm:ss' (local server time)
   const d = new Date(value);
   const pad = (n) => String(n).padStart(2, '0');
   const y = d.getFullYear();
@@ -14,20 +16,22 @@ function toMySQLDateTime(value) {
   return `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
 }
 
-let pool;
-async function getPool() {
-  if (!pool) {
-    pool = mysql.createPool({
-      host: process.env.DB_HOST || '127.0.0.1',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASS || '',
-      database: process.env.DB_NAME || 'dmove_db1',
-      waitForConnections: true,
-      connectionLimit: 10,
+async function getUserIdFromCookie(req) {
+  try {
+    const token = req.cookies?.user_session;
+    if (!token) return null;
+    const secret = process.env.JWT_SECRET;
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+      clockTolerance: 10,
     });
+    return payload?.sub || payload?.user_id || null;
+  } catch {
+    return null;
   }
-  return pool;
 }
+
+/* ---------- Handler ---------- */
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -37,25 +41,29 @@ export default async function handler(req, res) {
 
   try {
     const {
+      user_id,        // optional; fallback ke cookie
       nama_pemesan,
       nip,
       no_wa,
-      status,       // 'Pegawai' | 'Pensiun' (atau bisa id string/number)
+      status,         // 'Pegawai' | 'Pensiun' | numeric ID
       asal_kpw,
       check_in,
       check_out,
       keterangan,
     } = req.body || {};
 
-    // Validasi minimal (server-side)
-    const err = [];
-    if (!nama_pemesan?.trim()) err.push('nama_pemesan');
-    if (!nip?.trim()) err.push('nip');
-    if (!no_wa?.trim()) err.push('no_wa');
-    if (!status) err.push('status');
-    if (!asal_kpw?.trim()) err.push('asal_kpw');
-    if (!check_in) err.push('check_in');
-    if (!check_out) err.push('check_out');
+    // Validasi dasar
+    const missing = [];
+    if (!nama_pemesan?.trim()) missing.push('nama_pemesan');
+    if (!nip?.trim()) missing.push('nip');
+    if (!no_wa?.trim()) missing.push('no_wa');
+    if (!status) missing.push('status');
+    if (!asal_kpw?.trim()) missing.push('asal_kpw');
+    if (!check_in) missing.push('check_in');
+    if (!check_out) missing.push('check_out');
+    if (missing.length) {
+      return res.status(400).json({ error: `Field wajib: ${missing.join(', ')}` });
+    }
 
     const ci = new Date(check_in);
     const co = new Date(check_out);
@@ -63,16 +71,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'check_out harus setelah check_in' });
     }
 
-    if (err.length) {
-      return res.status(400).json({ error: `Field wajib: ${err.join(', ')}` });
-    }
-
-    const pool = await getPool();
-
-    // Dapatkan bistay_status_pegawai_id
+    // 1) Map status -> status_pegawai_id (tabel: bistay_status_pegawai)
     let statusId = Number(status);
     if (!statusId) {
-      const [rows] = await pool.execute(
+      const [rows] = await db.execute(
         'SELECT id FROM bistay_status_pegawai WHERE status = ? LIMIT 1',
         [String(status)]
       );
@@ -82,13 +84,21 @@ export default async function handler(req, res) {
       statusId = rows[0].id;
     }
 
+    // 2) Ambil user id dari cookie jika tidak dikirim
+    let finalUserId = user_id ?? null;
+    if (finalUserId == null) {
+      finalUserId = await getUserIdFromCookie(req);
+    }
+
+    // 3) Simpan ke tabel bistay_bookings
     const sql = `
       INSERT INTO bistay_bookings
-      (nama_pemesan, nip, no_wa, bistay_status_pegawai_id, asal_kpw, check_in, check_out, keterangan)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (user_id, nama_pemesan, nip, no_wa, status_pegawai_id, asal_kpw, check_in, check_out, keterangan)
+      VALUES
+        (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-
     const params = [
+      finalUserId ?? null,
       nama_pemesan.trim(),
       nip.trim(),
       no_wa.trim(),
@@ -99,7 +109,7 @@ export default async function handler(req, res) {
       keterangan ?? null,
     ];
 
-    const [result] = await pool.execute(sql, params);
+    const [result] = await db.execute(sql, params);
 
     return res.status(201).json({
       ok: true,
