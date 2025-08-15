@@ -35,11 +35,9 @@ async function verifyToken(token, secretStr) {
 }
 
 // Jika ?ns= hilang, coba tebak dari cookie per-area.
-// Strategy: jika 1 kandidat → pakai itu; jika >1, pilih yang exp terbaru (valid).
-// Fallback dev: jika tak bisa verifikasi (secret tidak tersedia), pilih kandidat pertama agar tidak langsung nendang.
 async function inferNsFromCookies(req, isAdminArea, secretStr) {
   const prefix = isAdminArea ? 'admin_session__' : 'user_session__';
-  const all = req.cookies.getAll(); // [{name, value}, ...]
+  const all = req.cookies.getAll();
   const candidates = all.filter(c => c.name.startsWith(prefix));
 
   if (candidates.length === 0) return null;
@@ -78,7 +76,7 @@ export async function middleware(req) {
   const isUserArea  = lower.startsWith('/user/');
   const isAdminArea = lower.startsWith('/admin/');
 
-  // Non-area → lewati (hindari salah baca cookie)
+  // Non-area → lewati
   if (!isUserArea && !isAdminArea) return NextResponse.next();
 
   const secretStr = process.env.JWT_SECRET;
@@ -122,7 +120,6 @@ export async function middleware(req) {
       return r;
     }
 
-    // Gagal infer → ke login area terkait
     const r = NextResponse.redirect(redirectTo(isAdminArea ? '/Signin/hal-signAdmin' : '/Login/hal-login'));
     r.headers.set('x-auth-reason', 'missing-ns');
     return r;
@@ -157,23 +154,35 @@ export async function middleware(req) {
     return r;
   }
 
-  if (isAdminArea && payload.role !== 'admin') {
-    const r = NextResponse.redirect(redirectTo('/Signin/hal-signAdmin'));
-    r.headers.set('x-auth-reason', 'role-mismatch');
-    r.headers.set('x-auth-role', String(payload.role ?? ''));
-    return r;
+  // ⬇⬇⬇ PERUBAHAN PENTING: terima 'super_admin' dan 'admin_fitur' untuk area admin
+  if (isAdminArea) {
+    const allowedAdminRoles = new Set(['admin', 'super_admin', 'admin_fitur']);
+    if (!allowedAdminRoles.has(String(payload.role || ''))) {
+      const r = NextResponse.redirect(redirectTo('/Signin/hal-signAdmin'));
+      r.headers.set('x-auth-reason', 'role-mismatch');
+      r.headers.set('x-auth-role', String(payload.role ?? ''));
+      return r;
+    }
   }
-  if (isUserArea && payload.role !== 'user') {
+  if (isUserArea && String(payload.role || '') !== 'user') {
     const r = NextResponse.redirect(redirectTo('/Login/hal-login'));
     r.headers.set('x-auth-reason', 'role-mismatch');
     r.headers.set('x-auth-role', String(payload.role ?? ''));
     return r;
   }
 
-  // === 5) Lolos ===
+  // === 5) Lolos → set sticky cookie ns agar nyaman next navigations ===
   const r = NextResponse.next();
   r.headers.set('x-auth-pass', 'true');
   r.headers.set('x-auth-ns', ns);
   r.headers.set('x-auth-role', String(payload.role ?? ''));
+
+  const stickyKey = isAdminArea ? 'current_admin_ns' : 'current_user_ns';
+  r.cookies.set(stickyKey, ns, {
+    path: '/',
+    sameSite: 'Lax',
+    maxAge: 60 * 60 * 24 * 30, // 30 hari
+  });
+
   return r;
 }

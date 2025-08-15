@@ -4,11 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './signupAdmin.module.css';
 
-const ROLES = [
-  { label: 'Super Admin', value: 1 },
-  { label: 'Admin Fitur', value: 2 },
-];
-
 export default function SignupAdmin() {
   const router = useRouter();
 
@@ -17,26 +12,25 @@ export default function SignupAdmin() {
     email: '',
     password: '',
     konfirmasi: '',
-    role_id: '',
   });
 
   const [services, setServices] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]); // maks 2
+  const [selectedServices, setSelectedServices] = useState([]); // wajib 1–2
   const [showPass, setShowPass] = useState(false);
   const [showConf, setShowConf] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const roleIsAdminFitur = String(fields.role_id) === '2';
-
+// pages/SignUp/hal-signupAdmin.jsx (cuplikan penting saja)
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const r = await fetch('/api/services', { cache: 'no-store' });
+        const r = await fetch('/api/admin-services', { cache: 'no-store' });
         if (!active) return;
         if (r.ok) {
+          // kalau ?adminId tidak dikirim, endpoint ini balikin semua layanan
           const data = await r.json();
           setServices(Array.isArray(data) ? data : []);
         } else {
@@ -48,53 +42,6 @@ export default function SignupAdmin() {
     })();
     return () => { active = false; };
   }, []);
-
-  function validate() {
-    const e = {};
-    if (!fields.nama) e.nama = 'Nama wajib diisi';
-    if (!fields.email) e.email = 'Email wajib diisi';
-    if (!fields.password) e.password = 'Kata sandi wajib diisi';
-    if (!fields.konfirmasi) e.konfirmasi = 'Konfirmasi wajib diisi';
-    if (fields.password && fields.konfirmasi && fields.password !== fields.konfirmasi) {
-      e.konfirmasi = 'Konfirmasi tidak cocok';
-    }
-    if (!fields.role_id) e.role_id = 'Pilih role';
-
-    if (roleIsAdminFitur) {
-      if (selectedServices.length < 1) e.services = 'Pilih minimal 1 layanan';
-      if (selectedServices.length > 2) e.services = 'Maksimal pilih 2 layanan';
-    }
-    return e;
-  }
-
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setFields(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: undefined }));
-
-    if (name === 'role_id' && value === '1') {
-      setSelectedServices([]);
-      setErrors(prev => ({ ...prev, services: undefined }));
-    }
-  }
-
-  function toggleService(id) {
-    setSelectedServices(prev => {
-      const exists = prev.includes(id);
-      if (exists) {
-        const next = prev.filter(x => x !== id);
-        if (submitted) setErrors(s => ({ ...s, services: undefined }));
-        return next;
-        }
-      if (prev.length >= 2) {
-        setErrors(s => ({ ...s, services: 'Maksimal pilih 2 layanan' }));
-        return prev;
-      }
-      const next = [...prev, id];
-      if (submitted) setErrors(s => ({ ...s, services: undefined }));
-      return next;
-    });
-  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -108,8 +55,8 @@ export default function SignupAdmin() {
           nama: fields.nama,
           email: fields.email,
           password: fields.password,
-          role_id: Number(fields.role_id),
-          service_ids: roleIsAdminFitur ? selectedServices : [],
+          role_id: 2, // ✅ Admin Fitur
+          service_ids: [...new Set(selectedServices)], // dedupe
         };
 
         const res = await fetch('/api/registerAdmin', {
@@ -121,7 +68,7 @@ export default function SignupAdmin() {
         const data = await res.json();
         if (res.ok) {
           setShowSuccess(true);
-          router.replace('/Signin/hal-signAdmin');
+          setTimeout(() => router.replace('/Signin/hal-signAdmin'), 1500);
         } else {
           alert(data.error || 'Terjadi kesalahan saat mendaftar admin');
         }
@@ -131,14 +78,53 @@ export default function SignupAdmin() {
     }
   }
 
+
+  function validate() {
+    const e = {};
+    if (!fields.nama) e.nama = 'Nama wajib diisi';
+    if (!fields.email) e.email = 'Email wajib diisi';
+    if (!fields.password) e.password = 'Kata sandi wajib diisi';
+    if (!fields.konfirmasi) e.konfirmasi = 'Konfirmasi wajib diisi';
+    if (fields.password && fields.konfirmasi && fields.password !== fields.konfirmasi) {
+      e.konfirmasi = 'Konfirmasi tidak cocok';
+    }
+    if (selectedServices.length < 1) e.services = 'Pilih minimal 1 layanan';
+    if (selectedServices.length > 2) e.services = 'Maksimal pilih 2 layanan';
+    return e;
+  }
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setFields(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: undefined }));
+  }
+
+  function toggleService(id) {
+    setSelectedServices(prev => {
+      const exists = prev.includes(id);
+      if (exists) {
+        const next = prev.filter(x => x !== id);
+        if (submitted) setErrors(s => ({ ...s, services: undefined }));
+        return next;
+      }
+      if (prev.length >= 2) {
+        setErrors(s => ({ ...s, services: 'Maksimal pilih 2 layanan' }));
+        return prev;
+      }
+      const next = [...prev, id];
+      if (submitted) setErrors(s => ({ ...s, services: undefined }));
+      return next;
+    });
+  }
+
   const bolehDaftar =
     fields.nama &&
     fields.email &&
     fields.password &&
     fields.konfirmasi &&
-    fields.role_id &&
     fields.password === fields.konfirmasi &&
-    (!roleIsAdminFitur || (selectedServices.length >= 1 && selectedServices.length <= 2));
+    selectedServices.length >= 1 &&
+    selectedServices.length <= 2;
 
   function handleBack() {
     router.push('/Login/hal-login');
@@ -186,8 +172,10 @@ export default function SignupAdmin() {
             </div>
           </div>
 
-          <div className={styles.cardTitle}>Registrasi Admin</div>
-          <div className={styles.cardSubtitle}>Buat akun admin dengan aman</div>
+          <div className={styles.cardTitle}>Registrasi Admin Layanan</div>
+          <div className={styles.cardSubtitle}>
+            Buat akun admin untuk layanan tertentu. Pendaftaran akan <b>diverifikasi Super Admin</b> terlebih dulu.
+          </div>
 
           <form className={styles.form} autoComplete="off" onSubmit={handleSubmit}>
             <div className={styles.formGroup}>
@@ -214,52 +202,51 @@ export default function SignupAdmin() {
               {submitted && errors.email && <div className={styles.errorMsg}>{errors.email}</div>}
             </div>
 
-            {/* SERVICES untuk Admin Fitur */}
-            
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label className={styles.mutedText}>Pilih Layanan (maks 2)</label>
-                  <span className={styles.badgeSmall} aria-live="polite">
-                    {selectedServices.length} / 2
-                  </span>
-                </div>
+            {/* SERVICES wajib 1–2 */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className={styles.mutedText}>Pilih Layanan (maks 2)</label>
+                <span className={styles.badgeSmall} aria-live="polite">
+                  {selectedServices.length} / 2
+                </span>
+              </div>
 
-                <div className={styles.checkboxGrid} role="group" aria-label="Pilih layanan">
-                  {services.length === 0 ? (
-                    <div className={styles.mutedText}>Daftar layanan kosong / gagal diambil</div>
-                  ) : (
-                    services.map((s) => {
-                      const id = s.id;
-                      const checked = selectedServices.includes(id);
-                      const disabled = !checked && selectedServices.length >= 2;
+              <div className={styles.checkboxGrid} role="group" aria-label="Pilih layanan">
+                {services.length === 0 ? (
+                  <div className={styles.mutedText}>Daftar layanan kosong / gagal diambil</div>
+                ) : (
+                  services.map((s) => {
+                    const id = s.id;
+                    const checked = selectedServices.includes(id);
+                    const disabled = !checked && selectedServices.length >= 2;
 
-                      return (
-                        <label
-                          key={id}
-                          className={[
-                            styles.checkboxItem,
-                            checked ? styles.checked : '',
-                            disabled ? styles.disabled : '',
-                          ].join(' ')}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={disabled}
-                            onChange={() => toggleService(id)}
-                          />
-                          <span>{s.name}</span>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-
-                {submitted && errors.services && (
-                  <div className={styles.errorMsg}>{errors.services}</div>
+                    return (
+                      <label
+                        key={id}
+                        className={[
+                          styles.checkboxItem,
+                          checked ? styles.checked : '',
+                          disabled ? styles.disabled : '',
+                        ].join(' ')}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={disabled}
+                          onChange={() => toggleService(id)}
+                        />
+                        <span>{s.name}</span>
+                      </label>
+                    );
+                  })
                 )}
               </div>
-            
+
+              {submitted && errors.services && (
+                <div className={styles.errorMsg}>{errors.services}</div>
+              )}
+            </div>
+
             <div className={styles.formGroup} style={{ position: 'relative' }}>
               <input
                 className={styles.input}
@@ -305,7 +292,10 @@ export default function SignupAdmin() {
                     <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <div className={styles.popupMsg}><b>Berhasil Sign Up</b></div>
+                <div className={styles.popupMsg}>
+                  <b>Pengajuan diterima.</b><br />
+                  Akun Anda <b>menunggu verifikasi</b> oleh Super Admin.
+                </div>
               </div>
             </div>
           )}
