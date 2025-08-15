@@ -118,7 +118,7 @@ export default function HalQueue({ initialAdminName = 'Admin' }) {
     return () => { active = false; };
   }, [router.isReady, router.asPath, ns, initialAdminName, router]);
 
-  // ===== Load data queue per layanan (pakai API /api/admin/queue/[slug]) =====
+  // ===== Load data queue per layanan =====
   useEffect(() => {
     let active = true;
     (async () => {
@@ -141,14 +141,12 @@ export default function HalQueue({ initialAdminName = 'Admin' }) {
     return () => { active = false; };
   }, [slug]);
 
-  // pagination client-side (biar sama seperti halaman lama)
+  // pagination client-side
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil((items.length || 0) / itemsPerPage)),
     [items.length, itemsPerPage]
   );
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(1);
-  }, [totalPages, currentPage]);
+  useEffect(() => { if (currentPage > totalPages) setCurrentPage(1); }, [totalPages, currentPage]);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -184,7 +182,14 @@ export default function HalQueue({ initialAdminName = 'Admin' }) {
     router.replace('/Signin/hal-signAdmin');
   };
 
-  // Kemana klik kartu? (default ke details laporan D'MOVE; selain itu ke detail per slug)
+  const goBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(withNs('/Admin/Fitur/hal-utamaadmin', ns));
+    }
+  };
+
   const buildDetailUrl = (row) => {
     if (slug === 'dmove') {
       return withNs(`/Admin/DetailsLaporan/hal-detailslaporan?id=${row.id}`, ns);
@@ -203,7 +208,27 @@ export default function HalQueue({ initialAdminName = 'Admin' }) {
         </div>
 
         <div className={styles.boxLayanan}>
-          <div className={styles.titleLayanan}>LAYANAN MASUK • {meta.title}</div>
+          {/* ====== Header box: tombol kembali + title di tengah ====== */}
+          <div className={styles.headerRow}>
+            <button
+              type="button"
+              className={styles.backBtn}
+              onClick={goBack}
+              aria-label="Kembali"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Kembali
+            </button>
+
+            <div className={styles.titleLayanan}>
+              LAYANAN MASUK • {meta.title}
+            </div>
+
+            <div aria-hidden="true" /> {/* spacer kanan agar title tetap center */}
+          </div>
+
           <div ref={listTopRef} />
 
           <div className={styles.cardList}>
