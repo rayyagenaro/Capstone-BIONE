@@ -1,4 +1,4 @@
-// /src/views/halamanutama/halamanUtamaAdmin.js (atau path kamu)
+// /src/views/halamanutama/halamanUtamaAdmin.js
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import styles from './halamanUtamaAdmin.module.css';
@@ -23,7 +23,12 @@ export default function HalamanUtamaAdmin({ initialAdminName = 'Admin' }) {
   const [namaAdmin, setNamaAdmin] = useState(initialAdminName);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
-  // ✅ Client guard
+  // 🔒 Gating state
+  const [roleId, setRoleId] = useState(null);                 // 1 = super admin, 2 = admin fitur
+  const [allowedServiceIds, setAllowedServiceIds] = useState(null); // null = semua (super admin)
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Client guard + ambil allowed services
   useEffect(() => {
     let active = true;
     (async () => {
@@ -37,16 +42,43 @@ export default function HalamanUtamaAdmin({ initialAdminName = 'Admin' }) {
       try {
         const r = await fetch(withNs('/api/me?scope=admin', ns), { cache: 'no-store' });
         const d = await r.json();
-
         if (!active) return;
 
-        const ok = d?.hasToken && d?.payload?.role === 'admin';
-        if (!ok) {
+        // Pastikan ada token
+        if (!d?.hasToken || !d?.payload) {
           router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
           return;
         }
 
-        setNamaAdmin(d?.payload?.name || initialAdminName);
+        // Ambil role_id numerik yang sudah diperkaya oleh /api/me
+        const rl = Number(d.payload.role_id_num ?? d.payload.role_id ?? 0);
+        // Fallback: jika tidak ada role_id di JWT, gunakan role (string)
+        const roleStr = String(d.payload.role || d.payload.roleNormalized || '').toLowerCase();
+        const isSuper =
+          rl === 1 ||
+          roleStr === 'super_admin' || roleStr === 'superadmin' || roleStr === 'super-admin';
+        const isAdminFitur =
+          rl === 2 ||
+          roleStr === 'admin_fitur' || roleStr === 'admin-fitur' || roleStr === 'admin';
+
+        if (!isSuper && !isAdminFitur) {
+          // bukan admin → tendang ke login admin
+          router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
+          return;
+        }
+
+        setNamaAdmin(d.payload.name || initialAdminName);
+
+        if (isSuper) {
+          setRoleId(1);
+          setAllowedServiceIds(null); // semua layanan
+        } else {
+          setRoleId(2);
+          const ids = (d.payload.service_ids || []).map(Number);
+          setAllowedServiceIds(ids);
+        }
+
+        setLoading(false);
       } catch {
         router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
       }
@@ -67,13 +99,22 @@ export default function HalamanUtamaAdmin({ initialAdminName = 'Admin' }) {
     router.replace('/Signin/hal-signAdmin');
   };
 
+  if (loading) {
+    return <div className={styles.loading}>Memuat…</div>;
+  }
+
   return (
     <div className={styles.background}>
       <SidebarAdmin onLogout={() => setShowLogoutPopup(true)} />
 
       <main className={styles.mainContent}>
         <div className={styles.welcomeBox}>
-          <h2 className={styles.greeting}>Selamat datang, {namaAdmin}</h2>
+          <h2 className={styles.greeting}>
+            Selamat datang, {namaAdmin}
+          </h2>
+          <div className={styles.roleBadge}>
+            {roleId === 1 ? 'Super Admin' : 'Admin Fitur'}
+          </div>
 
           <div className={styles.servicesBox}>
             <div className={styles.servicesTitle}>Pilih Layanan untuk Dikelola</div>
@@ -81,8 +122,8 @@ export default function HalamanUtamaAdmin({ initialAdminName = 'Admin' }) {
               Lihat antrian & pesanan per fitur BI.ONE. Semua tautan di bawah akan membawa Anda ke halaman administrasi tiap layanan.
             </div>
 
-            {/* 6 kartu layanan dari DB */}
-            <ServicesCards ns={ns} />
+            {/* Kartu layanan dari DB, dibatasi oleh allowedServiceIds */}
+            <ServicesCards ns={ns} allowedServiceIds={allowedServiceIds} />
           </div>
         </div>
       </main>
@@ -96,7 +137,7 @@ export default function HalamanUtamaAdmin({ initialAdminName = 'Admin' }) {
   );
 }
 
-// ✅ SSR guard
+// ✅ SSR guard (validasi dasar token + role)
 export async function getServerSideProps(ctx) {
   const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
   const withNs = (url, ns) => {
@@ -129,18 +170,33 @@ export async function getServerSideProps(ctx) {
   try {
     const secret = process.env.JWT_SECRET;
     if (!secret) throw new Error('missing-secret');
+
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
       algorithms: ['HS256'],
       clockTolerance: 10,
     });
 
-    if (payload?.role !== 'admin') {
+    const roleStr = String(payload?.role || '').toLowerCase();
+    const roleIdNum = Number(payload?.role_id ?? 0);
+
+    const isSuper =
+      roleIdNum === 1 ||
+      roleStr === 'super_admin' || roleStr === 'superadmin' || roleStr === 'super-admin';
+    const isAdminFitur =
+      roleIdNum === 2 ||
+      roleStr === 'admin_fitur' || roleStr === 'admin-fitur' || roleStr === 'admin';
+
+    if (!isSuper && !isAdminFitur) {
       return {
         redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(withNs(from, nsValid))}`, permanent: false },
       };
     }
 
-    return { props: { initialAdminName: payload?.name || 'Admin' } };
+    return {
+      props: {
+        initialAdminName: payload?.name || 'Admin',
+      },
+    };
   } catch {
     return {
       redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(withNs(from, nsValid))}`, permanent: false },

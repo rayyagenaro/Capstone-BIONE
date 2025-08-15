@@ -1,5 +1,6 @@
 // pages/api/me.js
 import { jwtVerify } from 'jose';
+import db from '@/lib/db';
 
 const SECRET_STR = process.env.JWT_SECRET || '';
 const SECRET = new TextEncoder().encode(SECRET_STR);
@@ -9,7 +10,7 @@ async function verifyOrNull(token) {
   if (!token || !SECRET_STR) return null;
   try {
     const { payload } = await jwtVerify(token, SECRET);
-    return payload; // { role, sub, iat, exp, ns?, ... }
+    return payload; // { role, role_id?, id?, sub?, iat, exp, ns?, ... }
   } catch {
     return null;
   }
@@ -86,6 +87,16 @@ function normalizeRole(role) {
   return r || null;
 }
 
+// 🔸 Ambil semua service_id untuk admin tertentu
+async function getAdminServiceIds(adminId) {
+  if (!adminId) return [];
+  const [rows] = await db.query(
+    'SELECT service_id FROM admin_services WHERE admin_id = ?',
+    [Number(adminId)]
+  );
+  return rows.map(r => Number(r.service_id));
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   const cookies = parseCookieHeader(req.headers.cookie);
@@ -137,10 +148,34 @@ export default async function handler(req, res) {
         getCookie(cookies, `admin_session_${ns}`) ||
         getCookie(cookies, 'admin_session');
       const payload = await verifyOrNull(token);
+      if (!payload) {
+        return { hasToken: false, payload: null, cookieName: null, ns: ns || null };
+      }
+      const roleNormalized = normalizeRole(payload.role);
+      const adminId =
+        payload.id ?? payload.admin_id ?? (payload.sub ? Number(payload.sub) : null);
+      const service_ids = await getAdminServiceIds(adminId);
+      const role_id_num =
+        payload.role_id !== undefined
+          ? Number(payload.role_id)
+          : roleNormalized === 'super_admin'
+          ? 1
+          : roleNormalized === 'admin_fitur'
+          ? 2
+          : null;
+
       return {
-        hasToken: !!payload,
-        payload: payload ? { ...payload, roleNormalized: normalizeRole(payload.role) } : null,
-        cookieName: token ? (getCookie(cookies, `admin_session__${ns}`) ? `admin_session__${ns}` : 'admin_session') : null,
+        hasToken: true,
+        payload: {
+          ...payload,
+          admin_id: adminId,
+          roleNormalized,
+          role_id_num,
+          service_ids,
+        },
+        cookieName: token
+          ? (getCookie(cookies, `admin_session__${ns}`) ? `admin_session__${ns}` : 'admin_session')
+          : null,
         ns: ns || null,
       };
     }
@@ -152,9 +187,28 @@ export default async function handler(req, res) {
         return payload ? { cookieName: 'admin_session', payload } : null;
       })());
     if (chosen) {
+      const payload = chosen.payload || {};
+      const roleNormalized = normalizeRole(payload.role);
+      const adminId =
+        payload.id ?? payload.admin_id ?? (payload.sub ? Number(payload.sub) : null);
+      const service_ids = await getAdminServiceIds(adminId);
+      const role_id_num =
+        payload.role_id !== undefined
+          ? Number(payload.role_id)
+          : roleNormalized === 'super_admin'
+          ? 1
+          : roleNormalized === 'admin_fitur'
+          ? 2
+          : null;
       return {
         hasToken: true,
-        payload: { ...chosen.payload, roleNormalized: normalizeRole(chosen.payload?.role) },
+        payload: {
+          ...payload,
+          admin_id: adminId,
+          roleNormalized,
+          role_id_num,
+          service_ids,
+        },
         cookieName: chosen.cookieName,
         ns: chosen.cookieName?.replace(/^admin_session__/, '') || null,
       };

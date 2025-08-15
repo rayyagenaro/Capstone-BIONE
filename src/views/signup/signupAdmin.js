@@ -27,7 +27,7 @@ export default function SignupAdmin() {
     let active = true;
     (async () => {
       try {
-        const r = await fetch('/api/admin-services', { cache: 'no-store' });
+        const r = await fetch('/api/admin/admin-services', { cache: 'no-store' });
         if (!active) return;
         if (r.ok) {
           // kalau ?adminId tidak dikirim, endpoint ini balikin semua layanan

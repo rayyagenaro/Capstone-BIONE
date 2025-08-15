@@ -96,7 +96,7 @@ export default function Pengaturan() {
   );
 
   const baseUrl = useMemo(
-    () => (entityType === 'users' ? '/api/users' : '/api/admins'),
+    () => (entityType === 'users' ? '/api/users' : '/api/admin/admins'),
     [entityType]
   );
 
@@ -303,7 +303,7 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
     if (!row) return;
     try {
       if (!confirm(`Verifikasi admin "${row.nama}"?`)) return;
-      const res = await fetch('/api/admin-verification', {
+      const res = await fetch('/api/admin/admin-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // NOTE: jika perlu kirim serviceIds, tambahkan di sini.
@@ -325,7 +325,7 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
     const reason = prompt(`Alasan penolakan untuk admin "${row.nama}" (wajib):`, '') || '';
     if (!reason.trim()) return alert('Alasan wajib diisi.');
     try {
-      const res = await fetch('/api/admin-verification', {
+      const res = await fetch('/api/admin/admin-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminId: row.id, action: 'reject', reason: reason.trim() }),

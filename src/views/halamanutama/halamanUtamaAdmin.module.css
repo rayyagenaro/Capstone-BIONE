@@ -84,6 +84,16 @@
   letter-spacing: 0.01em;
 }
 
+.roleBadge {
+  background: #e7ebf5;
+  color: #2f4d8e;
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-block;
+}
+
 .servicesBox {
   width: 100%;
 }
