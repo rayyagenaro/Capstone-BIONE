@@ -24,22 +24,6 @@
   z-index: -1;
 }
 
-/* Fake sidebar (biar tampilan mirip mockup, bisa ganti pakai Sidebar kamu) */
-.fakeSidebar {
-  position: fixed;
-  left: 0; top: 0; bottom: 0;
-  width: 255px;
-  background: #f7f8fc;
-  border-right: 1px solid #e6e9f2;
-  display: flex; flex-direction: column; justify-content: space-between;
-  padding: 16px 14px;
-}
-.sidebarLogo { display: flex; flex-direction: column; gap: 18px; color: #2f4d8e; font-weight: 600; }
-.logout {
-  border: none; background: #ffeaea; color: #e35b5b; font-weight: 700;
-  padding: 8px 14px; border-radius: 10px; cursor: pointer;
-}
-
 /* Layout */
 .mainContent {
   margin-left: 255px;
@@ -72,7 +56,6 @@
   transition: background .14s, color .14s;
 }
 .backBtn:hover { background: #d8e2fc; color: #233969; }
-
 .logoCareWrapper { display: flex; justify-content: center; align-items: center; flex: 1 1 160px; min-width: 140px; }
 
 .availabilitySection { display: flex; flex-direction: column; align-items: flex-end; min-width: 180px; }
@@ -95,7 +78,7 @@
 .availabilityDropdown {
   position: absolute; right: 0; top: 42px;
   background: #fff; border: 1.2px solid #b5bddb; border-radius: 8px;
-  min-width: 420px; /* <-- dinaikkan dari 178px supaya kolom Pukul muat */
+  min-width: 420px;
   box-shadow: 0 5px 18px rgba(47,77,142,.12);
   padding: 14px 16px 12px 16px; z-index: 100; animation: fadein .19s;
 }
@@ -109,33 +92,26 @@
 }
 .availabilityDropdown th { background: #9aa8c4; font-weight: bold; color: #fff; }
 .availabilityDropdown tr:nth-child(even) { background: #f8fafd; }
-
-/* ==== Availability table tweaks ==== */
-/* Kolom "Pukul" lebih lebar & tidak wrap */
+/* Kolom "Pukul" supaya lebar & nowrap */
 .availabilityDropdown th:nth-child(3),
 .availabilityDropdown td:nth-child(3) {
   white-space: nowrap;
-  min-width: 130px; /* sesuaikan 120–160 jika perlu */
+  min-width: 130px;
 }
 
 /* FORM GRID */
 .formGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 1fr 1fr;
   gap: 22px 32px; width: 100%;
 }
 .colFull { grid-column: 1 / -1; }
-
 .formGroup { display: flex; flex-direction: column; gap: 8px; }
 .formGroup label { font-size: 16px; font-weight: 700; color: #23263b; margin-bottom: 3px; }
-
 .formGroup textarea { min-height: 48px; max-height: 120px; resize: vertical; }
-
 .formGroup input[type="text"],
 .formGroup select,
 .formGroup textarea {
-  width: 100%;
-  border: 1.5px solid #cfd4dc; border-radius: 8px;
+  width: 100%; border: 1.5px solid #cfd4dc; border-radius: 8px;
   background: #fff; padding: 11px 12px; font-size: 16px; color: #23263b;
   font-family: inherit; outline: none; transition: border-color .18s; box-sizing: border-box;
 }
@@ -154,17 +130,9 @@
 
 /* react-datepicker input mengikuti style input lain */
 .formGroup :global(.react-datepicker-wrapper) input {
-  width: 100%;
-  border: 1.5px solid #cfd4dc;
-  border-radius: 8px;
-  background: #fff;
-  padding: 11px 12px;
-  font-size: 16px;
-  color: #23263b;
-  font-family: inherit;
-  outline: none;
-  transition: border-color .18s;
-  box-sizing: border-box;
+  width: 100%; border: 1.5px solid #cfd4dc; border-radius: 8px;
+  background: #fff; padding: 11px 12px; font-size: 16px; color: #23263b;
+  font-family: inherit; outline: none; transition: border-color .18s; box-sizing: border-box;
 }
 .formGroup :global(.react-datepicker-wrapper) input:focus { border-color: #2f4d8e; }
 
@@ -202,6 +170,73 @@
 .popupClose { position: absolute; right: 13px; top: 11px; border: none; background: none; color: #888; font-size: 23px; cursor: pointer; font-weight: 600; }
 .popupClose:hover { color: #f05a5a; }
 
+/* === Kalender Sesi Dokter === */
+.calendarBlock { margin-top: 18px; }
+.calendarTitle { font-size: 18px; font-weight: 800; color: #233969; margin: 8px 2px 12px; }
+.calendarHint { font-size: 13px; color: #5b6b91; margin-top: 6px; }
+
+.calWrap { background: #fff; border: 1px solid #e1e6f3; border-radius: 14px; padding: 14px; }
+.calHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.calTitle { font-weight: 800; color: #233969; }
+.calNavBtn {
+  border: 1px solid #cfd7ee; background: #f7f9ff; border-radius: 8px; padding: 4px 10px;
+  cursor: pointer; font-size: 18px; line-height: 1; color: #2f4d8e;
+}
+.calNavBtn:hover { background: #e9efff; }
+
+.calDayNames { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 6px 0 8px; }
+.calDayName {
+  text-align: center; font-size: 12px; font-weight: 700; color: #7b88aa; letter-spacing: .02em;
+}
+
+.calGrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.calCell {
+  background: #fbfcff; border: 1px solid #e6ebf7; border-radius: 10px; min-height: 120px;
+  padding: 8px; display: flex; flex-direction: column;
+}
+.calCellMuted { opacity: .45; background: #f6f7fb; }
+.calCellHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.calDateNum { font-weight: 800; color: #233969; }
+.calBadgeOpen {
+  font-size: 11px; font-weight: 800; color: #2b6c2f; background: #e6f7ea; border: 1px solid #bfe8c6;
+  padding: 2px 6px; border-radius: 999px;
+}
+
+.sessionList { display: grid; grid-auto-rows: minmax(28px, auto); gap: 6px; margin-top: 4px; }
+.sessionListOff { margin-top: auto; font-size: 12px; color: #8b93b0; }
+
+.sessionBtn {
+  width: 100%; border-radius: 8px; padding: 6px; font-weight: 700; font-size: 13px; cursor: pointer;
+  border: 1px solid transparent; text-align: center;
+}
+.sessionAvail {
+  background: #f2f7ff; border-color: #cddaf6; color: #20427f;
+}
+.sessionAvail:hover { background: #e6f0ff; }
+.sessionBooked {
+  background: #f9e9ea; border-color: #f0c9cd; color: #9a2b2f; cursor: not-allowed;
+}
+
+/* Kalender besar di atas form */
+.calendarBlockLarge { margin: 8px 0 20px; }
+.calendarTitle { font-size: 18px; font-weight: 800; color: #233969; margin: 4px 2px 10px; }
+.calendarHint { font-size: 13px; color: #5b6b91; margin-top: 6px; }
+
+/* Field read-only (tanggal/jam di form) */
+.readonlyField {
+  width: 100%;
+  border: 1.5px solid #cfd4dc;
+  border-radius: 8px;
+  background: #f6f8fd;      /* beda warna */
+  padding: 11px 12px;
+  font-size: 16px;
+  color: #23263b;
+  box-sizing: border-box;
+  cursor: not-allowed;       /* indikasi tidak bisa diubah */
+}
+.readonlyField::placeholder { color: #8ea0bf; }
+
+
 /* Responsive */
 @media (max-width: 900px) {
   .topRow { flex-direction: column; align-items: stretch; gap: 8px; }
@@ -213,8 +248,13 @@
   .formBox { padding: 12px 2vw; border-radius: 10px; margin: 12px 0; }
   .formGrid { grid-template-columns: 1fr; gap: 14px; }
   .bookingBtn { width: 100%; padding: 11px 0; font-size: 18px; }
-
-  /* Biarkan tabel tetap lebar & scroll bila perlu */
   .availabilityDropdown { overflow-x: auto; }
   .availabilityDropdown table { min-width: 420px; }
+}
+@media (max-width: 860px) {
+  .calCell { min-height: 110px; }
+}
+@media (max-width: 640px) {
+  .calDayNames, .calGrid { gap: 4px; }
+  .sessionBtn { font-size: 12px; padding: 5px; }
 }
