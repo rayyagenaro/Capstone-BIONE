@@ -1,8 +1,7 @@
-// 'use client' // aktifkan kalau pakai App Router (app/...)
+// 'use client'
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/router'; // App Router: next/navigation
+import { useRouter } from 'next/router';
 import { FaArrowLeft } from 'react-icons/fa';
 import styles from './hal-BIcare.module.css';
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
@@ -10,6 +9,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import idLocale from 'date-fns/locale/id';
 
+/* ===================== hooks & helpers ===================== */
 const useDropdown = (initial = false) => {
   const [open, setOpen] = useState(initial);
   const ref = useRef(null);
@@ -38,15 +38,14 @@ const SuccessPopup = ({ onClose }) => (
   </div>
 );
 
-const SESSIONS = ["12:00", "12:30", "13:00"];
-
+/* kalender util */
+const SESSIONS = ['12:00', '12:30', '13:00'];
 const ymd = (d) => {
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 };
-
 const getMonthMatrix = (year, monthIndex0) => {
   const firstOfMonth = new Date(year, monthIndex0, 1);
   const lastOfMonth = new Date(year, monthIndex0 + 1, 0);
@@ -69,6 +68,65 @@ const getMonthMatrix = (year, monthIndex0) => {
   return weeks;
 };
 
+/* ===================== dropdown custom (styled) ===================== */
+function CustomSelect({
+  id,
+  name,
+  placeholder = 'Pilih',
+  value,
+  onChange,
+  options = [],
+  error = false,
+}) {
+  const dd = useDropdown(false);
+
+  const selectedLabel =
+    options.find((o) => String(o.value) === String(value))?.label || '';
+
+  const handlePick = (val) => {
+    onChange({ target: { name, value: val } });
+    dd.setOpen(false);
+  };
+
+  return (
+    <div className={styles.selectWrap} ref={dd.ref}>
+      <button
+        id={id}
+        type="button"
+        className={`${styles.selectBtn} ${error ? styles.errorInput : ''}`}
+        onClick={() => dd.setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={dd.open}
+      >
+        <span className={selectedLabel ? styles.selectText : styles.selectPlaceholder}>
+          {selectedLabel || placeholder}
+        </span>
+        <span className={styles.selectCaret} aria-hidden="true">▾</span>
+      </button>
+
+      {dd.open && (
+        <ul className={styles.selectPopover} role="listbox" aria-labelledby={id}>
+          {options.map((opt) => {
+            const active = String(opt.value) === String(value);
+            return (
+              <li
+                key={opt.value}
+                role="option"
+                aria-selected={active}
+                className={`${styles.selectOption} ${active ? styles.selectOptionActive : ''}`}
+                onClick={() => handlePick(opt.value)}
+              >
+                {opt.label}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ===================== kalender dokter ===================== */
 function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange }) {
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -76,27 +134,25 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const matrix = useMemo(() => getMonthMatrix(year, month), [year, month]);
-  const monthName = cursor.toLocaleString("id-ID", { month: "long", year: "numeric" });
+  const monthName = cursor.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
 
   const isSameMonth = (d) => d.getMonth() === month && d.getFullYear() === year;
   const isBeforeMin = (d) => ymd(d) < ymd(minDate);
   const isDoctorDay = (d) => {
-    const dow = d.getDay(); // 0=Min .. 6=Sab; 1=Sen, 5=Jum
+    const dow = d.getDay(); // 1=Sen, 5=Jum
     return dow === 1 || dow === 5;
   };
 
-  // 🔧 Jadikan Set agar cek "12:00" cepat & konsisten
   const bookedSetByDate = useMemo(() => {
     const m = new Map();
     for (const [k, arr] of Object.entries(bookedMap || {})) {
-      m.set(k, new Set((arr || []).map(t => String(t).slice(0, 5))));
+      m.set(k, new Set((arr || []).map((t) => String(t).slice(0, 5))));
     }
     return m;
   }, [bookedMap]);
 
   const isBooked = (dateStr, time) => bookedSetByDate.get(dateStr)?.has(time) ?? false;
 
-  // cegah spam fetch saat YM tidak berubah
   const lastYmRef = useRef(null);
   useEffect(() => {
     const ym = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -114,19 +170,25 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
           className={styles.calNavBtn}
           onClick={() => setCursor(new Date(year, month - 1, 1))}
           aria-label="Bulan sebelumnya"
-        >‹</button>
+        >
+          ‹
+        </button>
         <div className={styles.calTitle}>{monthName}</div>
         <button
           type="button"
           className={styles.calNavBtn}
           onClick={() => setCursor(new Date(year, month + 1, 1))}
           aria-label="Bulan berikutnya"
-        >›</button>
+        >
+          ›
+        </button>
       </div>
 
       <div className={styles.calDayNames}>
-        {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
-          <div key={d} className={styles.calDayName}>{d}</div>
+        {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((d) => (
+          <div key={d} className={styles.calDayName}>
+            {d}
+          </div>
         ))}
       </div>
 
@@ -139,7 +201,7 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
               const doctorOpen = inMonth && !isBeforeMin(d) && isDoctorDay(d);
 
               return (
-                <div key={`${wi}-${di}`} className={`${styles.calCell} ${inMonth ? "" : styles.calCellMuted}`}>
+                <div key={`${wi}-${di}`} className={`${styles.calCell} ${inMonth ? '' : styles.calCellMuted}`}>
                   <div className={styles.calCellHeader}>
                     <span className={styles.calDateNum}>{d.getDate()}</span>
                     {inMonth && isDoctorDay(d) && <span className={styles.calBadgeOpen}>Buka</span>}
@@ -156,17 +218,15 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
                             className={`${styles.sessionBtn} ${booked ? styles.sessionBooked : styles.sessionAvail}`}
                             disabled={booked}
                             onClick={() => onPick(d, time)}
-                            aria-label={`Sesi ${time} pada ${d.toLocaleDateString("id-ID")}`}
+                            aria-label={`Sesi ${time} pada ${d.toLocaleDateString('id-ID')}`}
                           >
-                            {time} {booked ? "• Booked" : "• Available"}
+                            {time} {booked ? '• Booked' : '• Available'}
                           </button>
                         );
                       })}
                     </div>
                   ) : (
-                    <div className={styles.sessionListOff}>
-                      {inMonth ? (isDoctorDay(d) ? "—" : "Tutup") : ""}
-                    </div>
+                    <div className={styles.sessionListOff}>{inMonth ? (isDoctorDay(d) ? '—' : 'Tutup') : ''}</div>
                   )}
                 </div>
               );
@@ -178,40 +238,29 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
   );
 }
 
+/* ===================== halaman utama ===================== */
 export default function FiturBICare() {
   const router = useRouter();
   const [showSuccess, setShowSuccess] = useState(false);
-
   const [bookedMap, setBookedMap] = useState({});
 
-  async function fetchBookedMap(ym = null, doctorId = 1) {
-    const now = new Date();
-    const month = ym || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    const res = await fetch(`/api/BIcare/booked?doctorId=${doctorId}&month=${month}`);
-    if (!res.ok) throw new Error('Failed to fetch booked map');
-    const data = await res.json();
-    return data.bookedMap || {};
-  }
-
-  const handleMonthChange = React.useCallback(async (ym) => {
+  const handleMonthChange = useCallback(async (ym) => {
     try {
       const res = await fetch(`/api/BIcare/booked?doctorId=1&month=${ym}&t=${Date.now()}`, {
         cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' }
+        headers: { 'Cache-Control': 'no-cache' },
       });
       if (!res.ok) throw new Error('Failed to fetch booked map');
       const data = await res.json();
       const map = data.bookedMap || {};
 
-      // 🔧 Normalisasi kunci tanggal & jam
+      // normalisasi kunci & jam
       const normalized = {};
       for (const [rawKey, arr] of Object.entries(map)) {
-        // kunci tanggal bisa "2025-8-5", "2025-08-05", atau bahkan Date string
         const d = new Date(rawKey);
-        const key = Number.isNaN(d.getTime()) ? String(rawKey) : ymd(d); // paksa "YYYY-MM-DD"
-        normalized[key] = (arr || []).map(t => String(t).slice(0, 5));   // jam -> "HH:MM"
+        const key = Number.isNaN(d.getTime()) ? String(rawKey) : ymd(d);
+        normalized[key] = (arr || []).map((t) => String(t).slice(0, 5));
       }
-
       setBookedMap(normalized);
     } catch (e) {
       console.error(e);
@@ -219,8 +268,8 @@ export default function FiturBICare() {
   }, []);
 
   useEffect(() => {
-    const ymNow = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-    handleMonthChange(ymNow);
+    const now = new Date();
+    handleMonthChange(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
   }, [handleMonthChange]);
 
   const [fields, setFields] = useState({
@@ -270,28 +319,27 @@ export default function FiturBICare() {
     const payload = {
       doctorId: 1,
       bookingDate: ymd(fields.tglPengobatan),
-      slotTime: fields.pukulPengobatan, // "HH:MM"
+      slotTime: fields.pukulPengobatan,
       booker_name: fields.namaPemesan,
       nip: fields.nip,
       wa: fields.wa,
       patient_name: fields.namaPasien,
       patient_status: fields.statusPasien,
       gender: fields.jenisKelamin,
-      birth_date: fields.tglLahir ? fields.tglLahir.toISOString().slice(0,10) : null,
-      complaint: fields.keluhan || null
+      birth_date: fields.tglLahir ? fields.tglLahir.toISOString().slice(0, 10) : null,
+      complaint: fields.keluhan || null,
     };
 
     const res = await fetch('/api/BIcare/book', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     if (res.status === 201) {
       setShowSuccess(true);
-      // REFRESH dari server biar merah/disabled langsung muncul
-      const ym = `${payload.bookingDate.slice(0,4)}-${payload.bookingDate.slice(5,7)}`;
-      handleMonthChange(ym);
+      const ymKey = `${payload.bookingDate.slice(0, 4)}-${payload.bookingDate.slice(5, 7)}`;
+      handleMonthChange(ymKey);
     } else {
       const err = await res.json().catch(() => ({}));
       alert(err?.error || 'Gagal booking');
@@ -299,12 +347,10 @@ export default function FiturBICare() {
   };
 
   const closeSuccess = () => setShowSuccess(false);
-  const availability = useDropdown(false);
 
   const handlePickSession = (date, time) => {
-    setFields(p => ({ ...p, tglPengobatan: date, pukulPengobatan: time }));
-    const el = document.getElementById('tglPengobatan');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setFields((p) => ({ ...p, tglPengobatan: date, pukulPengobatan: time }));
+    document.getElementById('tglPengobatan')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   const prettyDate = fields.tglPengobatan
@@ -316,49 +362,20 @@ export default function FiturBICare() {
       <SidebarUser />
       <main className={styles.mainContent}>
         <div className={styles.formBox}>
+          {/* Header (tanpa dropdown ketersediaan) */}
           <div className={styles.topRow}>
             <button className={styles.backBtn} onClick={() => router.back()} type="button">
               <FaArrowLeft /> Kembali
             </button>
 
             <div className={styles.logoCareWrapper}>
-              <Image src="/assets/BI-CARE.svg" alt="BI-CARE" width={190} height={86} priority />
+              <Image src="/assets/BI-CARE.svg" alt="BI.CARE" width={190} height={86} priority />
             </div>
 
-            <div className={styles.availabilitySection}>
-              <div className={styles.availabilityLabel}>Availability</div>
-              <div className={styles.availabilityDropdownWrap} ref={availability.ref}>
-                <button
-                  type="button"
-                  className={styles.availabilityDropdownBtn}
-                  onClick={() => availability.setOpen(v => !v)}
-                >
-                  Lihat Ketersediaan <span className={styles.availChevron}>▼</span>
-                </button>
-                {availability.open && (
-                  <div className={styles.availabilityDropdown}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Tipe</th>
-                          <th>Hari</th>
-                          <th>Pukul</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>Poli Umum</td>
-                          <td>Senin/Jumat</td>
-                          <td>12.00 - 13.30 WIB</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
+            <div /> {/* spacer kanan agar logo tetap center */}
           </div>
 
+          {/* Kalender */}
           <div className={styles.calendarBlockLarge}>
             <h3 className={styles.calendarTitle}>Pilih Tanggal & Sesi (Sen & Jum, 12.00–13.30)</h3>
             <DoctorCalendar
@@ -367,11 +384,10 @@ export default function FiturBICare() {
               minDate={new Date()}
               onMonthChange={handleMonthChange}
             />
-            <p className={styles.calendarHint}>
-              Tanggal & jam hanya dapat diubah dari kalender ini.
-            </p>
+            <p className={styles.calendarHint}>Tanggal & jam hanya dapat diubah dari kalender ini.</p>
           </div>
 
+          {/* Form */}
           <form className={styles.formGrid} onSubmit={onSubmit} autoComplete="off">
             <div className={`${styles.formGroup} ${styles.colFull}`}>
               <label htmlFor="namaPemesan">Nama Pemesan</label>
@@ -411,35 +427,45 @@ export default function FiturBICare() {
               />
               {errors.namaPasien && <span className={styles.errorMsg}>{errors.namaPasien}</span>}
             </div>
+
+            {/* Status Pasien */}
             <div className={styles.formGroup}>
               <label htmlFor="statusPasien">Status Pasien</label>
-              <select
-                id="statusPasien" name="statusPasien"
-                value={fields.statusPasien} onChange={handleChange}
-                className={`${styles.select} ${errors.statusPasien ? styles.errorInput : ''}`}
-              >
-                <option value="" hidden>Pilih Status</option>
-                <option value="Pegawai">Pegawai</option>
-                <option value="Pensiun">Pensiun</option>
-                <option value="Keluarga">Keluarga</option>
-                <option value="Tamu">Tamu</option>
-              </select>
+              <CustomSelect
+                id="statusPasien"
+                name="statusPasien"
+                placeholder="Pilih Status"
+                value={fields.statusPasien}
+                onChange={handleChange}
+                error={!!errors.statusPasien}
+                options={[
+                  { value: 'Pegawai', label: 'Pegawai' },
+                  { value: 'Pensiun', label: 'Pensiun' },
+                  { value: 'Keluarga', label: 'Keluarga' },
+                  { value: 'Tamu', label: 'Tamu' },
+                ]}
+              />
               {errors.statusPasien && <span className={styles.errorMsg}>{errors.statusPasien}</span>}
             </div>
 
+            {/* Jenis Kelamin */}
             <div className={styles.formGroup}>
               <label htmlFor="jenisKelamin">Jenis Kelamin</label>
-              <select
-                id="jenisKelamin" name="jenisKelamin"
-                value={fields.jenisKelamin} onChange={handleChange}
-                className={`${styles.select} ${errors.jenisKelamin ? styles.errorInput : ''}`}
-              >
-                <option value="" hidden>Pilih Jenis Kelamin</option>
-                <option value="Laki-laki">Laki-laki</option>
-                <option value="Perempuan">Perempuan</option>
-              </select>
+              <CustomSelect
+                id="jenisKelamin"
+                name="jenisKelamin"
+                placeholder="Pilih Jenis Kelamin"
+                value={fields.jenisKelamin}
+                onChange={handleChange}
+                error={!!errors.jenisKelamin}
+                options={[
+                  { value: 'Laki-laki', label: 'Laki-laki' },
+                  { value: 'Perempuan', label: 'Perempuan' },
+                ]}
+              />
               {errors.jenisKelamin && <span className={styles.errorMsg}>{errors.jenisKelamin}</span>}
             </div>
+
             <div className={styles.formGroup}>
               <label htmlFor="tglLahir">Tanggal Lahir</label>
               <DatePicker

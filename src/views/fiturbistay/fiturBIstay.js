@@ -306,11 +306,10 @@ export default function FiturBIstay() {
         <div className={styles.formBox}>
           {/* Header */}
           <div className={styles.topRow}>
-            <Link href="/User/HalamanUtama/hal-utamauser">
-                <button className={styles.backBtn} onClick={() => router.back()} type="button">
-                <FaArrowLeft /> Kembali
-                </button>
-            </Link>
+            
+            <button className={styles.backBtn} onClick={() => router.back()} type="button">
+              <FaArrowLeft /> Kembali
+            </button>
 
             <div className={styles.logoStayWrapper}>
               <Image src="/assets/D'REST.svg" alt="BI.STAY" width={200} height={80} priority />
