@@ -6,17 +6,39 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { slug } = req.query;
-  const id = Number(req.query.id);
-  if (!id) return res.status(400).json({ error: 'Missing id' });
+  // --- Normalisasi slug + alias layanan
+  const rawSlug = String(req.query.slug || '').trim().toLowerCase();
+  const SERVICE_ALIAS = {
+    bicare: 'bicare',
+    bimeet: 'bimeet',
+    bistay: 'bistay',
+    bimeal: 'bimeal',   // opsional, jaga-jaga
+    // alias untuk dokumen
+    bimail: 'bimail',
+    bidocs: 'bimail',
+    docs:   'bimail',
+    mail:   'bimail',
+  };
+  const service = SERVICE_ALIAS[rawSlug];
+
+  // --- Validasi id
+  const idParam = Array.isArray(req.query.id) ? req.query.id[0] : req.query.id;
+  if (!idParam) return res.status(400).json({ error: 'Missing id' });
+  const id = Number(idParam);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid id' });
+  }
+
+  if (!service) {
+    return res.status(400).json({ error: 'Layanan tidak dikenali', received: rawSlug });
+  }
 
   try {
     let sql = '';
     let params = [id];
 
-    switch (String(slug).toLowerCase()) {
+    switch (service) {
       // ===================== BI.CARE =====================
-      // Tabel: bicare_bookings (semua kolom) + nama dokter
       case 'bicare':
         sql = `
           SELECT
@@ -29,7 +51,6 @@ export default async function handler(req, res) {
         break;
 
       // ===================== BI.MEET =====================
-      // Tabel: bimeet_bookings (semua kolom) + nama & lantai ruangan
       case 'bimeet':
         sql = `
           SELECT
@@ -43,16 +64,56 @@ export default async function handler(req, res) {
         break;
 
       // ===================== BI.STAY =====================
-      // Tabel: bistay_bookings (semua kolom)
       case 'bistay':
         sql = `
-          SELECT b.* 
+          SELECT b.*
           FROM bistay_bookings b
           WHERE b.id = ? LIMIT 1
         `;
         break;
 
-      // (opsional) BI.DOCS / BI.MEAL bisa ditambah di sini dengan pola yang sama
+      // ===================== BI.MEAL (opsional placeholder) =====================
+      case 'bimeal':
+        sql = `
+          SELECT b.*
+          FROM bimeal_bookings b
+          WHERE b.id = ? LIMIT 1
+        `;
+        break;
+
+      // ===================== BI.MAIL / BI-DOCS =====================
+      // Tabel: bimail_docs (sesuai struktur yang kamu berikan)
+      // Field penting untuk UI:
+      //  - nomor_surat        -> mail_number
+      //  - tipe_dokumen       -> mail_type
+      //  - tanggal_dokumen    -> mail_date
+      //  - perihal            -> subject
+      //  - dari               -> from_name
+      //  - kepada             -> to_name
+      //  - link_dokumen       -> link_dokumen (dan attachments 1 item dibuat di JS)
+      //  - created_at         -> created_at
+      case 'bimail':
+        sql = `
+          SELECT
+            d.id,
+            d.user_id,
+            d.jenis_id,
+            d.tahun,
+            d.nomor_urut,
+            d.nomor_surat,
+            d.tipe_dokumen,
+            d.unit_code,
+            d.wilayah_code,
+            d.tanggal_dokumen,
+            d.perihal,
+            d.dari,
+            d.kepada,
+            d.link_dokumen,
+            d.created_at
+          FROM bimail_docs d
+          WHERE d.id = ? LIMIT 1
+        `;
+        break;
 
       default:
         return res.status(400).json({ error: 'Layanan tidak dikenali' });
@@ -61,7 +122,37 @@ export default async function handler(req, res) {
     const [rows] = await db.query(sql, params);
     if (!rows.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
 
-    return res.status(200).json({ item: rows[0] });
+    let item = rows[0];
+
+    // Post-processing khusus BI.MAIL biar field match ke UI
+    if (service === 'bimail') {
+      const attachments = item.link_dokumen
+        ? [{ name: 'Dokumen', url: item.link_dokumen }]
+        : [];
+
+      item = {
+        // Kolom asli (kalau kamu butuh)
+        ...item,
+
+        // Alias untuk UI kamu:
+        mail_number: item.nomor_surat,
+        mail_type: item.tipe_dokumen,          // tampilkan kode apa adanya (A/B/...)
+        mail_date: item.tanggal_dokumen,       // dipakai formatDateOnly di FE
+        subject: item.perihal,
+        from_name: item.dari,
+        to_name: item.kepada,
+        attachments,                           // array {name, url}
+        // Kolom yang belum ada di tabel → null supaya UI aman
+        summary: null,
+        classification: null,
+        status: null,
+        status_id: null,
+        received_at: null,
+        updated_at: null,
+      };
+    }
+
+    return res.status(200).json({ item });
   } catch (e) {
     console.error('detail-api error:', e);
     return res.status(500).json({

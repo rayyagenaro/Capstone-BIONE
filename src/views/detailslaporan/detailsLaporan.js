@@ -574,6 +574,48 @@ export default function DetailsLaporan() {
                         <div className={styles.detailValue}>{detail.keterangan || '-'}</div>
                       </>
                     )}
+
+                    {/* ===================== BI.MAIL (LEFT) ===================== */}
+                    {slug === 'bimail' && (
+                      <>
+                        <div className={styles.detailLabel}>ID</div>
+                        <div className={styles.detailValue}>{detail.id}</div>
+
+                        <div className={styles.detailLabel}>Nomor Surat</div>
+                        <div className={styles.detailValue}>{detail.mail_number || detail.no_surat || '-'}</div>
+
+                        <div className={styles.detailLabel}>Jenis</div>
+                        <div className={styles.detailValue}>
+                          {/* pakai nama yang ada di payload kamu; fallback ke jenis_id */}
+                          {detail.jenis ?? detail.jenis_id ?? '-'}
+                        </div>
+
+                        <div className={styles.detailLabel}>Tipe Dokumen</div>
+                        <div className={styles.detailValue}>
+                          {/* tampilkan kode apa adanya (A/B/…) atau alias mail_type */}
+                          {detail.mail_type || detail.tipe_dokumen || '-'}
+                        </div>
+
+                        <div className={styles.detailLabel}>Unit Kode</div>
+                        <div className={styles.detailValue}>{detail.unit_code ?? detail.unit_kode ?? '-'}</div>
+
+                        <div className={styles.detailLabel}>Wilayah Kode</div>
+                        <div className={styles.detailValue}>{detail.wilayah_code ?? detail.wilayah_kode ?? '-'}</div>
+
+                        <div className={styles.detailLabel}>Pengirim</div>
+                        <div className={styles.detailValue}>
+                          {detail.from_name || detail.sender_name || detail.sender_email || '-'}
+                        </div>
+
+                        <div className={styles.detailLabel}>Penerima</div>
+                        <div className={styles.detailValue}>
+                          {detail.to_name || detail.recipient_name || detail.recipient_email || '-'}
+                        </div>
+
+                        <div className={styles.detailLabel}>Perihal</div>
+                        <div className={styles.detailValue}>{detail.subject || detail.perihal || '-'}</div>
+                      </>
+                    )}
                   </div>
 
                   <div className={styles.detailColRight}>
@@ -635,6 +677,58 @@ export default function DetailsLaporan() {
 
                         <div className={styles.detailLabel}>Updated At</div>
                         <div className={styles.detailValue}>{formatDateTime(detail.updated_at)}</div>
+                      </>
+                    )}
+
+                    {/* ===================== BI.MAIL (RIGHT) ===================== */}
+                    {slug === 'bimail' && (
+                      <>
+                        <div className={styles.detailLabel}>Tanggal Surat</div>
+                        <div className={styles.detailValue}>
+                          {detail.mail_date ? formatDateOnly(detail.mail_date)
+                            : detail.sent_at ? formatDateTime(detail.sent_at)
+                            : '-'}
+                        </div>
+
+                        <div className={styles.detailLabel}>Link Dokumen (SharePoint)</div>
+                        <div className={styles.detailValue}>
+                          {Array.isArray(detail.attachments) && detail.attachments.length ? (
+                            <ul style={{ margin: 0, paddingLeft: 16 }}>
+                              {detail.attachments.map((att, i) => (
+                                <li key={i}>
+                                  {att?.url ? (
+                                    <a
+                                      href={att.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}
+                                      title={att.url}
+                                    >
+                                      {att.name || 'Buka di SharePoint'}
+                                    </a>
+                                  ) : (
+                                    (att?.name || '-') 
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : detail.link_dokumen ? (
+                            <a
+                              href={detail.link_dokumen}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}
+                              title={detail.link_dokumen}
+                            >
+                              Buka di SharePoint
+                            </a>
+                          ) : ('-')}
+                        </div>
+
+                        <div className={styles.detailLabel}>Created At</div>
+                        <div className={styles.detailValue}>
+                          {detail.created_at ? formatDateTime(detail.created_at) : '-'}
+                        </div>
                       </>
                     )}
                   </div>
