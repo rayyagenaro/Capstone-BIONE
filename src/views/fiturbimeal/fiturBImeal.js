@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './fiturBImeal.module.css';
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
@@ -9,6 +8,14 @@ import { FaArrowLeft } from 'react-icons/fa';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import idLocale from 'date-fns/locale/id';
+
+// ================= helper ns =================
+const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+const withNs = (url, ns) => {
+  if (!ns) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}ns=${encodeURIComponent(ns)}`;
+};
 
 // ==== helper konversi pesanan ke bentuk objek {item, qty} ====
 const toObjList = (list) => {
@@ -51,6 +58,7 @@ const SuccessPopup = ({ onClose }) => (
 
 export default function FiturBImeal() {
   const router = useRouter();
+  const ns = typeof router.query.ns === 'string' && NS_RE.test(router.query.ns) ? router.query.ns : '';
 
   // guard
   useEffect(() => {
@@ -61,16 +69,20 @@ export default function FiturBImeal() {
         const d = await r.json();
         if (!active) return;
         const ok = d?.hasToken && d?.payload?.role === 'user';
-        if (!ok) router.replace('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath));
+        if (!ok) {
+          router.replace(withNs('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath), ns));
+        }
       } catch {
-        router.replace('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath));
+        router.replace(withNs('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath), ns));
       }
     })();
     return () => { active = false; };
-  }, [router]);
+  }, [router, ns]);
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [serverMsg, setServerMsg] = useState('');
 
   const [fields, setFields] = useState({
     nama: '',
@@ -78,7 +90,6 @@ export default function FiturBImeal() {
     wa: '',
     uker: '',
     tgl: null,
-    // mulai dengan bentuk objek agar aman
     pesanan: [{ item: '', qty: 1 }],
   });
   const [errors, setErrors] = useState({});
@@ -132,6 +143,7 @@ export default function FiturBImeal() {
     });
   };
 
+  // validasi sisi-klien
   const validate = () => {
     const e = {};
     if (!fields.nama.trim()) e.nama = 'Nama wajib diisi';
@@ -147,23 +159,69 @@ export default function FiturBImeal() {
     return e;
   };
 
+  // helper konversi Date JS -> ISO string
+  const toISOStringLocal = (d) => (d instanceof Date ? d.toISOString() : null);
+
   const onSubmit = async (e) => {
     e.preventDefault();
+    setServerMsg('');
     const v = validate();
     if (Object.keys(v).length) { setErrors(v); return; }
-    setErrors({});
-    setShowSuccess(true);
 
-    // contoh payload ke API:
-    // const payload = { ...fields, pesanan: toObjList(fields.pesanan) };
-    // await fetch('/api/meal/book', { method: 'POST', body: JSON.stringify(payload) });
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      const payload = {
+        ...fields,
+        tgl: toISOStringLocal(fields.tgl),
+        pesanan: toObjList(fields.pesanan),
+      };
+
+      const r = await fetch(withNs('/api/bimeal/book', ns), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      });
+
+      if (r.status === 401) {
+        router.replace(withNs('/Signin/hal-sign?from=' + encodeURIComponent(router.asPath), ns));
+        return;
+      }
+
+      const data = await r.json();
+
+      if (!r.ok) {
+        if (r.status === 422 && data?.details) {
+          setErrors(data.details);
+        } else {
+          setServerMsg(data?.error || 'Terjadi kesalahan. Coba lagi.');
+        }
+        return;
+      }
+
+      setShowSuccess(true);
+      setFields({
+        nama: '',
+        nip: '',
+        wa: '',
+        uker: '',
+        tgl: null,
+        pesanan: [{ item: '', qty: 1 }],
+      });
+    } catch (err) {
+      setServerMsg('Gagal mengirim data. Periksa koneksi Anda.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const closeSuccess = () => setShowSuccess(false);
 
   const handleLogout = async () => {
     try { await fetch('/api/logout', { method: 'POST' }); } catch {}
-    router.replace('/Signin/hal-sign');
+    router.replace(withNs('/Signin/hal-sign', ns));
   };
 
   return (
@@ -174,24 +232,25 @@ export default function FiturBImeal() {
         <div className={styles.formBox}>
           {/* Top Row */}
           <div className={styles.topRow}>
-              <button className={styles.backBtn} onClick={() => router.back()} type="button">
+            <button className={styles.backBtn} onClick={() => router.back()} type="button">
               <FaArrowLeft /> Kembali
-              </button>
+            </button>
             <div className={styles.logoStayWrapper}>
               <Image src="/assets/D'MEAL.svg" alt="BI.MEAL" width={180} height={85} priority />
             </div>
           </div>
 
           {/* FORM GRID */}
-          <form className={styles.formGrid} onSubmit={onSubmit} autoComplete="off">
+          <form className={styles.formGrid} onSubmit={onSubmit} autoComplete="off" noValidate>
             <div className={styles.formGroup}>
               <label htmlFor="nama">Nama PIC Pesanan</label>
               <input
                 id="nama" name="nama" type="text" placeholder="Masukkan Nama Anda"
                 value={fields.nama} onChange={handleChange}
                 className={errors.nama ? styles.errorInput : ''}
+                aria-invalid={!!errors.nama} aria-describedby={errors.nama ? 'err-nama' : undefined}
               />
-              {errors.nama && <span className={styles.errorMsg}>{errors.nama}</span>}
+              {errors.nama && <span id="err-nama" className={styles.errorMsg}>{errors.nama}</span>}
             </div>
 
             <div className={styles.formGroup}>
@@ -199,9 +258,11 @@ export default function FiturBImeal() {
               <input
                 id="wa" name="wa" type="text" placeholder="Masukkan No WA Anda"
                 value={fields.wa} onChange={handleChange}
+                inputMode="tel"
                 className={errors.wa ? styles.errorInput : ''}
+                aria-invalid={!!errors.wa} aria-describedby={errors.wa ? 'err-wa' : undefined}
               />
-              {errors.wa && <span className={styles.errorMsg}>{errors.wa}</span>}
+              {errors.wa && <span id="err-wa" className={styles.errorMsg}>{errors.wa}</span>}
             </div>
 
             <div className={styles.formGroup}>
@@ -210,8 +271,9 @@ export default function FiturBImeal() {
                 id="nip" name="nip" type="text" placeholder="Masukkan NIP Anda"
                 value={fields.nip} onChange={handleChange}
                 className={errors.nip ? styles.errorInput : ''}
+                aria-invalid={!!errors.nip} aria-describedby={errors.nip ? 'err-nip' : undefined}
               />
-              {errors.nip && <span className={styles.errorMsg}>{errors.nip}</span>}
+              {errors.nip && <span id="err-nip" className={styles.errorMsg}>{errors.nip}</span>}
             </div>
 
             <div className={styles.formGroup}>
@@ -220,6 +282,7 @@ export default function FiturBImeal() {
                 id="uker" name="uker"
                 value={fields.uker} onChange={handleChange}
                 className={`${styles.select} ${errors.uker ? styles.errorInput : ''}`}
+                aria-invalid={!!errors.uker} aria-describedby={errors.uker ? 'err-uker' : undefined}
               >
                 <option value="" hidden>Unit Kerja</option>
                 <option value="HUMAS">HUMAS</option>
@@ -229,7 +292,7 @@ export default function FiturBImeal() {
                 <option value="KPKP">KPKP</option>
                 <option value="TMI">TMI</option>
               </select>
-              {errors.uker && <span className={styles.errorMsg}>{errors.uker}</span>}
+              {errors.uker && <span id="err-uker" className={styles.errorMsg}>{errors.uker}</span>}
             </div>
 
             <div className={`${styles.formGroup} ${styles.colFull}`}>
@@ -301,8 +364,21 @@ export default function FiturBImeal() {
               {errors.pesanan && <span className={styles.errorMsg}>{errors.pesanan}</span>}
             </div>
 
+            {serverMsg && (
+              <div className={`${styles.colFull} ${styles.serverMsg}`}>
+                {serverMsg}
+              </div>
+            )}
+
             <div className={`${styles.buttonWrapper} ${styles.colFull}`}>
-              <button type="submit" className={styles.bookingBtn}>Booking</button>
+              <button
+                type="submit"
+                className={styles.bookingBtn}
+                disabled={submitting}
+                aria-busy={submitting}
+              >
+                {submitting ? 'Memproses…' : 'Booking'}
+              </button>
             </div>
           </form>
         </div>
@@ -322,11 +398,16 @@ export default function FiturBImeal() {
 // SSR guard (no flicker)
 export async function getServerSideProps(ctx) {
   const token = ctx.req.cookies?.user_session || null;
+  const ns = typeof ctx.query?.ns === 'string' && NS_RE.test(ctx.query.ns) ? ctx.query.ns : '';
   if (!token) {
-    return { redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, permanent: false } };
+    return {
+      redirect: {
+        destination: withNs(`/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, ns),
+        permanent: false
+      }
+    };
   }
   try {
-    // import di server agar tidak ikut bundle client
     const { jwtVerify } = await import('jose');
     const secret = process.env.JWT_SECRET;
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
@@ -334,10 +415,20 @@ export async function getServerSideProps(ctx) {
       clockTolerance: 10,
     });
     if (payload?.role !== 'user') {
-      return { redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, permanent: false } };
+      return {
+        redirect: {
+          destination: withNs(`/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, ns),
+          permanent: false
+        }
+      };
     }
     return { props: {} };
   } catch {
-    return { redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, permanent: false } };
+    return {
+      redirect: {
+        destination: withNs(`/Signin/hal-sign?from=${encodeURIComponent(ctx.resolvedUrl)}`, ns),
+        permanent: false
+      }
+    };
   }
 }

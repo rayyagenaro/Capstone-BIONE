@@ -10,20 +10,29 @@ const withNs = (url, ns) => {
   return `${url}${sep}ns=${encodeURIComponent(ns)}`;
 };
 
-export default function HalamanDetailLayanan() {
+// Slug layanan yang didukung (termasuk bimeal)
+const ALLOWED_SLUGS = new Set(['dmove', 'bicare', 'bimeal', 'bimeet', 'bimail', 'bistay']);
+
+export default function HalamanDetailLayanan({ slug, ns, id }) {
   // UI & data di-handle di komponen view (client fetch)
-  return <DetailsLaporan />;
+  return <DetailsLaporan slug={slug} ns={ns} id={id} />;
 }
 
 // SSR guard: pastikan admin_session__{ns} valid & role=admin
 export async function getServerSideProps(ctx) {
-  const { ns: nsRaw } = ctx.query || {};
+  const { ns: nsRaw, slug: slugRaw, id: idRaw } = ctx.query || {};
   const ns = Array.isArray(nsRaw) ? nsRaw[0] : nsRaw;
+  const slug = Array.isArray(slugRaw) ? slugRaw[0] : slugRaw;
+  const id = Number(Array.isArray(idRaw) ? idRaw[0] : idRaw);
+
   const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
+  const slugValid = typeof slug === 'string' && ALLOWED_SLUGS.has(slug.toLowerCase()) ? slug.toLowerCase() : null;
+  const idValid = Number.isFinite(id) && id > 0 ? id : null;
 
   const from = ctx.resolvedUrl || '/Admin/Fitur/[slug]/detail';
 
-  if (!nsValid) {
+  // Wajib punya ns, slug valid, dan id valid
+  if (!nsValid || !slugValid || !idValid) {
     return {
       redirect: {
         destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
@@ -53,7 +62,7 @@ export async function getServerSideProps(ctx) {
       clockTolerance: 10,
     });
 
-    if (payload?.role !== 'admin') {
+    if (String(payload?.role || '').toLowerCase() !== 'admin') {
       return {
         redirect: {
           destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(withNs(from, nsValid))}`,
@@ -62,7 +71,7 @@ export async function getServerSideProps(ctx) {
       };
     }
 
-    return { props: {} };
+    return { props: { slug: slugValid, ns: nsValid, id: idValid } };
   } catch {
     return {
       redirect: {

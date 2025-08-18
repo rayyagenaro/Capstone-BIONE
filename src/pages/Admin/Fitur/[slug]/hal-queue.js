@@ -31,6 +31,8 @@ const META = {
 };
 
 function renderCardText(slug, row) {
+  const fmtID = (v) => (v ? new Date(v).toLocaleString('id-ID') : '-');
+
   switch (slug) {
     case 'dmove':
       return {
@@ -63,11 +65,16 @@ function renderCardText(slug, row) {
         status: '',
       };
     case 'bimeal':
-      return { title: 'BI.MEAL', sub: 'Belum ada data', status: '' };
+      return {
+        title: `BI.MEAL | ${row.nama_pic || '-'}` + (row.unit_kerja ? ` • ${row.unit_kerja}` : ''),
+        sub: fmtID(row.waktu_pesanan),
+        status: row.status_name || (row.status_id === 1 ? 'Pending' : row.status_id ?? ''),
+      };
     default:
       return { title: '', sub: '', status: '' };
   }
 }
+
 
 export default function HalQueue({ initialAdminName = 'Admin' }) {
   const router = useRouter();

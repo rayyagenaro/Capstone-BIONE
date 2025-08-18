@@ -5,7 +5,8 @@ import db from '@/lib/db';
  * Konfigurasi per layanan
  * - from: bisa pakai alias "b" dan join seperlunya
  * - select: kolom yang ditampilkan ke UI
- * - defaultOrder: ORDER BY yang dipakai
+ * - defaultOrder: ORDER BY yang dipakai (wajib sertakan "ORDER BY ...")
+ * - groupBy: (opsional) daftar kolom non-agregat untuk GROUP BY jika select berisi agregasi
  * - pendingWhere: kondisi untuk "pending/masuk". Jika null -> anggap semua.
  */
 const CFG = {
@@ -16,6 +17,7 @@ const CFG = {
     defaultOrder: 'ORDER BY b.created_at DESC',
     pendingWhere: 'b.status_id = 1'
   },
+
   bicare: {
     from: 'bicare_bookings b',
     tableForCount: 'bicare_bookings b',
@@ -23,14 +25,29 @@ const CFG = {
     defaultOrder: 'ORDER BY b.created_at DESC',
     pendingWhere: "b.status = 'booked'"
   },
+
   bimeal: {
-    // belum ada tabel booking, kirim kosong
-    from: null,
-    tableForCount: null,
-    select: null,
-    defaultOrder: null,
-    pendingWhere: null
+    from: `
+      bimeal_bookings b
+      LEFT JOIN booking_statuses s ON s.id = b.status_id
+    `,
+    tableForCount: 'bimeal_bookings b',
+    select: `
+      b.id,
+      b.nama_pic,
+      b.nip_pic,
+      b.no_wa_pic,
+      b.unit_kerja,
+      b.waktu_pesanan,
+      b.status_id,
+      s.name AS status_name,
+      b.created_at
+    `,
+    defaultOrder: 'ORDER BY b.created_at DESC',
+    pendingWhere: 'b.status_id = 1'
   },
+
+
   bimeet: {
     from: 'bimeet_bookings b LEFT JOIN booking_statuses s ON s.id = b.status_id',
     tableForCount: 'bimeet_bookings b',
@@ -38,6 +55,7 @@ const CFG = {
     defaultOrder: 'ORDER BY b.created_at DESC',
     pendingWhere: '(b.status_id IS NULL OR b.status_id = 1)'
   },
+
   bimail: {
     from: 'bimail_docs b',
     tableForCount: 'bimail_docs b',
@@ -45,6 +63,7 @@ const CFG = {
     defaultOrder: 'ORDER BY b.created_at DESC',
     pendingWhere: null // tidak ada status -> treat as ALL
   },
+
   bistay: {
     from: 'bistay_bookings b',
     tableForCount: 'bistay_bookings b',
@@ -78,15 +97,17 @@ export default async function handler(req, res) {
     }
     const whereSQL = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
-    // total
+    // total (hitung di tabel utama saja)
     const [[{ cnt: total }]] = await db.execute(
       `SELECT COUNT(*) AS cnt FROM ${cfg.tableForCount} ${whereSQL}`
     );
 
     // data
     const offset = (page - 1) * perPage;
+    const groupSQL = cfg.groupBy ? `GROUP BY ${cfg.groupBy}` : '';
+    const orderSQL = cfg.defaultOrder ? `${cfg.defaultOrder}` : '';
     const [rows] = await db.execute(
-      `SELECT ${cfg.select} FROM ${cfg.from} ${whereSQL} ${cfg.defaultOrder} LIMIT ? OFFSET ?`,
+      `SELECT ${cfg.select} FROM ${cfg.from} ${whereSQL} ${groupSQL} ${orderSQL} LIMIT ? OFFSET ?`,
       [perPage, offset]
     );
 

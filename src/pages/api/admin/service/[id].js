@@ -13,31 +13,28 @@ const ID_TO_META = {
 async function countPendingBySlug(slug) {
   switch (slug) {
     case 'dmove': {
-      const [[{ cnt }]] = await db.execute(
-        'SELECT COUNT(*) AS cnt FROM bidrive_bookings WHERE status_id = 1'
-      );
+      const [[{ cnt }]] = await db.execute('SELECT COUNT(*) AS cnt FROM bidrive_bookings WHERE status_id = 1');
       return cnt;
     }
     case 'bicare': {
-      const [[{ cnt }]] = await db.execute(
-        "SELECT COUNT(*) AS cnt FROM bicare_bookings WHERE status = 'booked'"
-      );
+      const [[{ cnt }]] = await db.execute("SELECT COUNT(*) AS cnt FROM bicare_bookings WHERE status = 'booked'");
       return cnt;
     }
     case 'bimeet': {
-      const [[{ cnt }]] = await db.execute(
-        'SELECT COUNT(*) AS cnt FROM bimeet_bookings WHERE status_id IS NULL OR status_id = 1'
-      );
+      const [[{ cnt }]] = await db.execute('SELECT COUNT(*) AS cnt FROM bimeet_bookings WHERE status_id IS NULL OR status_id = 1');
       return cnt;
     }
     case 'bistay': {
-      const [[{ cnt }]] = await db.execute(
-        'SELECT COUNT(*) AS cnt FROM bistay_bookings'
-      );
+      const [[{ cnt }]] = await db.execute('SELECT COUNT(*) AS cnt FROM bistay_bookings');
+      return cnt;
+    }
+    case 'bimeal': {
+      // ✅ samakan: kembalikan angka, bukan array rows
+      const [[{ cnt }]] = await db.execute('SELECT COUNT(*) AS cnt FROM bimeal_bookings WHERE status_id = 1');
       return cnt;
     }
     default:
-      return 0; // bimeal & bimail belum ada tabel khusus
+      return 0;
   }
 }
 
@@ -48,7 +45,6 @@ export default async function handler(req, res) {
     const id = Number(req.query.id);
     if (!id || !ID_TO_META[id]) return res.status(404).json({ error: 'Service not found' });
 
-    // Ambil name dari tabel services biar konsisten
     const [rows] = await db.execute('SELECT id, name FROM services WHERE id = ? LIMIT 1', [id]);
     if (!rows.length) return res.status(404).json({ error: 'Service not found' });
 
@@ -61,7 +57,7 @@ export default async function handler(req, res) {
       slug: meta.slug,
       logo: meta.logo,
       desc: meta.desc,
-      pending,
+      pending, // selalu number/string -> aman untuk CardShell
     });
   } catch (e) {
     console.error('service-by-id error:', e);
