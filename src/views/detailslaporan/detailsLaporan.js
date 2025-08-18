@@ -616,6 +616,27 @@ export default function DetailsLaporan() {
                         <div className={styles.detailValue}>{detail.subject || detail.perihal || '-'}</div>
                       </>
                     )}
+
+                    {/* ===================== BI.MEAL (LEFT) ===================== */}
+                    
+                    {slug === 'bimeal' && (
+                      <>
+                        <div className={styles.detailLabel}>ID</div>
+                        <div className={styles.detailValue}>{detail.id}</div>
+
+                        <div className={styles.detailLabel}>Nama PIC</div>
+                        <div className={styles.detailValue}>{detail.nama_pic || '-'}</div>
+
+                        <div className={styles.detailLabel}>NIP PIC</div>
+                        <div className={styles.detailValue}>{detail.nip_pic || '-'}</div>
+
+                        <div className={styles.detailLabel}>No. WA PIC</div>
+                        <div className={styles.detailValue}>{detail.no_wa_pic || '-'}</div>
+
+                        <div className={styles.detailLabel}>Unit Kerja</div>
+                        <div className={styles.detailValue}>{detail.unit_kerja || '-'}</div>
+                      </>
+                    )}
                   </div>
 
                   <div className={styles.detailColRight}>
@@ -723,6 +744,7 @@ export default function DetailsLaporan() {
                               Buka di SharePoint
                             </a>
                           ) : ('-')}
+
                         </div>
 
                         <div className={styles.detailLabel}>Created At</div>
@@ -730,6 +752,47 @@ export default function DetailsLaporan() {
                           {detail.created_at ? formatDateTime(detail.created_at) : '-'}
                         </div>
                       </>
+                    )}
+                    {/* ===================== BI.MEAL (RIGHT) ===================== */}
+                    {slug === 'bimeal' && (
+                      <>
+                        <div className={styles.detailLabel}>Waktu Pesanan</div>
+                        <div className={styles.detailValue}>
+                          {formatDateTime(detail.waktu_pesanan)}
+                        </div>
+
+                        <div className={styles.detailLabel}>Status</div>
+                        <div className={styles.detailValue}>
+                          {detail.status_name || (detail.status_id === 1 ? 'Pending' : detail.status_id ?? '-')}
+                        </div>
+
+                        <div className={styles.detailLabel}>Created At</div>
+                        <div className={styles.detailValue}>{formatDateTime(detail.created_at)}</div>
+
+                        <div className={styles.detailLabel}>Updated At</div>
+                        <div className={styles.detailValue}>{formatDateTime(detail.updated_at)}</div>
+                      </>
+                    )}
+                    {/* ===================== BI.MEAL (ITEMS LIST) ===================== */}
+                    {slug === 'bimeal' && (
+                      <div className={styles.detailRow} style={{ marginTop: 12 }}>
+                        <div className={styles.detailColLeft}>
+                          <div className={styles.detailLabel}>Pesanan</div>
+                          <div className={styles.detailValue}>
+                            {Array.isArray(detail.items) && detail.items.length ? (
+                              <ul style={{ margin: 0}}>
+                                {detail.items.map((it) => (
+                                  <li key={it.id}>
+                                    {it.nama_pesanan} ({it.jumlah})
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              '-' 
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

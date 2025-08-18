@@ -124,6 +124,17 @@ export default async function handler(req, res) {
 
     let item = rows[0];
 
+    if (service === 'bimeal') {
+      const [items] = await db.query(
+        `SELECT id, nama_pesanan, jumlah
+         FROM bimeal_booking_items
+         WHERE booking_id = ?
+         ORDER BY id ASC`,
+        [id]
+      );
+      return res.status(200).json({ item: { ...rows[0], items } });
+    }
+
     // Post-processing khusus BI.MAIL biar field match ke UI
     if (service === 'bimail') {
       const attachments = item.link_dokumen
