@@ -209,7 +209,7 @@
   padding: 8px 12px; border-radius: 8px; border: 1.5px solid #e0e0e0; background-color: #fff;
   color: #000; font-size: 15px; font-weight: 500; cursor: pointer;
 }
-.label { margin-right: 8px; color: #22335e; font-weight: 400; }
+.label { margin-right: 8px; color: #22335e; font-weight: 400; margin-bottom: 8;}
 
 /* ================== MODAL ================== */
 .modalOverlay {
@@ -236,6 +236,9 @@
   color: #fff; font-weight: 700; cursor: pointer;
   box-shadow: 0 2px 12px rgba(90, 84, 228, 0.25);
   transition: transform .08s ease, filter .12s ease;
+}
+.filterRow {
+  margin-bottom: 16px;
 }
 .finishButton:hover { filter: brightness(1.05); }
 .finishButton:active { transform: translateY(1px); }
