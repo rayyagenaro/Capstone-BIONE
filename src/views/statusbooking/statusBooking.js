@@ -9,7 +9,7 @@ import Pagination from '@/components/Pagination/Pagination';
 import { FaArrowLeft, FaTimes } from 'react-icons/fa';
 import RejectionBox from '@/components/RejectionBox/RejectionBox';
 
-// --- KONFIGURASI & HELPER ---
+// --- KONFIGURASI & HELPER (STATUS) ---
 const STATUS_CONFIG = {
   '1': { text: 'Pending',  className: styles.statusProcess },
   '2': { text: 'Approved', className: styles.statusApproved },
@@ -24,6 +24,71 @@ const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
 const SEEN_KEYS = { Pending: 'pending', Approved: 'approved', Rejected: 'rejected', Finished: 'finished' };
 const DEFAULT_SEEN = { pending: 0, approved: 0, rejected: 0, finished: 0 };
 const seenStorageKey = (userId) => `statusTabSeen:${userId}`;
+
+// --- KONFIGURASI & HELPER (FITUR/LAYANAN) ---
+const FEATURE_OPTIONS = [
+  { label: 'All', value: 'all' },
+  { label: 'BI.Drive', value: 'bidrive' },
+  { label: 'BI.Care',  value: 'bicare' },
+  { label: 'BI.Meal',  value: 'bimeal' },
+  { label: 'BI.Meet',  value: 'bimeet' },
+  { label: 'BI.Docs',  value: 'bidocs' },
+  { label: 'BI.Stay',  value: 'bistay' },
+];
+
+// (Opsional) Mapping ID → key kalau backend kirim angka
+// Sesuaikan setelah kamu kirim struktur/ID resminya.
+const SERVICE_ID_TO_KEY = {
+  // 1: 'bidrive',
+  // 2: 'bicare',
+  // 3: 'bimeal',
+  // 4: 'bimeet',
+  // 5: 'bidocs',
+  // 6: 'bistay',
+};
+
+const norm = (s) => String(s || '').trim().toLowerCase();
+
+// coba deteksi key fitur dari berbagai kemungkinan field di objek booking
+function resolveFeatureKey(booking) {
+  const sid = booking?.service_id ?? booking?.layanan_id ?? booking?.feature_id ?? booking?.serviceId;
+  if (sid && SERVICE_ID_TO_KEY[sid]) return SERVICE_ID_TO_KEY[sid];
+
+  const candidates = [
+    booking?.service,
+    booking?.service_name,
+    booking?.service_code,
+    booking?.feature,
+    booking?.layanan,
+    booking?.jenis_layanan,
+    booking?.feature_name,
+  ].map(norm).filter(Boolean);
+
+  for (const raw of candidates) {
+    const s = raw.replace(/\s+/g, '');
+    if (s.includes('bi.drive') || s.includes('bidrive') || s === 'drive') return 'bidrive';
+    if (s.includes('bi.care')  || s.includes('bicare')  || s === 'care')  return 'bicare';
+    if (s.includes('bi.meal')  || s.includes('bimeal')  || s === 'meal')  return 'bimeal';
+    if (s.includes('bi.meet')  || s.includes('bimeet')  || s === 'meet')  return 'bimeet';
+    if (s.includes('bi.docs')  || s.includes('bidocs')  || s === 'docs')  return 'bidocs';
+    if (s.includes('bi.stay')  || s.includes('bistay')  || s === 'stay')  return 'bistay';
+  }
+
+  return 'unknown';
+}
+
+function featureLabelOf(booking) {
+  const key = resolveFeatureKey(booking);
+  switch (key) {
+    case 'bidrive': return 'BI.Drive';
+    case 'bicare':  return 'BI.Care';
+    case 'bimeal':  return 'BI.Meal';
+    case 'bimeet':  return 'BI.Meet';
+    case 'bidocs':  return 'BI.Docs';
+    case 'bistay':  return 'BI.Stay';
+    default:        return null;
+  }
+}
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Tanggal tidak valid';
@@ -82,6 +147,7 @@ const BookingCard = React.memo(({ booking, onClick }) => {
   const statusInfo =
     STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
   const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
+  const featureLabel = featureLabelOf(booking);
 
   return (
     <div
@@ -93,15 +159,19 @@ const BookingCard = React.memo(({ booking, onClick }) => {
     >
       <Image src={"/assets/D'MOVE.svg"} alt="logo" width={70} height={70} className={styles.cardLogo} />
       <div className={styles.cardDetail}>
-        <div className={styles.cardTitle}>{`Booking | ${booking.tujuan || 'Tanpa Tujuan'}`}</div>
+        <div className={styles.cardTitle}>
+          {featureLabel ? `[${featureLabel}] ` : ''}Booking | {booking.tujuan || 'Tanpa Tujuan'}
+        </div>
         <div className={styles.cardSub}>
           {`${formatDate(booking.start_date)} - ${formatDate(booking.end_date)}`}
         </div>
+
         {booking.vehicle_types?.length > 0 && (
           <div className={styles.cardVehicles}>
             {booking.vehicle_types.map((vt) => vt.name).join(', ')}
           </div>
         )}
+
         <div className={statusInfo.className}>{statusInfo.text}</div>
 
         {isRejected && (
@@ -115,7 +185,7 @@ const BookingCard = React.memo(({ booking, onClick }) => {
 });
 BookingCard.displayName = 'BookingCard';
 
-/** ===== TAB dengan NOTIF BADGE BERANGKA ===== */
+// ===== TAB STATUS (tetap pakai tab) =====
 const TabFilter = React.memo(({ currentTab, onTabChange, badgeCounts }) => (
   <div className={styles.tabRow}>
     {TABS.map((tabName) => {
@@ -132,7 +202,6 @@ const TabFilter = React.memo(({ currentTab, onTabChange, badgeCounts }) => (
           type="button"
         >
           <span className={styles.tabLabel}>{tabName}</span>
-          {/* Jika ada data baru => badge merah berangka; kalau tidak => dot abu-abu */}
           {!isAll && (
             showNumber ? (
               <span className={`${styles.tabBadge} ${styles.tabBadgeActive}`}>{count}</span>
@@ -146,6 +215,26 @@ const TabFilter = React.memo(({ currentTab, onTabChange, badgeCounts }) => (
   </div>
 ));
 TabFilter.displayName = 'TabFilter';
+
+// ===== DROPDOWN FITUR =====
+const FeatureDropdown = React.memo(({ value, onChange }) => (
+  <div className={styles.filterRow}>
+    <label htmlFor="featureFilter" className={styles.label} style={{ marginRight: 8 }}>
+      Fitur/Layanan:
+    </label>
+    <select
+      id="featureFilter"
+      className={styles.itemsPerPageDropdown}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      {FEATURE_OPTIONS.map(opt => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  </div>
+));
+FeatureDropdown.displayName = 'FeatureDropdown';
 
 const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
   useEffect(() => {
@@ -163,6 +252,7 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
 
   const assignedDrivers = Array.isArray(booking.assigned_drivers) ? booking.assigned_drivers : [];
   const assignedVehicles = Array.isArray(booking.assigned_vehicles) ? booking.assigned_vehicles : [];
+  const featureLabel = featureLabelOf(booking);
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
@@ -170,7 +260,7 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
         <button className={styles.modalCloseBtn} onClick={onClose} type="button">
           <FaTimes />
         </button>
-        <h3 className={styles.modalTitle}>Detail Booking</h3>
+        <h3 className={styles.modalTitle}>Detail Booking {featureLabel ? `— ${featureLabel}` : ''}</h3>
         <div className={styles.modalBody}>
           <p><strong>Tujuan:</strong> {booking.tujuan}</p>
           <p><strong>Mulai:</strong> {formatDate(booking.start_date)}</p>
@@ -188,6 +278,7 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
           )}
 
           <hr className={styles.modalDivider} />
+          <p><strong>Fitur/Layanan:</strong> {featureLabel || 'Tidak diketahui'}</p>
           <p>
             <strong>Jenis Kendaraan:</strong>{' '}
             {booking.vehicle_types?.map((vt) => vt.name).join(', ') || 'Tidak ada'}
@@ -262,7 +353,13 @@ export default function StatusBooking() {
   const [allBookings, setAllBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // filter status
   const [activeTab, setActiveTab] = useState('All');
+
+  // filter fitur/layanan (dropdown)
+  const [featureValue, setFeatureValue] = useState('all'); // 'all' | 'bidrive' | 'bicare' | ...
+
   const [selectedBooking, setSelectedBooking] = useState(null);
 
   // Pagination
@@ -309,13 +406,11 @@ export default function StatusBooking() {
         const uid = meData.payload.sub;
         setUserId(uid);
 
-        // load last-seen untuk user ini
         try {
           const raw = localStorage.getItem(seenStorageKey(uid));
           setSeenCounts(raw ? { ...DEFAULT_SEEN, ...JSON.parse(raw) } : DEFAULT_SEEN);
         } catch { setSeenCounts(DEFAULT_SEEN); }
 
-        // ambil data booking
         const res = await fetch(`/api/booking?userId=${uid}`);
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
@@ -353,7 +448,6 @@ export default function StatusBooking() {
     try {
       setFinishing(true);
 
-      // pastikan punya detail assignment
       let fullBooking = selectedBooking && selectedBooking.id === booking.id ? selectedBooking : null;
       if (!fullBooking?.assigned_drivers || !fullBooking?.assigned_vehicles) {
         try {
@@ -377,11 +471,9 @@ export default function StatusBooking() {
         }
       }
 
-      // set resource available
       await setDriversAvailable(driverIds, 1);
       await setVehiclesAvailable(vehicleIds, 1);
 
-      // sinkron UI
       setAllBookings(prev => prev.map(b => (b.id === booking.id ? { ...b, status_id: 4 } : b)));
       try {
         const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${booking.id}`);
@@ -420,7 +512,7 @@ export default function StatusBooking() {
     finished: Math.max(0, tabCounts.finished - (seenCounts.finished || 0)),
   }), [tabCounts, seenCounts]);
 
-  // tandai tab sebagai sudah dilihat (simpan count saat ini ke localStorage)
+  // tandai tab sebagai sudah dilihat
   const markTabSeen = useCallback((tabName) => {
     if (!userId || tabName === 'All') return;
     const key = SEEN_KEYS[tabName];
@@ -432,15 +524,27 @@ export default function StatusBooking() {
   const handleTabChange = useCallback((tabName) => {
     setActiveTab(tabName);
     setCurrentPage(1);
-    markTabSeen(tabName); // reset badge saat tab dibuka
+    markTabSeen(tabName);
   }, [markTabSeen]);
 
+  const handleFeatureChange = useCallback((value) => {
+    setFeatureValue(value); // 'all' | 'bidrive' | ...
+    setCurrentPage(1);
+  }, []);
+
   // === FILTER & PAGINATION ===
-  const filteredBookings = useMemo(() => {
+  // 1) filter status
+  const statusFiltered = useMemo(() => {
     if (activeTab === 'All') return allBookings;
     const statusId = TAB_TO_STATUS_ID[activeTab];
     return allBookings.filter((item) => item.status_id === statusId);
   }, [activeTab, allBookings]);
+
+  // 2) filter fitur via dropdown
+  const filteredBookings = useMemo(() => {
+    if (featureValue === 'all') return statusFiltered;
+    return statusFiltered.filter((b) => resolveFeatureKey(b) === featureValue);
+  }, [statusFiltered, featureValue]);
 
   const totalPages = useMemo(() => {
     if (!filteredBookings.length) return 1;
@@ -485,6 +589,10 @@ export default function StatusBooking() {
             <div className={styles.title}>STATUS BOOKING</div>
           </div>
 
+          {/* FILTER FITUR DROPDOWN */}
+          <FeatureDropdown value={featureValue} onChange={handleFeatureChange} />
+
+          {/* FILTER STATUS (tab) */}
           <TabFilter currentTab={activeTab} onTabChange={handleTabChange} badgeCounts={badgeCounts} />
 
           <div className={styles.listArea}>
@@ -492,7 +600,7 @@ export default function StatusBooking() {
             {error && <div className={styles.emptyState} style={{ color: 'red' }}>{error}</div>}
 
             {!isLoading && !error && paginatedBookings.length === 0 && (
-              <div className={styles.emptyState}>Tidak ada booking dengan status ini.</div>
+              <div className={styles.emptyState}>Tidak ada booking dengan filter ini.</div>
             )}
 
             {!isLoading && !error && paginatedBookings.map((item) => (

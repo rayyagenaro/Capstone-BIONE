@@ -1,22 +1,5 @@
 import db from '@/lib/db';
 
-/**
- * POST /api/BIcare/book
- * Body JSON:
- * {
- *   doctorId: number,
- *   bookingDate: "YYYY-MM-DD",
- *   slotTime: "HH:MM" | "HH:MM:SS",
- *   booker_name: string,
- *   nip: string,
- *   wa: string,
- *   patient_name: string,
- *   patient_status: "Pegawai"|"Pensiun"|"Keluarga"|"Tamu",
- *   gender: "Laki-laki"|"Perempuan",
- *   birth_date: "YYYY-MM-DD",
- *   complaint: string|null
- * }
- */
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
@@ -76,7 +59,7 @@ export default async function handler(req, res) {
         `INSERT INTO dmove_db1.bicare_bookings
           (doctor_id, booking_date, slot_time, status,
            booker_name, nip, wa, patient_name, patient_status, gender, birth_date, complaint, created_at)
-         VALUES (?, ?, ?, 'booked', ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+         VALUES (?, ?, ?, 'Booked', ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           doctorId, bookingDate, slotTime,
           booker_name, nip, wa, patient_name, patient_status, gender, birth_date, complaint

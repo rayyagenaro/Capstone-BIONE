@@ -1,12 +1,5 @@
 import db from '@/lib/db';
 
-/**
- * GET /api/BIcare/booked?doctorId=1&month=YYYY-MM
- * Response:
- * {
- *   bookedMap: { "YYYY-MM-DD": ["12:00","12:30", ...] }
- * }
- */
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
@@ -36,7 +29,7 @@ export default async function handler(req, res) {
         `SELECT booking_date, slot_time
            FROM dmove_db1.bicare_bookings
           WHERE doctor_id = ?
-            AND status = 'booked'
+            AND status = 'Booked'
             AND booking_date BETWEEN ? AND ?
           ORDER BY booking_date, slot_time`,
         [doctorId, startDate, endDate]
