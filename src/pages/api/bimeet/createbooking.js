@@ -2,7 +2,6 @@
 import { jwtVerify } from 'jose';
 import db from '@/lib/db';
 
-// ===== Utils
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
 function toSqlDateTime(isoOrDate) {
@@ -33,10 +32,88 @@ function getUserToken(req) {
   return { token, ns };
 }
 
-// ===== Handler
+async function verifyTokenToUserId(req) {
+  const { token } = getUserToken(req);
+  if (!token) return { ok: false, userId: null };
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return { ok: false, userId: null };
+
+  try {
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+      clockTolerance: 10,
+    });
+    const uid = payload?.user_id ?? payload?.id ?? payload?.sub ?? null;
+    return { ok: true, userId: uid ? Number(uid) : null, payload };
+  } catch {
+    return { ok: false, userId: null };
+  }
+}
+
 export default async function handler(req, res) {
+  // =========== GET: ambil daftar booking BI.Meet milik user ===========
+  if (req.method === 'GET') {
+    let conn;
+    try {
+      // filter by explicit query OR by token
+      const userIdQ = req.query.userId ? Number(req.query.userId) : null;
+
+      let userId = Number.isFinite(userIdQ) && userIdQ > 0 ? userIdQ : null;
+      if (!userId) {
+        const v = await verifyTokenToUserId(req);
+        if (v.ok && v.userId) userId = v.userId;
+      }
+      if (!userId) {
+        return res.status(400).json({ error: 'userId tidak ditemukan (query atau token)' });
+      }
+
+      // optional status filter: pending|approved|rejected|finished
+      const statusMap = { pending: 1, approved: 2, rejected: 3, finished: 4 };
+      const statusKey = String(req.query.status || '').toLowerCase();
+      const statusId = statusMap[statusKey] ?? null;
+
+      const params = [userId];
+      let whereSQL = 'WHERE b.user_id = ?';
+      if (statusId) {
+        whereSQL += ' AND b.status_id = ?';
+        params.push(statusId);
+      }
+
+      conn = await db.getConnection();
+      const [rows] = await conn.execute(
+        `
+        SELECT
+          b.id, b.user_id, b.room_id, r.name AS room_name, r.capacity,
+          b.unit_kerja, b.title, b.description,
+          b.start_datetime, b.end_datetime,
+          b.participants, b.contact_phone, b.pic_name,
+          b.status_id, b.created_at, b.updated_at
+        FROM bimeet_bookings b
+        LEFT JOIN bimeet_rooms r ON r.id = b.room_id
+        ${whereSQL}
+        ORDER BY b.start_datetime DESC
+        `,
+        params
+      );
+      conn.release();
+
+      return res.status(200).json({ items: rows });
+    } catch (e) {
+      try { conn?.release(); } catch {}
+      console.error('GET /api/bimeet/createbooking error:', e);
+      return res.status(500).json({
+        error: 'INTERNAL_ERROR',
+        message: e?.message,
+        code: e?.code,
+        sqlMessage: e?.sqlMessage,
+      });
+    }
+  }
+
+  // =========== POST: buat booking (kode kamu yang sudah ada) ===========
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
@@ -56,12 +133,10 @@ export default async function handler(req, res) {
       clockTolerance: 10,
     });
 
-    // optional: enforce user role
     if (payload?.role && payload.role !== 'user') {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    // --- Body
     const {
       user_id,
       room_id,
@@ -73,10 +148,8 @@ export default async function handler(req, res) {
       participants,
       contact_phone,
       pic_name,
-      ns, // boleh ikut dikirim dari client, tapi tidak wajib
     } = req.body || {};
 
-    // --- Validasi wajib
     const miss = [];
     if (!room_id) miss.push('room_id');
     if (!unit_kerja) miss.push('unit_kerja');
@@ -99,7 +172,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'participants harus angka > 0' });
     }
 
-    // --- Kapasitas ruangan
     const [rooms] = await db.execute(
       'SELECT capacity FROM bimeet_rooms WHERE id = ?',
       [room_id]
@@ -110,7 +182,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Melebihi kapasitas (${capacity} org)` });
     }
 
-    // --- Cek bentrok (Approved saja yang mengunci)
     const [conflict] = await db.execute(
       `SELECT id FROM bimeet_bookings
        WHERE room_id = ?
@@ -123,7 +194,6 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Jadwal bentrok dengan pemakaian lain' });
     }
 
-    // --- Insert (default status = 1/Pending)
     const userIdFromToken = payload?.user_id ?? payload?.id ?? payload?.sub ?? null;
 
     const [result] = await db.execute(

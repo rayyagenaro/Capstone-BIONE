@@ -245,6 +245,29 @@ function normalizeBIMealRow(row) {
     },
   };
 }
+ 
+/* ===================== Normalisasi BI.Meet ===================== */
+function normalizeBIMeetRow(row) {
+  // status_id backend sudah 1..4, langsung dipakai
+  return {
+    id: `bimeet-${row.id}`,
+    feature_key: 'bimeet',
+    tujuan: row.title || (row.room_name ? `Meeting @ ${row.room_name}` : 'Meeting'),
+    start_date: row.start_datetime,      // ISO/string dari DB; Date() di UI akan handle
+    end_date: row.end_datetime,
+    status_id: Number(row.status_id) || 1,
+    // field khusus untuk kartu & modal:
+    room_name: row.room_name || null,
+    room_capacity: row.capacity ?? null,
+    unit_kerja: row.unit_kerja || null,
+    participants: row.participants ?? null,
+    contact_phone: row.contact_phone || null,
+    pic_name: row.pic_name || null,
+    description: row.description || null,
+    _raw_bimeet: row,
+  };
+}
+
 
 
 /* ===================== SUB-KOMPONEN ===================== */
@@ -282,6 +305,17 @@ const BookingCard = React.memo(({ booking, onClick }) => {
           unit && `Unit: ${unit}`,
           count ? `Item: ${count}` : null,
           total ? `Total qty: ${total}` : null,
+        ].filter(Boolean);
+        return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
+      }
+      case 'bimeet': {
+        const rn = booking.room_name;
+        const part = booking.participants;
+        const uker = booking.unit_kerja;
+        const parts = [
+          rn && `Ruangan: ${rn}`,
+          Number.isFinite(part) && `Peserta: ${part}`,
+          uker && `Unit: ${uker}`,
         ].filter(Boolean);
         return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
       }
@@ -483,6 +517,25 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
             </>
           )}
 
+          {/* BI.Meet detail */}
+          {featureKey === 'bimeet' && (
+            <>
+              <p><strong>Ruangan:</strong> {booking.room_name || '-'}</p>
+              {Number.isFinite(booking.room_capacity) && (
+                <p><strong>Kapasitas Ruangan:</strong> {booking.room_capacity} org</p>
+              )}
+              <p><strong>Unit Kerja:</strong> {booking.unit_kerja || '-'}</p>
+              {Number.isFinite(booking.participants) && (
+                <p><strong>Jumlah Peserta:</strong> {booking.participants} org</p>
+              )}
+              <p><strong>PIC:</strong> {booking.pic_name || '-'}</p>
+              <p><strong>Kontak:</strong> {booking.contact_phone || '-'}</p>
+              {booking.description && (
+                <p><strong>Deskripsi:</strong> {booking.description}</p>
+              )}
+            </>
+          )}
+
 
           {/* Hanya BI.Drive yang menampilkan assignment */}
           {shouldShowAssignments && isApprovedOrFinished && (
@@ -639,13 +692,25 @@ export default function StatusBooking() {
         }
         let dataBIMeal = [];
         try {
-          const rMeal = await fetch(`/api/bimeal/book`, { cache: 'no-store' });
+          const rMeal = await fetch(`/api/bimeal/book?userId=${uid}`, { cache: 'no-store' });
           if (rMeal.ok) {
             const rows = await rMeal.json();
             dataBIMeal = Array.isArray(rows) ? rows.map(normalizeBIMealRow) : [];
           }
         } catch (e) {
           console.warn('Gagal load BI.Meal:', e);
+        }
+        // 3) BI.Meet (meeting rooms) milik user
+        let dataBIMeet = [];
+        try {
+          const rMeet = await fetch(`/api/bimeet/createbooking?userId=${uid}`, { cache: 'no-store' });
+          if (rMeet.ok) {
+            const payload = await rMeet.json();
+            const rows = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);
+            dataBIMeet = rows.map(normalizeBIMeetRow);
+          }
+        } catch (e) {
+          console.warn('Gagal load BI.Meet:', e);
         }
 
         // Gabungkan
@@ -654,6 +719,7 @@ export default function StatusBooking() {
           ...dataBICare,
           ...dataBIDocs,
           ...dataBIMeal,
+          ...dataBIMeet,
         ];
         setAllBookings(merged);
       } catch (err) {
