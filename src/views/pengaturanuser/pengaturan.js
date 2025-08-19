@@ -353,7 +353,16 @@ export default function Pengaturan() {
     }
   }
 
-  /* ===== ADMIN: verify/reject (dua langkah) ===== */
+  /* ===========================================================
+     ADMIN: verify / reject (dua langkah) + EDIT AKSES (BATAS 2)
+     =========================================================== */
+
+  // --- state popup Edit Akses ---
+  const [showEditAccessPopup, setShowEditAccessPopup] = useState(false);
+  const [allServices, setAllServices] = useState([]);           // [{id,name}]
+  const [pickedServiceIds, setPickedServiceIds] = useState([]); // [id,id]
+  const MAX_SERVICES = 2;
+
   function openVerifyAdmin(a) {
     setSelectedRow({
       id: a.id, name: a.nama, email: a.email, phone: a.phone || '',
@@ -428,6 +437,98 @@ export default function Pengaturan() {
     }
   }
 
+  // --- Buka popup Edit Akses ---
+  async function openEditAccess(adminRow) {
+    if (Number(adminRow.role_id) === 1) return; // cegah edit Super Admin
+
+    setSelectedRow({
+      id: adminRow.id,
+      name: adminRow.nama,
+      email: adminRow.email,
+      role_id: adminRow.role_id,
+      services: adminRow.services || [],
+    });
+
+    try {
+      setLoading(true);
+      const [allRes, mineRes] = await Promise.all([
+        fetch('/api/admin/admin-services', { cache: 'no-store' }),
+        fetch(`/api/admin/admin-services?adminId=${adminRow.id}`, { cache: 'no-store' }),
+      ]);
+      const all = await allRes.json().catch(() => []);
+      const mine = await mineRes.json().catch(() => ({ services: [] }));
+
+      setAllServices(Array.isArray(all) ? all : []);
+      setPickedServiceIds(
+        Array.isArray(mine?.services) ? mine.services.map((s) => s.id) : []
+      );
+
+      setShowEditAccessPopup(true);
+    } catch (e) {
+      alert(e?.message || 'Gagal memuat layanan');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function togglePickService(id) {
+    setPickedServiceIds((prev) => {
+      if (prev.includes(id)) {
+        // uncheck
+        return prev.filter((x) => x !== id);
+      }
+      // tambahkan hanya jika belum mencapai MAX
+      if (prev.length >= MAX_SERVICES) {
+        // opsional: beri info kecil
+        alert(`Maksimal ${MAX_SERVICES} layanan untuk Admin Fitur.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
+  }
+
+  async function submitEditAccess(e) {
+    e?.preventDefault?.();
+    if (!selectedRow?.id) return;
+
+    if (pickedServiceIds.length > MAX_SERVICES) {
+      alert(`Maksimal ${MAX_SERVICES} layanan untuk Admin Fitur.`);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch('/api/admin/admin-services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminId: selectedRow.id,
+          serviceIds: pickedServiceIds,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || 'Gagal menyimpan akses');
+
+      // update label layanan pada tabel (optimistic)
+      const id2name = new Map(allServices.map((s) => [s.id, s.name]));
+      const newNames = pickedServiceIds.map((id) => id2name.get(id)).filter(Boolean);
+
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === selectedRow.id ? { ...r, services: newNames } : r
+        )
+      );
+
+      setShowEditAccessPopup(false);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 1400);
+    } catch (e) {
+      alert(e?.message || 'Gagal menyimpan akses');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   /* ===== Logout ===== */
   const handleLogout = async () => {
     try {
@@ -469,22 +570,22 @@ export default function Pengaturan() {
         <th>Email</th>
         <th>Role</th>
         <th style={{ width: 140 }}>Status</th>
-        <th style={{ width: activeStatusId === 1 ? 220 : 140 }}>Aksi</th>
+        <th style={{ width: activeStatusId === 1 ? 220 : 200 }}>Aksi</th>
       </tr>
     );
   };
 
   const renderTableBody = () => {
     if (loading) {
-      return <tr><td colSpan={colSpan} style={{ textAlign:'center', color:'#888' }}>Memuat data…</td></tr>;
+      return <tr><td colSpan={colSpan} className={styles.centerMuted}>Memuat data…</td></tr>;
     }
     if (errorMsg) {
-      return <tr><td colSpan={colSpan} style={{ textAlign:'center', color:'#b04141' }}>{errorMsg}</td></tr>;
+      return <tr><td colSpan={colSpan} className={styles.centerError}>{errorMsg}</td></tr>;
     }
     if (!rows.length) {
       return (
         <tr>
-          <td colSpan={colSpan} style={{ textAlign:'center', color:'#888' }}>
+          <td colSpan={colSpan} className={styles.centerMuted}>
             {activeTab === 'verified'
               ? `Belum ada ${entityType === 'users' ? 'user' : 'admin'} terverifikasi.`
               : activeTab === 'pending'
@@ -549,6 +650,10 @@ export default function Pengaturan() {
     return rows.map((a) => {
       const pill = pillOf(a.verification_id);
       const roleText = Number(a.role_id) === 1 ? 'Super Admin' : 'Admin Fitur';
+      const isSuper = Number(a.role_id) === 1;
+      const isRejected = Number(a.verification_id) === 3;
+
+
       return (
         <tr key={a.id}>
           <td>{a.id}</td>
@@ -557,7 +662,7 @@ export default function Pengaturan() {
           <td>
             <span title={`role_id=${a.role_id}`}>{roleText}</span>
             {Array.isArray(a.services) && a.services.length > 0 && (
-              <div style={{ fontSize:12, color:'#5a6aa3', marginTop:4 }}>
+              <div className={styles.servicesHint}>
                 Layanan: {a.services.join(', ')}
               </div>
             )}
@@ -575,6 +680,16 @@ export default function Pengaturan() {
               </div>
             ) : (
               <>
+                {/* === Edit Akses (Admin Fitur, max 2 layanan) === */}
+                <button
+                  className={styles.editGhostBtn}
+                  onClick={() => openEditAccess(a)}
+                  disabled={isSuper}
+                  title={isSuper ? 'Akses Super Admin tidak dapat diubah' : 'Edit layanan yang dipegang admin ini'}
+                >
+                  <FaEdit style={{ marginRight:6 }} /> Edit Akses
+                </button>
+
                 {a.verification_id === 3 && a.rejection_reason && (
                   <button
                     type="button"
@@ -739,15 +854,14 @@ export default function Pengaturan() {
         loading={verifyLoading}
         user={{
           name: selectedRow?.name,
-          nip: selectedRow?.nip,               // akan diabaikan oleh admin
+          nip: selectedRow?.nip,
           email: selectedRow?.email,
           phone: selectedRow?.phone,
         }}
-        // >>>> defaultMessage khusus ADMIN agar format match dengan penolakan (tanpa NIP)
         defaultMessage={
           entityType === 'admins'
             ? adminVerifyTemplate(selectedRow || {})
-            : undefined // biarkan popup pakai fallback user verify (punya NIP)
+            : undefined
         }
         titleText={entityType === 'users' ? 'Verifikasi User' : 'Verifikasi Admin'}
         infoText="Kirim informasi verifikasi. Pesan di bawah bisa kamu edit dulu sebelum dikirim."
@@ -786,7 +900,7 @@ export default function Pengaturan() {
           <div className={styles.popupBox} onClick={(e) => e.stopPropagation()}>
             <div className={styles.popupTitle}>Alasan Penolakan</div>
 
-            <div style={{marginBottom: 12, color: '#41507a', fontSize: 14}}>
+            <div className={styles.reasonHeader}>
               <div><strong>Nama:</strong> {reasonRow.name || reasonRow.nama || '-'}</div>
               {'nip' in reasonRow && <div><strong>NIP:</strong> {reasonRow.nip || '-'}</div>}
               {'phone' in reasonRow && <div><strong>Phone:</strong> {reasonRow.phone || '-'}</div>}
@@ -794,13 +908,7 @@ export default function Pengaturan() {
             </div>
 
             <label className={styles.label} style={{marginBottom: 6}}>Alasan</label>
-            <div
-              style={{
-                background:'#fff8f8', border:'1.2px solid #e4b9b9', borderRadius:10,
-                padding:'12px 14px', color:'#7a1c1c', fontSize:15, lineHeight:1.45,
-                whiteSpace:'pre-wrap'
-              }}
-            >
+            <div className={styles.reasonView}>
               {reasonRow.rejection_reason || '-'}
             </div>
 
@@ -809,6 +917,57 @@ export default function Pengaturan() {
                 Tutup
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== POPUP: EDIT AKSES ADMIN ===== */}
+      {showEditAccessPopup && (
+        <div className={styles.popupOverlay} onClick={() => setShowEditAccessPopup(false)}>
+          <div className={styles.popupBox} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.popupTitle}>
+              <FaEdit /> Edit Akses Admin
+            </div>
+
+            <div style={{ marginBottom: 10, color: '#41507a', fontSize: 14 }}>
+              <div><strong>Admin:</strong> {selectedRow?.name || '-'}</div>
+              <div><strong>Email:</strong> {selectedRow?.email || '-'}</div>
+              <div style={{marginTop:6, fontSize:12, color:'#6a7bb8'}}>Maksimal {MAX_SERVICES} layanan.</div>
+            </div>
+
+            {/* Daftar layanan dengan checkbox */}
+            <form className={styles.popupForm} onSubmit={submitEditAccess}>
+              {allServices.length === 0 ? (
+                <div className={styles.centerMuted}>Daftar layanan kosong.</div>
+              ) : (
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
+                  {allServices.map((s) => {
+                    const checked = pickedServiceIds.includes(s.id);
+                    const disable = !checked && pickedServiceIds.length >= MAX_SERVICES;
+                    return (
+                      <label key={s.id} style={{ display:'flex', alignItems:'center', gap:8, opacity: disable ? 0.6 : 1 }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={disable}
+                          onChange={() => togglePickService(s.id)}
+                        />
+                        {s.name}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className={styles.popupActionRow}>
+                <button className={styles.saveBtn} type="submit" disabled={loading}>
+                  <FaCheck /> Simpan
+                </button>
+                <button className={styles.cancelBtn} type="button" onClick={() => setShowEditAccessPopup(false)}>
+                  <FaTimes /> Batal
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

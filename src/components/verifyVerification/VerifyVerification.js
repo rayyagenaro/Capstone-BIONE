@@ -2,21 +2,16 @@ import React, { useEffect, useState } from 'react';
 import styles from './VerifyVerification.module.css';
 import { FaTimes, FaWhatsapp } from 'react-icons/fa';
 
-/**
- * variant: 'approve' | 'reject'
- *  - approve => hijau (default)
- *  - reject  => merah
- */
 export default function VerifyVerificationPopup({
   show,
   onClose,
   onSubmit,                 // (messageText, openWhatsApp:boolean) => void
   loading = false,
   user = {},               // { name, nip, email, phone }
-  defaultMessage = '',
+  defaultMessage = '',     // optional override
   titleText = 'Verifikasi',
   infoText = 'Kirim informasi verifikasi. Pesan di bawah bisa kamu edit dulu sebelum dikirim.',
-  variant = 'approve',
+  variant = 'info',        // 'info' | 'danger'
 }) {
   const [message, setMessage] = useState(defaultMessage || '');
   const [openWhatsApp, setOpenWhatsApp] = useState(true);
@@ -24,6 +19,7 @@ export default function VerifyVerificationPopup({
   useEffect(() => {
     if (!show) return;
 
+    // fallback template bila defaultMessage tidak dikirim
     const preset =
       defaultMessage ||
       `Halo ${user?.name || ''},
@@ -54,15 +50,14 @@ Terima kasih.`;
     onSubmit(val, openWhatsApp);
   };
 
-  const isReject = variant === 'reject';
+  const boxClass = `${styles.box} ${variant === 'danger' ? styles.danger : styles.info}`;
+  const sendBtnClass = `${styles.sendBtn} ${variant === 'danger' ? styles.sendBtnDanger : styles.sendBtnSuccess}`;
 
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true" onClick={onClose}>
-      <div className={styles.box} onClick={(e) => e.stopPropagation()}>
+      <div className={boxClass} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <div className={`${styles.title} ${isReject ? styles.titleReject : styles.titleApprove}`}>
-            {titleText}
-          </div>
+          <div className={styles.title}>{titleText}</div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Tutup">
             <FaTimes size={18} />
           </button>
@@ -73,7 +68,7 @@ Terima kasih.`;
         <form className={styles.form} onSubmit={handleSubmit}>
           <label className={styles.label}>Pesan WhatsApp</label>
           <textarea
-            className={`${styles.textarea} ${isReject ? styles.textareaReject : styles.textareaApprove}`}
+            className={styles.textarea}
             rows={7}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -93,12 +88,7 @@ Terima kasih.`;
             <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={loading}>
               Batal
             </button>
-
-            <button
-              type="submit"
-              className={isReject ? styles.rejectBtn : styles.verifyBtn}
-              disabled={loading}
-            >
+            <button type="submit" className={sendBtnClass} disabled={loading}>
               {loading ? 'Memproses…' : (<><FaWhatsapp style={{marginRight:6}}/> Kirim</>)}
             </button>
           </div>
