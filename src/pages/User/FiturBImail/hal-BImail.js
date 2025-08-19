@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+// src/pages/BImail/hal-BImail.js
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -37,19 +38,17 @@ export default function HalBIMail() {
   const spinTimerRef = useRef(null);
 
   const startSpinOnce = useCallback(() => {
-    // reset bila ada timer lama
     if (spinTimerRef.current) {
       clearTimeout(spinTimerRef.current);
       spinTimerRef.current = null;
     }
-    // trik re-trigger: set false lalu true di frame berikutnya
     setSpinning(false);
     requestAnimationFrame(() => {
       setSpinning(true);
       spinTimerRef.current = setTimeout(() => {
         setSpinning(false);
         spinTimerRef.current = null;
-      }, 2000); // muter 1 detik
+      }, 2000);
     });
   }, []);
 
@@ -81,7 +80,7 @@ export default function HalBIMail() {
 
   // ===== Unit Kerja (opsional) =====
   const UNIT_KERJA = [
-    { label: '— Tanpa Unit —', code: '' },  // opsional
+    { label: '— Tanpa Unit —', code: '' },
     { label: 'KP',              code: 'KP' },
     { label: 'GPIK-KEKDAW',     code: 'GPIK-KEKDAW' },
     { label: 'KPKW',            code: 'KPKW' },
@@ -108,7 +107,7 @@ export default function HalBIMail() {
   // === Estimasi nomor dengan auto-refresh ===
   const [nextNumber, setNextNumber] = useState(null);
   const [loadingNext, setLoadingNext] = useState(false);
-  const isFetchingRef = useRef(false);   // cegah overlapping fetch
+  const isFetchingRef = useRef(false);
   const intervalRef = useRef(null);
 
   const getJenisCode = useCallback(() => {
@@ -134,12 +133,11 @@ export default function HalBIMail() {
     if (!jenisCode) return;
     if (isFetchingRef.current) return;
 
-    // >>> baru spin di sini, setelah semua guard lolos
     startSpinOnce();
 
     isFetchingRef.current = true;
     setLoadingNext(true);
-    const ac = new AbortController(); // optional cancel
+    const ac = new AbortController();
     try {
       const res = await fetch(
         `/api/BImail/nextNumber?kategoriCode=${encodeURIComponent(jenisCode)}&tahun=${year}`,
@@ -149,26 +147,24 @@ export default function HalBIMail() {
       const data = await res.json();
       setNextNumber(data?.next_number ?? null);
     } catch {
-      // optional: setNextNumber(null);
+      // ignore
     } finally {
       setLoadingNext(false);
       isFetchingRef.current = false;
     }
-    return () => ac.abort(); // optional cleanup kalau kamu panggil fetchEstimasi dari effect yang bisa unmount
+    return () => ac.abort();
   }, [fields.jenisDokumen, fields.tanggalDokumen, getJenisCode, startSpinOnce]);
 
-  // Ambil estimasi saat field kunci berubah
   useEffect(() => {
     setNextNumber(null);
     fetchEstimasi();
   }, [fetchEstimasi]);
 
-  // AUTO-REFRESH tiap 10 detik (tanpa reload page)
   useEffect(() => {
     if (!fields.jenisDokumen || !fields.tanggalDokumen) return;
     intervalRef.current = setInterval(() => {
       fetchEstimasi();
-    }, 7000); // 10 detik
+    }, 7000);
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -177,7 +173,6 @@ export default function HalBIMail() {
     };
   }, [fields.jenisDokumen, fields.tanggalDokumen, fetchEstimasi]);
 
-  // Re-fetch saat tab kembali aktif
   useEffect(() => {
     const onVis = () => {
       if (document.visibilityState === 'visible') fetchEstimasi();
@@ -197,19 +192,46 @@ export default function HalBIMail() {
     if (errors.tanggalDokumen) setErrors(prev => ({ ...prev, tanggalDokumen: null }));
   };
 
-  // VALIDASI (unit kerja opsional)
+  // ===== Validasi wajib untuk 4 field: perihal, dari, kepada, linkDokumen =====
+  const REQUIRED_LABEL = {
+    perihal: 'Perihal',
+    dari: 'Dari',
+    kepada: 'Kepada',
+    linkDokumen: 'Link Dokumen',
+  };
+
+  const handleBlurRequired = useCallback((e) => {
+    const { name, value } = e.target;
+    let msg = null;
+
+    if (name === 'linkDokumen') {
+      const v = String(value || '').trim();
+      if (!v) msg = 'Link Dokumen wajib diisi';
+    } else if (REQUIRED_LABEL[name]) {
+      if (!String(value || '').trim()) msg = `${REQUIRED_LABEL[name]} wajib diisi`;
+    }
+    setErrors((prev) => ({ ...prev, [name]: msg }));
+  }, []);
+
+  // Untuk mengaktifkan / menonaktifkan tombol submit
+  const requiredOk = useMemo(() => {
+    const p = fields.perihal?.trim();
+    const d = fields.dari?.trim();
+    const k = fields.kepada?.trim();
+    const l = fields.linkDokumen?.trim();
+    return Boolean(p && d && k && l);
+  }, [fields.perihal, fields.dari, fields.kepada, fields.linkDokumen]);
+
+  // VALIDASI saat submit (unit kerja opsional, link bebas format)
   const validate = () => {
     const err = {};
     if (!fields.tanggalDokumen) err.tanggalDokumen = 'Tanggal Dokumen wajib diisi';
     if (!fields.jenisDokumen)  err.jenisDokumen  = 'Pilih jenis dokumen';
     if (!fields.tipeDokumen)   err.tipeDokumen   = 'Pilih tipe dokumen';
-    if (!fields.perihal.trim()) err.perihal = 'Perihal wajib diisi';
-    if (!fields.dari.trim())    err.dari    = 'Dari wajib diisi';
-    if (!fields.kepada.trim())  err.kepada  = 'Kepada wajib diisi';
+    if (!fields.perihal.trim())    err.perihal     = 'Perihal wajib diisi';
+    if (!fields.dari.trim())       err.dari        = 'Dari wajib diisi';
+    if (!fields.kepada.trim())     err.kepada      = 'Kepada wajib diisi';
     if (!fields.linkDokumen.trim()) err.linkDokumen = 'Link Dokumen wajib diisi';
-    else if (!/^https?:\/\//i.test(fields.linkDokumen.trim())) {
-      err.linkDokumen = 'Link harus diawali http:// atau https://';
-    }
     return err;
   };
 
@@ -244,7 +266,7 @@ export default function HalBIMail() {
         user_id: userId,
         tanggal_dokumen: fields.tanggalDokumen?.toISOString(),
         kategori_code: getJenisCode(),
-        unit_code: getUnitCode(),        // '' => NULL di backend
+        unit_code: getUnitCode(),
         tipe_dokumen: fields.tipeDokumen,
         perihal: fields.perihal,
         dari: fields.dari,
@@ -265,9 +287,7 @@ export default function HalBIMail() {
 
       const data = await res.json();
       setShowSuccess(true);
-      // Optional: tampilkan nomor final, salin ke clipboard, dsb.
       console.log('Nomor final:', data.nomor_surat);
-
     } catch (err) {
       setSubmitError(err.message);
     } finally {
@@ -283,7 +303,7 @@ export default function HalBIMail() {
         <div className={styles.formBox}>
           <div className={styles.topRow}>
             <button className={styles.backBtn} onClick={() => router.back()} type="button">
-            <FaArrowLeft /> Kembali
+              <FaArrowLeft /> Kembali
             </button>
 
             <div className={styles.logoDmoveWrapper}>
@@ -293,7 +313,7 @@ export default function HalBIMail() {
                 width={180}
                 height={85}
                 priority
-                style={{ height: 'auto' }}  // hilangkan warning aspect ratio
+                style={{ height: 'auto' }}
               />
             </div>
 
@@ -369,7 +389,7 @@ export default function HalBIMail() {
               </div>
             </div>
 
-            {/* PREVIEW NOMOR (Estimasi) + Tombol Refresh + Icon kanan */}
+            {/* PREVIEW NOMOR (Estimasi) + Refresh */}
             <div
               className={styles.previewNomor}
               style={{
@@ -381,7 +401,6 @@ export default function HalBIMail() {
                 flexWrap: 'wrap'
               }}
             >
-              {/* kiri */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <div>
                   <b>Preview Nomor (Estimasi):</b> {nomorSuratPreview()}
@@ -398,7 +417,7 @@ export default function HalBIMail() {
                 </button>
               </div>
 
-              {/* kanan: ikon di luar tombol, muter 1 detik tiap refresh */}
+              {/* ikon kanan */}
               <div
                 className={`${styles.refreshIconWrap} ${spinning ? styles.spinOnce : ''}`}
                 role="img"
@@ -422,7 +441,7 @@ export default function HalBIMail() {
               </div>
             </div>
 
-            {/* Info kecil di bawahnya */}
+            {/* Info kecil */}
             <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#4b5563', marginTop: -30 }}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -443,55 +462,72 @@ export default function HalBIMail() {
               <span>Refresh otomatis terjadi setiap 7 detik</span>
             </div>
 
-            {/* Perihal */}
+            {/* Perihal (required) */}
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-              <label htmlFor="perihal">Perihal</label>
+              <label htmlFor="perihal">
+                Perihal <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>
+              </label>
               <textarea
                 id="perihal"
                 name="perihal"
                 rows={2}
                 value={fields.perihal}
                 onChange={handleChange}
+                onBlur={handleBlurRequired}
+                required
+                aria-required="true"
                 className={errors.perihal ? styles.errorInput : ''}
                 placeholder="Tuliskan perihal dokumen"
               />
               {errors.perihal && <span className={styles.errorMsg}>{errors.perihal}</span>}
             </div>
 
-            {/* Dari */}
+            {/* Dari (required) */}
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-              <label htmlFor="dari">Dari</label>
+              <label htmlFor="dari">
+                Dari <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>
+              </label>
               <textarea
                 id="dari"
                 name="dari"
                 rows={2}
                 value={fields.dari}
                 onChange={handleChange}
+                onBlur={handleBlurRequired}
+                required
+                aria-required="true"
                 className={errors.dari ? styles.errorInput : ''}
                 placeholder="Pihak pengirim"
               />
               {errors.dari && <span className={styles.errorMsg}>{errors.dari}</span>}
             </div>
 
-            {/* Kepada */}
+            {/* Kepada (required) */}
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-              <label htmlFor="kepada">Kepada</label>
+              <label htmlFor="kepada">
+                Kepada <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>
+              </label>
               <textarea
                 id="kepada"
                 name="kepada"
                 rows={2}
                 value={fields.kepada}
                 onChange={handleChange}
+                onBlur={handleBlurRequired}
+                required
+                aria-required="true"
                 className={errors.kepada ? styles.errorInput : ''}
                 placeholder="Pihak penerima"
               />
               {errors.kepada && <span className={styles.errorMsg}>{errors.kepada}</span>}
             </div>
 
-            {/* Link Dokumen */}
+            {/* Link Dokumen (required, bebas format) */}
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label htmlFor="linkDokumen">Link Dokumen (SharePoint)</label>
+                <label htmlFor="linkDokumen">
+                  Link Dokumen (SharePoint) <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>
+                </label>
                 <a
                   href="https://www.office.com/launch/sharepoint"
                   target="_blank"
@@ -507,6 +543,9 @@ export default function HalBIMail() {
                 type="text"
                 value={fields.linkDokumen}
                 onChange={handleChange}
+                onBlur={handleBlurRequired}
+                required
+                aria-required="true"
                 className={errors.linkDokumen ? styles.errorInput : ''}
                 placeholder="https://tenant.sharepoint.com/sites/.../Dokumen"
               />
@@ -514,7 +553,12 @@ export default function HalBIMail() {
             </div>
 
             <div className={styles.buttonWrapper}>
-              <button type="submit" className={styles.bookingBtn} disabled={isSubmitting}>
+              <button
+                type="submit"
+                className={styles.bookingBtn}
+                disabled={isSubmitting || !requiredOk}
+                title={!requiredOk ? 'Lengkapi Perihal, Dari, Kepada, dan Link Dokumen' : undefined}
+              >
                 {isSubmitting ? 'Menyimpan...' : 'Simpan Nomor Surat'}
               </button>
             </div>
