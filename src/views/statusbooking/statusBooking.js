@@ -267,7 +267,29 @@ function normalizeBIMeetRow(row) {
     _raw_bimeet: row,
   };
 }
-
+/* ===================== Normalisasi BI.Stay ===================== */
+function normalizeBIStayRow(row) {
+  // API GET mengembalikan: id, nama_pemesan, nip, no_wa, asal_kpw, check_in, check_out, keterangan, status_pegawai (info jenis pegawai, bukan approval)
+  // status approval belum ada di tabel → tampilkan sebagai Pending (1) agar konsisten dengan tampilan
+  return {
+    id: `bistay-${row.id}`,
+    feature_key: 'bistay',
+    tujuan: row.asal_kpw ? `Menginap • ${row.asal_kpw}` : 'Menginap',
+    start_date: row.check_in,
+    end_date: row.check_out,
+    status_id: 1, // pending (default, sampai ada kolom status booking)
+    // field khusus untuk kartu/modal:
+    _raw_bistay: {
+      nama_pemesan: row.nama_pemesan,
+      nip: row.nip,
+      no_wa: row.no_wa,
+      asal_kpw: row.asal_kpw,
+      keterangan: row.keterangan,
+      status_pegawai: row.status_pegawai || `#${row.status_pegawai_id}`,
+      created_at: row.created_at,
+    },
+  };
+}
 
 
 /* ===================== SUB-KOMPONEN ===================== */
@@ -319,6 +341,16 @@ const BookingCard = React.memo(({ booking, onClick }) => {
         ].filter(Boolean);
         return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
       }
+      case 'bistay': {
+        const s = booking._raw_bistay;
+        const parts = [
+          s?.nama_pemesan && `Pemesan: ${s.nama_pemesan}`,
+          s?.asal_kpw && `Asal KPW: ${s.asal_kpw}`,
+          s?.status_pegawai && `Status: ${s.status_pegawai}`,
+        ].filter(Boolean);
+        return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
+      }
+
 
       default: {
         if (featureKey === 'bidrive' && booking.vehicle_types?.length > 0) {
@@ -535,6 +567,20 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
               )}
             </>
           )}
+          {/* BI.Stay detail */}
+          {featureKey === 'bistay' && booking._raw_bistay && (
+            <>
+              <p><strong>Nama Pemesan:</strong> {booking._raw_bistay.nama_pemesan || '-'}</p>
+              <p><strong>NIP:</strong> {booking._raw_bistay.nip || '-'}</p>
+              <p><strong>No. WA:</strong> {booking._raw_bistay.no_wa || '-'}</p>
+              <p><strong>Asal KPW:</strong> {booking._raw_bistay.asal_kpw || '-'}</p>
+              <p><strong>Status Pegawai:</strong> {booking._raw_bistay.status_pegawai || '-'}</p>
+              {booking._raw_bistay.keterangan && (
+                <p><strong>Keterangan:</strong> {booking._raw_bistay.keterangan}</p>
+              )}
+            </>
+          )}
+
 
 
           {/* Hanya BI.Drive yang menampilkan assignment */}
@@ -712,6 +758,19 @@ export default function StatusBooking() {
         } catch (e) {
           console.warn('Gagal load BI.Meet:', e);
         }
+                // 4) BI.Stay milik user (pakai cookie, jadi cukup mine=1)
+        let dataBIStay = [];
+        try {
+          const rStay = await fetch(`/api/BIstaybook/bistaybooking?userID=${uid}`, { cache: 'no-store', credentials: 'include' });
+          if (rStay.ok) {
+            const payload = await rStay.json();
+            const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+            dataBIStay = rows.map(normalizeBIStayRow);
+          }
+        } catch (e) {
+          console.warn('Gagal load BI.Stay:', e);
+        }
+
 
         // Gabungkan
         const merged = [
@@ -720,6 +779,7 @@ export default function StatusBooking() {
           ...dataBIDocs,
           ...dataBIMeal,
           ...dataBIMeet,
+          ...dataBIStay,
         ];
         setAllBookings(merged);
       } catch (err) {
