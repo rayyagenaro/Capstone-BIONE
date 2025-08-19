@@ -9,11 +9,11 @@ import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
 import PenolakanPopup from '@/components/penolakanpopup/PenolakanPopup';
 import KontakDriverPopup from '@/components/KontakDriverPopup/KontakDriverPopup';
 
-// ===== Helpers (formatting)
+// ===== Helpers (formatting) =====
 const formatDateTime = (dateString) => {
   if (!dateString) return '-';
   const d = new Date(dateString);
-  if (Number.isNaN(d.valueOf())) return String(dateString); // kalau sudah string normal
+  if (Number.isNaN(d.valueOf())) return String(dateString);
   return d.toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 const formatDateOnly = (d) => {
@@ -28,7 +28,7 @@ const formatDuration = (start, end) => {
   return `${diff || 1} Hari | ${formatDateOnly(start)} - ${formatDateOnly(end)}`;
 };
 
-// ===== Status styles (dipakai D'MOVE & header non-move)
+// ===== Status styles =====
 const STATUS_CONFIG = {
   '1': { text: 'Pending',   className: styles.statusPending,  dot: styles.dotPending  },
   '2': { text: 'Approved',  className: styles.statusApproved, dot: styles.dotApproved },
@@ -36,7 +36,7 @@ const STATUS_CONFIG = {
   '4': { text: 'Finished',  className: styles.statusFinished, dot: styles.dotFinished },
 };
 
-// Meta judul
+// ===== Meta judul =====
 const META = {
   dmove:  { title: 'BI-DRIVE' },
   bicare: { title: 'BI-CARE'  },
@@ -46,10 +46,9 @@ const META = {
   bimeal: { title: 'BI-MEAL'  },
 };
 
-// fallback nopol
+// ===== Util =====
 const getPlate = (v) => v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
 
-// Map status string -> id (untuk badge di header non-D’MOVE)
 function mapStatus(detail) {
   if (!detail) return null;
   let id = detail.status_id;
@@ -64,6 +63,51 @@ function mapStatus(detail) {
   return info || null;
 }
 
+// Deteksi Pending berbasis slug/tabel yang kamu kirim
+const isPendingGeneric = (slug, d) => {
+  if (!d) return false;
+  const s = String(slug || '').toLowerCase();
+
+  // bimeal: ada status_id (1=Pending)
+  if (s === 'bimeal') {
+    const n = Number(d.status_id);
+    if (Number.isNaN(n)) return false;
+    return n === 1 || n === 0;
+  }
+
+  // bimeet: status_id bisa NULL ketika pending
+  if (s === 'bimeet') {
+    const v = d.status_id;
+    if (v === null || v === undefined) return true; // NULL => pending
+    const n = Number(v);
+    return n === 1 || n === 0;
+  }
+
+  // bistay: tabel tidak punya status_id -> anggap pending sampai ada mekanisme approve
+  if (s === 'bistay') {
+    return true;
+  }
+
+  // default for others (mis. bicare): heuristik umum
+  const candidates = [
+    d.status_id, d.status, d.status_name,
+    d.approval_status, d.booking_status, d.booking_status_id, d.state
+  ];
+  for (const v of candidates) {
+    if (v === undefined || v === null) continue;
+    const n = Number(v);
+    if (!Number.isNaN(n) && (n === 1 || n === 0)) return true;
+    const text = String(v).toLowerCase();
+    if (
+      text.includes('pend') || text.includes('menunggu') ||
+      text.includes('await') || text.includes('diajukan') ||
+      text.includes('submit')
+    ) return true;
+  }
+  return false;
+};
+
+// ============================== COMPONENT ==============================
 export default function DetailsLaporan() {
   const router = useRouter();
   const { id, slug: qslug } = router.query;
@@ -71,13 +115,13 @@ export default function DetailsLaporan() {
 
   // D'MOVE
   const [booking, setBooking] = useState(null);
-
-  // Layanan lain (bicare/bimeet/bistay/bimail/bimeal)
+  // Layanan lain
   const [detail, setDetail] = useState(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingGeneric, setIsUpdatingGeneric] = useState(false);
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -100,7 +144,6 @@ export default function DetailsLaporan() {
       setError(null);
       try {
         if (slug === 'dmove') {
-          // === D'MOVE (punyamu) ===
           const r = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
           if (!r.ok) throw new Error('Gagal memuat data booking');
           const d = await r.json();
@@ -126,7 +169,6 @@ export default function DetailsLaporan() {
             setAvailableVehicles(Array.isArray(d4) ? d4 : []);
           }
         } else {
-          // === Layanan lain (ambil semua kolom dari API serbaguna) ===
           const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
           const j = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(j?.error || 'Gagal memuat detail');
@@ -140,7 +182,7 @@ export default function DetailsLaporan() {
     })();
   }, [id, slug]);
 
-  // ========= Aksi D'MOVE (biarin sesuai punyamu) =========
+  // ========= Aksi BI-DRIVE =========
   const handleSubmitPersetujuan = async ({ driverIds, vehicleIds, keterangan }) => {
     if (slug !== 'dmove' || !booking) return;
     setIsUpdating(true);
@@ -158,24 +200,14 @@ export default function DetailsLaporan() {
       const resAssign = await fetch('/api/booking?action=assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'assign',
-          bookingId: Number(id),
-          driverIds,
-          vehicleIds,
-          keterangan,
-          updateStatusTo: 2,
-        }),
+        body: JSON.stringify({ action: 'assign', bookingId: Number(id), driverIds, vehicleIds, keterangan, updateStatusTo: 2 }),
       });
       const assignJson = await resAssign.json().catch(() => ({}));
-      if (!resAssign.ok || assignJson?.error) {
-        throw new Error(assignJson?.error || 'Gagal menyimpan penugasan.');
-      }
+      if (!resAssign.ok || assignJson?.error) throw new Error(assignJson?.error || 'Gagal menyimpan penugasan.');
       await Promise.all(
         vehicleIds.map(async (vehId) => {
           const r = await fetch('/api/updateVehiclesStatus', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ vehicleId: Number(vehId), newStatusId: 2 }),
           });
           if (!r.ok) throw new Error(`Gagal update vehicle ${vehId}`);
@@ -184,8 +216,7 @@ export default function DetailsLaporan() {
       await Promise.all(
         driverIds.map(async (driverId) => {
           const r = await fetch('/api/updateDriversStatus', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ driverId: Number(driverId), newStatusId: 2 }),
           });
           if (!r.ok) throw new Error(`Gagal update driver ${driverId}`);
@@ -202,18 +233,38 @@ export default function DetailsLaporan() {
   };
 
   const handleSubmitPenolakan = async (reason) => {
-    if (slug !== 'dmove') return;
+    if (slug !== 'dmove') {
+      if (slug === 'bimail') return; // tidak berlaku untuk BI.DOCS
+      setRejectLoading(true);
+      try {
+        const res = await fetch(`/api/admin/reject/${slug}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: Number(id), reason }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menolak.');
+        alert('Permohonan berhasil ditolak.');
+        const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
+        const d = await r.json();
+        setDetail(d.item || null);
+        setShowReject(false);
+      } catch (err) {
+        alert(`Error: ${err.message || err}`);
+      } finally {
+        setRejectLoading(false);
+      }
+      return;
+    }
+    // D'MOVE reject
     setRejectLoading(true);
     try {
       const res = await fetch('/api/reject-booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId: Number(id), reason }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok || json?.ok === false) {
-        throw new Error(json?.message || 'Gagal menolak booking.');
-      }
+      if (!res.ok || json?.ok === false) throw new Error(json?.message || 'Gagal menolak booking.');
       alert('Booking berhasil ditolak.');
       setShowReject(false);
       const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
@@ -223,6 +274,27 @@ export default function DetailsLaporan() {
       alert(`Error: ${err.message || err}`);
     } finally {
       setRejectLoading(false);
+    }
+  };
+
+  const handleApproveGeneric = async () => {
+    if (slug === 'bimail') return; // tidak berlaku untuk BI.DOCS
+    setIsUpdatingGeneric(true);
+    try {
+      const res = await fetch(`/api/admin/approve/${slug}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(id) }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menyetujui.');
+      alert('Permohonan disetujui.');
+      const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
+      const d = await r.json();
+      setDetail(d.item || null);
+    } catch (err) {
+      alert(`Error: ${err.message || err}`);
+    } finally {
+      setIsUpdatingGeneric(false);
     }
   };
 
@@ -259,17 +331,17 @@ export default function DetailsLaporan() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin');
-    router.push('/Login/hal-login');
-  };
-
-  // ====== UI guard
+  // ===== UI guard & derived =====
   if (isLoading) return <div className={styles.loadingState}>Memuat detail laporan...</div>;
   if (error)     return <div className={styles.errorState}>Error: {error}</div>;
 
   const titleService = META[slug]?.title || slug.toUpperCase();
   const nonMoveStatus = slug !== 'dmove' ? mapStatus(detail) : null;
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin');
+    router.push('/Login/hal-login');
+  };
 
   return (
     <div className={styles.background}>
@@ -286,7 +358,7 @@ export default function DetailsLaporan() {
         </div>
 
         {slug === 'dmove' ? (
-          // ========================== D'MOVE (biarkan sesuai punyamu) ==========================
+          // ========================== D'MOVE ==========================
           <div className={styles.detailCard} ref={detailRef}>
             <div className={styles.topRow}>
               <div className={styles.leftTitle}>
@@ -462,13 +534,11 @@ export default function DetailsLaporan() {
             )}
           </div>
         ) : (
-          // ========================== LAYANAN LAIN (TAMPILKAN SEMUA KOLOM) ==========================
+          // ========================== LAYANAN LAIN ==========================
           <div className={styles.detailCard} ref={detailRef}>
             <div className={styles.topRow}>
               <div className={styles.leftTitle}>
-                <div className={styles.bookingTitle}>
-                  {titleService} • Detail #{id}
-                </div>
+                <div className={styles.bookingTitle}>{titleService} • Detail #{id}</div>
                 {nonMoveStatus && (
                   <span className={`${nonMoveStatus.className} ${styles.headerStatus}`}>
                     <span className={nonMoveStatus.dot} /> {nonMoveStatus.text}
@@ -481,7 +551,7 @@ export default function DetailsLaporan() {
               <div className={styles.emptyText}>Data belum tersedia.</div>
             ) : (
               <>
-                {/* Grid kiri/kanan — field dibagi biar rapi */}
+                {/* ===================== GRID KIRI ===================== */}
                 <div className={styles.detailRow}>
                   <div className={styles.detailColLeft}>
                     {/* ===================== BI.CARE ===================== */}
@@ -586,13 +656,11 @@ export default function DetailsLaporan() {
 
                         <div className={styles.detailLabel}>Jenis</div>
                         <div className={styles.detailValue}>
-                          {/* pakai nama yang ada di payload kamu; fallback ke jenis_id */}
                           {detail.jenis ?? detail.jenis_id ?? '-'}
                         </div>
 
                         <div className={styles.detailLabel}>Tipe Dokumen</div>
                         <div className={styles.detailValue}>
-                          {/* tampilkan kode apa adanya (A/B/…) atau alias mail_type */}
                           {detail.mail_type || detail.tipe_dokumen || '-'}
                         </div>
 
@@ -618,7 +686,6 @@ export default function DetailsLaporan() {
                     )}
 
                     {/* ===================== BI.MEAL (LEFT) ===================== */}
-                    
                     {slug === 'bimeal' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -639,6 +706,7 @@ export default function DetailsLaporan() {
                     )}
                   </div>
 
+                  {/* ===================== GRID KANAN ===================== */}
                   <div className={styles.detailColRight}>
                     {/* ===================== BI.CARE ===================== */}
                     {slug === 'bicare' && (
@@ -728,7 +796,7 @@ export default function DetailsLaporan() {
                                       {att.name || 'Buka di SharePoint'}
                                     </a>
                                   ) : (
-                                    (att?.name || '-') 
+                                    (att?.name || '-')
                                   )}
                                 </li>
                               ))}
@@ -753,6 +821,7 @@ export default function DetailsLaporan() {
                         </div>
                       </>
                     )}
+
                     {/* ===================== BI.MEAL (RIGHT) ===================== */}
                     {slug === 'bimeal' && (
                       <>
@@ -767,6 +836,7 @@ export default function DetailsLaporan() {
                         </div>
                       </>
                     )}
+
                     {/* ===================== BI.MEAL (ITEMS LIST) ===================== */}
                     {slug === 'bimeal' && (
                       <div className={styles.detailRow}>
@@ -782,7 +852,7 @@ export default function DetailsLaporan() {
                                 ))}
                               </ul>
                             ) : (
-                              '-' 
+                              '-'
                             )}
                           </div>
                         </div>
@@ -790,26 +860,44 @@ export default function DetailsLaporan() {
                     )}
                   </div>
                 </div>
+
+                {/* ===== Action row untuk layanan selain BI.DOCS ===== */}
+                {slug !== 'bimail' && isPendingGeneric(slug, detail) && (
+                  <div className={styles.actionBtnRow} style={{ marginTop: 16 }}>
+                    <button
+                      className={styles.btnTolak}
+                      onClick={() => setShowReject(true)}
+                      disabled={isUpdatingGeneric}
+                    >
+                      {isUpdatingGeneric ? 'Memproses...' : 'Tolak'}
+                    </button>
+                    <button
+                      className={styles.btnSetujui}
+                      onClick={handleApproveGeneric}
+                      disabled={isUpdatingGeneric}
+                    >
+                      {isUpdatingGeneric ? 'Memproses...' : 'Setujui'}
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>
         )}
       </main>
 
-      {/* Popups (dipakai D’MOVE) */}
+      {/* Popups */}
       <KontakDriverPopup
         show={showKontakPopup}
         onClose={() => setShowKontakPopup(false)}
         drivers={booking?.assigned_drivers || []}
         booking={booking || {}}
       />
-
       <LogoutPopup
         open={showLogoutPopup}
         onCancel={() => setShowLogoutPopup(false)}
         onLogout={handleLogout}
       />
-
       <PersetujuanPopup
         show={showPopup}
         onClose={() => setShowPopup(false)}
@@ -818,7 +906,6 @@ export default function DetailsLaporan() {
         driverList={availableDrivers}
         vehicleList={availableVehicles}
       />
-
       <PenolakanPopup
         show={showReject}
         onClose={() => setShowReject(false)}
