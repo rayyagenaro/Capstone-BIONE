@@ -7,16 +7,11 @@ import db from '@/lib/db';
  *  {
  *    adminId: number,
  *    action: "verify" | "reject",
- *    reason?: string   // wajib kalau action=reject (kalau ada kolomnya)
+ *    reason?: string   // wajib kalau action=reject
  *  }
  *
  * verification_status.id:
  *  1 = Pending, 2 = Verified, 3 = Rejected
- *
- * Catatan:
- * - TIDAK memakai admin_pending_services.
- * - Service yang dipakai saat verifikasi adalah baris di tabel admin_services.
- * - Valid: admin harus punya 1–2 service di admin_services.
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -71,20 +66,24 @@ export default async function handler(req, res) {
     }
 
     if (action === 'reject') {
-      // Update status -> Rejected
+      const reasonText = String(reason || '').trim();
+
+      // ✅ SIMPAN alasan penolakan
       await conn.query(
-        // Jika kamu punya kolom rejection_reason, aktifkan baris di bawah:
-        // 'UPDATE admins SET verification_id = ?, rejection_reason = ? WHERE id = ?',
-        // [STATUS.REJECTED, String(reason).trim(), aid]
-        'UPDATE admins SET verification_id = ? WHERE id = ?',
-        [STATUS.REJECTED, aid]
+        'UPDATE admins SET verification_id = ?, rejection_reason = ? WHERE id = ?',
+        [STATUS.REJECTED, reasonText, aid]
       );
+
       if (conn.commit) await conn.commit();
-      return res.status(200).json({ ok: true, message: 'Admin ditolak.', verification_id: STATUS.REJECTED });
+      return res.status(200).json({
+        ok: true,
+        message: 'Admin ditolak.',
+        verification_id: STATUS.REJECTED,
+        rejection_reason: reasonText,
+      });
     }
 
     // ===== VERIFY =====
-    // Ambil service milik admin dari admin_services (wajib 1–2)
     const [svcRows] = await conn.query(
       `SELECT asg.service_id
        FROM admin_services asg
@@ -92,7 +91,6 @@ export default async function handler(req, res) {
        WHERE asg.admin_id = ?`,
       [aid]
     );
-
     const serviceIds = [...new Set(svcRows.map(r => Number(r.service_id)))].filter(Number.isFinite);
 
     if (serviceIds.length < 1 || serviceIds.length > 2) {
@@ -102,11 +100,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // (Opsional) validasi lagi di tabel services sudah dilakukan via JOIN di atas.
-
-    // Update status -> VERIFIED
     await conn.query(
-      'UPDATE admins SET verification_id = ? WHERE id = ?',
+      'UPDATE admins SET verification_id = ?, rejection_reason = NULL WHERE id = ?',
       [STATUS.VERIFIED, aid]
     );
 
@@ -121,7 +116,6 @@ export default async function handler(req, res) {
   } catch (err) {
     if (conn.rollback) await conn.rollback();
     console.error('admin-verification error:', err);
-    // Jika kolom verification_id belum ada di DB, kasih pesan yang mudah dipahami
     if (String(err?.sqlMessage || '').includes('verification_id')) {
       return res.status(500).json({
         error: 'Kolom admins.verification_id belum tersedia. Tambahkan kolom tersebut (TINYINT) dan coba lagi.'

@@ -1,11 +1,7 @@
 // pages/api/admins.js
 import db from '@/lib/db';
 
-const VERIF_MAP = {
-  pending: 1,
-  verified: 2,
-  rejected: 3,
-};
+const VERIF_MAP = { pending: 1, verified: 2, rejected: 3 };
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -21,20 +17,15 @@ export default async function handler(req, res) {
     const verificationKey = String(req.query.verification || '').toLowerCase();
     const verificationId = VERIF_MAP[verificationKey] || null;
 
-    // filter dasar: hanya role admin (1=super admin, 2=admin fitur)
-    const where = [];
+    const where = ['a.role_id IN (1,2)'];
     const params = [];
-
-    where.push('a.role_id IN (1,2)');
 
     if (verificationId) {
       where.push('a.verification_id = ?');
       params.push(verificationId);
     }
-
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-    // total items (distinct admin)
     const [countRows] = await db.query(
       `SELECT COUNT(*) AS total
        FROM admins a
@@ -43,15 +34,16 @@ export default async function handler(req, res) {
     );
     const totalItems = Number(countRows?.[0]?.total || 0);
 
-    // data page (dengan daftar layanan)
     const [rows] = await db.query(
       `
       SELECT 
         a.id,
         a.nama,
         a.email,
+        a.phone,                   -- ✅ ambil phone
         a.role_id,
         a.verification_id,
+        a.rejection_reason,        -- ✅ ambil alasan
         ar.role AS role_name,
         GROUP_CONCAT(DISTINCT s.name ORDER BY s.name SEPARATOR ', ') AS services_csv
       FROM admins a
@@ -70,10 +62,11 @@ export default async function handler(req, res) {
       id: r.id,
       nama: r.nama,
       email: r.email,
+      phone: r.phone || null,             // ✅
       role_id: r.role_id,
       role_name: r.role_name || (r.role_id === 1 ? 'Super Admin' : 'Admin Fitur'),
       verification_id: r.verification_id,
-      // untuk tampilan: pecah csv jadi array
+      rejection_reason: r.rejection_reason || null,  // ✅
       services: r.services_csv ? r.services_csv.split(', ').filter(Boolean) : [],
     }));
 

@@ -4,12 +4,20 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './signupAdmin.module.css';
 
+function validPhone(v) {
+  if (!v) return false;
+  const s = String(v).replace(/[^\d+]/g, '');
+  // 08xxxxxxxx / 62xxxxxxxx (7–13 digits setelah prefix)
+  return /^(?:\+?62|0)\d{7,13}$/.test(s);
+}
+
 export default function SignupAdmin() {
   const router = useRouter();
 
   const [fields, setFields] = useState({
     nama: '',
     email: '',
+    phone: '',       // NEW
     password: '',
     konfirmasi: '',
   });
@@ -22,15 +30,14 @@ export default function SignupAdmin() {
   const [submitted, setSubmitted] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-// pages/SignUp/hal-signupAdmin.jsx (cuplikan penting saja)
   useEffect(() => {
     let active = true;
     (async () => {
       try {
+        // FIX path → tanpa /admin/
         const r = await fetch('/api/admin/admin-services', { cache: 'no-store' });
         if (!active) return;
         if (r.ok) {
-          // kalau ?adminId tidak dikirim, endpoint ini balikin semua layanan
           const data = await r.json();
           setServices(Array.isArray(data) ? data : []);
         } else {
@@ -42,56 +49,6 @@ export default function SignupAdmin() {
     })();
     return () => { active = false; };
   }, []);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const err = validate();
-    setErrors(err);
-    setSubmitted(true);
-
-    if (Object.keys(err).length === 0) {
-      try {
-        const payload = {
-          nama: fields.nama,
-          email: fields.email,
-          password: fields.password,
-          role_id: 2, // ✅ Admin Fitur
-          service_ids: [...new Set(selectedServices)], // dedupe
-        };
-
-        const res = await fetch('/api/registerAdmin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        const data = await res.json();
-        if (res.ok) {
-          setShowSuccess(true);
-          setTimeout(() => router.replace('/Signin/hal-signAdmin'), 1500);
-        } else {
-          alert(data.error || 'Terjadi kesalahan saat mendaftar admin');
-        }
-      } catch {
-        alert('Gagal menghubungi server');
-      }
-    }
-  }
-
-
-  function validate() {
-    const e = {};
-    if (!fields.nama) e.nama = 'Nama wajib diisi';
-    if (!fields.email) e.email = 'Email wajib diisi';
-    if (!fields.password) e.password = 'Kata sandi wajib diisi';
-    if (!fields.konfirmasi) e.konfirmasi = 'Konfirmasi wajib diisi';
-    if (fields.password && fields.konfirmasi && fields.password !== fields.konfirmasi) {
-      e.konfirmasi = 'Konfirmasi tidak cocok';
-    }
-    if (selectedServices.length < 1) e.services = 'Pilih minimal 1 layanan';
-    if (selectedServices.length > 2) e.services = 'Maksimal pilih 2 layanan';
-    return e;
-  }
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -117,14 +74,67 @@ export default function SignupAdmin() {
     });
   }
 
+  function validate() {
+    const e = {};
+    if (!fields.nama) e.nama = 'Nama wajib diisi';
+    if (!fields.email) e.email = 'Email wajib diisi';
+    if (!fields.phone) e.phone = 'No HP wajib diisi';
+    else if (!validPhone(fields.phone)) e.phone = 'Format no HP tidak valid (08xx / 62xx)';
+    if (!fields.password) e.password = 'Kata sandi wajib diisi';
+    if (!fields.konfirmasi) e.konfirmasi = 'Konfirmasi wajib diisi';
+    if (fields.password && fields.konfirmasi && fields.password !== fields.konfirmasi) {
+      e.konfirmasi = 'Konfirmasi tidak cocok';
+    }
+    if (selectedServices.length < 1) e.services = 'Pilih minimal 1 layanan';
+    if (selectedServices.length > 2) e.services = 'Maksimal pilih 2 layanan';
+    return e;
+  }
+
   const bolehDaftar =
     fields.nama &&
     fields.email &&
+    fields.phone && validPhone(fields.phone) &&
     fields.password &&
     fields.konfirmasi &&
     fields.password === fields.konfirmasi &&
     selectedServices.length >= 1 &&
     selectedServices.length <= 2;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const err = validate();
+    setErrors(err);
+    setSubmitted(true);
+
+    if (Object.keys(err).length === 0) {
+      try {
+        const payload = {
+          nama: fields.nama,
+          email: fields.email,
+          phone: fields.phone,     // NEW
+          password: fields.password,
+          role_id: 2,              // Admin Fitur
+          service_ids: [...new Set(selectedServices)],
+        };
+
+        const res = await fetch('/api/registerAdmin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          setShowSuccess(true);
+          setTimeout(() => router.replace('/Signin/hal-signAdmin'), 1500);
+        } else {
+          alert(data.error || 'Terjadi kesalahan saat mendaftar admin');
+        }
+      } catch {
+        alert('Gagal menghubungi server');
+      }
+    }
+  }
 
   function handleBack() {
     router.push('/Login/hal-login');
@@ -200,6 +210,18 @@ export default function SignupAdmin() {
                 onChange={handleChange}
               />
               {submitted && errors.email && <div className={styles.errorMsg}>{errors.email}</div>}
+            </div>
+
+            <div className={styles.formGroup}>
+              <input
+                className={styles.input}
+                name="phone"
+                type="text"
+                placeholder="No HP (08xxx / 62xxx)"
+                value={fields.phone}
+                onChange={handleChange}
+              />
+              {submitted && errors.phone && <div className={styles.errorMsg}>{errors.phone}</div>}
             </div>
 
             {/* SERVICES wajib 1–2 */}

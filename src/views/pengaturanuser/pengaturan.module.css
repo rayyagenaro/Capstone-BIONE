@@ -923,3 +923,51 @@
 .dataTable th:last-child {
   text-align: center;
 }
+.centerMuted {
+  text-align: center;
+  color: #888;
+}
+.centerError {
+  text-align: center;
+  color: #b04141;
+}
+
+/* hint daftar layanan di tabel admin */
+.servicesHint {
+  font-size: 12px;
+  color: #5a6aa3;
+  margin-top: 4px;
+}
+
+/* tombol "Lihat Alasan" */
+.reasonBtn {
+  height: 36px;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 800;
+  background: #fff;
+  border: 1.2px solid #e4b9b9;
+  color: #7a1c1c;
+}
+.reasonBtn:hover { background: #fff8f8; }
+
+/* header info pada viewer alasan */
+.reasonHeader {
+  margin-bottom: 12px;
+  color: #41507a;
+  font-size: 14px;
+}
+.reasonHeader > div + div { margin-top: 4px; }
+
+/* kotak alasan (viewer) */
+.reasonView {
+  background: #fff8f8;
+  border: 1.2px solid #e4b9b9;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #7a1c1c;
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}

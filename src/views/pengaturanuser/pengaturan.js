@@ -1,3 +1,4 @@
+// pages/Admin/Pengaturan/pengaturan.js
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import styles from './pengaturan.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
@@ -6,9 +7,10 @@ import { useRouter } from 'next/router';
 import { FaEdit, FaCheck, FaTimes, FaLock, FaUserShield } from 'react-icons/fa';
 import Pagination from '@/components/Pagination/Pagination';
 
-// POPUP: Reject & Verify (dipakai utk USERS)
-import UserVerificationRejectPopup from '@/components/rejectVerification/RejectVerification';
-import UserVerificationApprovePopup from '@/components/verifyVerification/VerifyVerification';
+// Popup preview WA (verifikasi & penolakan)
+import VerifyVerificationPopup from '@/components/verifyVerification/VerifyVerification';
+// Popup minta alasan singkat
+import ReasonPopup from '@/components/rejectReason/ReasonPopup';
 
 const TABS = [
   { key: 'verified', label: 'Verified', statusId: 2 },
@@ -22,7 +24,7 @@ const STATUS_PILL = {
   3: { text: 'Rejected', className: styles.pillRejected },
 };
 
-// ===== Utils: normalisasi nomor WA =====
+/* ===== Utils WA ===== */
 const to62 = (p) => {
   if (!p) return '';
   let s = String(p).replace(/[^\d+]/g, '');
@@ -30,7 +32,7 @@ const to62 = (p) => {
   if (s.startsWith('+')) s = s.slice(1);
   if (s.startsWith('62')) return s;
   if (s.startsWith('0')) return '62' + s.slice(1);
-  return s.match(/^\d+$/) ? '62' + s : '';
+  return /^\d+$/.test(s) ? '62' + s : '';
 };
 const waLink = (phone, text) => {
   const n = to62(phone);
@@ -38,14 +40,68 @@ const waLink = (phone, text) => {
   const t = text ? encodeURIComponent(text) : '';
   return `https://wa.me/${n}${t ? `?text=${t}` : ''}`;
 };
+/** Open wa.me without popup blocker */
+function openWhatsAppSafely(link) {
+  if (!link) return;
+  const tab = window.open('', '_blank'); // user gesture
+  if (tab) {
+    try { tab.location.replace(link); tab.opener = null; return; } catch {}
+  }
+  window.open(link, '_blank');
+}
 
+/* ===== Template builders ===== */
+// USER (reject)
+const userRejectTemplate = (u, reason) => `Halo ${u?.name || ''},
+
+Pengajuan akun BI-ONE Anda *DITOLAK* ❌
+
+Detail:
+• Nama : ${u?.name || '-'}
+• NIP  : ${u?.nip || '-'}
+• Email: ${u?.email || '-'}
+
+Alasan penolakan:
+${reason}
+
+Silakan lengkapi/benahi data Anda lalu ajukan kembali verifikasi.
+Terima kasih.`;
+
+// ADMIN (reject)
+const adminRejectTemplate = (a, reason) => `Halo ${a?.name || a?.nama || ''},
+
+Pengajuan akun *Admin BI-ONE* Anda *DITOLAK* ❌
+
+Detail:
+• Nama    : ${a?.name || a?.nama || '-'}
+• Email   : ${a?.email || '-'}
+• Role    : ${Number(a?.role_id) === 1 ? 'Super Admin' : 'Admin Fitur'}
+• Layanan : ${(a?.services || []).join(', ') || '-'}
+
+Alasan penolakan:
+${reason}
+
+Silakan perbaiki data/ajukan ulang. Terima kasih.`;
+
+// ADMIN (verify) — format DISESUAIKAN dengan reject (tanpa NIP)
+const adminVerifyTemplate = (a) => `Halo ${a?.name || a?.nama || ''},
+
+Pengajuan akun *Admin BI-ONE* Anda telah *TERVERIFIKASI* ✅
+
+Detail:
+• Nama    : ${a?.name || a?.nama || '-'}
+• Email   : ${a?.email || '-'}
+• Role    : ${Number(a?.role_id) === 1 ? 'Super Admin' : 'Admin Fitur'}
+• Layanan : ${(a?.services || []).join(', ') || '-'}
+
+Silakan login ke BI.ONE Admin. Terima kasih.`;
+
+/* ===== Page ===== */
 export default function Pengaturan() {
   const router = useRouter();
 
-  // ==== NEW: tipe data yang dikelola (users | admins) ====
-  const [entityType, setEntityType] = useState('users'); // 'users' | 'admins'
-
-  // tab status
+  // users | admins
+  const [entityType, setEntityType] = useState('users');
   const [activeTab, setActiveTab] = useState('verified');
 
   // data & paging
@@ -55,39 +111,44 @@ export default function Pengaturan() {
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalItems: 0 });
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // admin & popups
+  // global ui
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  // ==== USER edit state (tetap) ====
+  // user edit
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showEditPasswordPopup, setShowEditPasswordPopup] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedRow, setSelectedRow] = useState(null);
   const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '' });
   const [editPasswordForm, setEditPasswordForm] = useState({ id: '', password: '', adminPassword: '' });
   const [editErrors, setEditErrors] = useState({});
   const [editPasswordErrors, setEditPasswordErrors] = useState({});
-  const [admin, setAdmin] = useState(null);
 
-  // verification popups (USER)
-  const [showRejectPopup, setShowRejectPopup] = useState(false);
-  const [rejectLoading, setRejectLoading] = useState(false);
+  // verify preview
   const [showVerifyPopup, setShowVerifyPopup] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
 
-  const [showSuccess, setShowSuccess] = useState(false);
+  // REJECT flow (2 langkah)
+  const [askReasonUser, setAskReasonUser] = useState(false);
+  const [askReasonAdmin, setAskReasonAdmin] = useState(false);
+  const [pendingReason, setPendingReason] = useState('');
+  const [showRejectPreviewUser, setShowRejectPreviewUser] = useState(false);
+  const [showRejectPreviewAdmin, setShowRejectPreviewAdmin] = useState(false);
+  const [previewMessage, setPreviewMessage] = useState('');
 
-  // Reason (Rejected) popup (dipakai di kedua tipe)
+  // lihat alasan
   const [showReasonPopup, setShowReasonPopup] = useState(false);
   const [reasonRow, setReasonRow] = useState(null);
   const openReason = (u) => { setReasonRow(u); setShowReasonPopup(true); };
   const closeReason = () => { setShowReasonPopup(false); setReasonRow(null); };
 
-  // ===== admin info dari localStorage (client-only) =====
+  // admin lokal (khusus ganti password user)
+  const [admin, setAdmin] = useState(null);
   useEffect(() => {
     try {
       const adminData = typeof window !== 'undefined' ? localStorage.getItem('admin') : null;
       if (adminData) setAdmin(JSON.parse(adminData));
-    } catch { /* ignore */ }
+    } catch {}
   }, []);
 
   const activeStatusId = useMemo(
@@ -95,17 +156,17 @@ export default function Pengaturan() {
     [activeTab]
   );
 
+  // data source
   const baseUrl = useMemo(
     () => (entityType === 'users' ? '/api/users' : '/api/admin/admins'),
     [entityType]
   );
-
   const query = useMemo(
     () => `?page=${pagination.currentPage}&limit=${itemsPerPage}&verification=${activeTab}`,
     [pagination.currentPage, itemsPerPage, activeTab]
   );
 
-  // ===== Fetch rows dengan AbortController & error state =====
+  // fetch list
   useEffect(() => {
     const ac = new AbortController();
     setLoading(true);
@@ -114,9 +175,7 @@ export default function Pengaturan() {
       try {
         const res = await fetch(`${baseUrl}${query}`, { signal: ac.signal, cache: 'no-store' });
         const result = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(result?.error || 'Gagal mengambil data');
-        }
+        if (!res.ok) throw new Error(result?.error || 'Gagal mengambil data');
         setRows(Array.isArray(result.data) ? result.data : []);
         setPagination(result.pagination || { currentPage: 1, totalPages: 1, totalItems: 0 });
       } catch (e) {
@@ -137,10 +196,20 @@ export default function Pengaturan() {
     setPagination((p) => ({ ...p, currentPage: 1 }));
   };
 
-  // ===== USER EDIT =====
-  function openEditPopup(user) {
-    setSelectedUser(user);
-    setEditForm({ id: user.id, name: user.name || '', email: user.email || '', phone: user.phone || '' });
+  const afterRowRemoved = useCallback(() => {
+    setPagination((p) => {
+      const next = { ...p };
+      if (rows.length <= 1 && p.currentPage > 1) next.currentPage = 1;
+      return next;
+    });
+  }, [rows.length]);
+
+  const pillOf = (id) => STATUS_PILL[id] || STATUS_PILL[1];
+
+  /* ===== USER: edit ===== */
+  function openEditPopup(u) {
+    setSelectedRow(u);
+    setEditForm({ id: u.id, name: u.name || '', email: u.email || '', phone: u.phone || '' });
     setEditErrors({});
     setShowEditPopup(true);
   }
@@ -174,10 +243,10 @@ export default function Pengaturan() {
     }
   }
 
-  // ===== USER Change Password =====
-  function openEditPasswordPopup(user) {
-    setSelectedUser(user);
-    setEditPasswordForm({ id: user.id, password: '', adminPassword: '' });
+  /* ===== USER: change password ===== */
+  function openEditPasswordPopup(u) {
+    setSelectedRow(u);
+    setEditPasswordForm({ id: u.id, password: '', adminPassword: '' });
     setEditPasswordErrors({});
     setShowEditPasswordPopup(true);
   }
@@ -206,9 +275,7 @@ export default function Pengaturan() {
         }),
       });
       const result = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(result?.error || 'Verifikasi admin gagal!');
-      }
+      if (!res.ok) throw new Error(result?.error || 'Verifikasi admin gagal!');
       setShowEditPasswordPopup(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 1400);
@@ -217,40 +284,40 @@ export default function Pengaturan() {
     }
   }
 
-  // ===== USER Verify / Reject =====
-  function openVerifyUser(user) { setSelectedUser(user); setShowVerifyPopup(true); }
-  function openRejectUser(user) { setSelectedUser(user); setShowRejectPopup(true); }
+  /* ===== USER: verify/reject ===== */
+  function openVerifyUser(u) { setSelectedRow(u); setShowVerifyPopup(true); }
 
-  const afterRowRemoved = useCallback(() => {
-    // kalau yang tersisa di halaman ini sisa 0, balik ke page 1 biar gak mentok
-    setPagination((p) => {
-      const next = { ...p };
-      // biarkan API yang hitung ulang totalPages saat fetch berikutnya
-      if (rows.length <= 1 && p.currentPage > 1) next.currentPage = 1;
-      return next;
-    });
-  }, [rows.length]);
+  function openRejectUser(u) {
+    setSelectedRow(u);
+    setPendingReason('');
+    setAskReasonUser(true);
+  }
+
+  function proceedRejectUser(reason) {
+    setPendingReason(reason);
+    const msg = userRejectTemplate(selectedRow || {}, reason);
+    setPreviewMessage(msg);
+    setAskReasonUser(false);
+    setShowRejectPreviewUser(true);
+  }
 
   async function submitVerifyUser(messageText, shouldOpenWA) {
-    if (!selectedUser) return;
+    if (!selectedRow) return;
     try {
       setVerifyLoading(true);
+      const wa = shouldOpenWA && selectedRow.phone ? waLink(selectedRow.phone, messageText || '') : '';
+
       const res = await fetch('/api/user-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedUser.id, action: 'verify' }),
+        body: JSON.stringify({ userId: selectedRow.id, action: 'verify' }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'Gagal verifikasi user');
 
-      if (shouldOpenWA && selectedUser.phone) {
-        const link = waLink(selectedUser.phone, messageText || '');
-        if (link) window.open(link, '_blank', 'noopener');
-      }
-
-      // hapus baris secara aman
-      setRows((prev) => prev.filter((u) => u.id !== selectedUser.id));
-      setSelectedUser(null);
+      if (wa) openWhatsAppSafely(wa);
+      setRows((prev) => prev.filter((u) => u.id !== selectedRow.id));
+      setSelectedRow(null);
       setShowVerifyPopup(false);
       afterRowRemoved();
     } catch (e) {
@@ -260,88 +327,108 @@ export default function Pengaturan() {
     }
   }
 
-  async function submitRejectUser(reasonText, shouldOpenWA) {
-    if (!selectedUser) return;
-    const reason = (reasonText || '').trim();
-    if (!reason) return alert('Alasan penolakan wajib diisi.');
+  async function submitRejectUser(messageText, shouldOpenWA) {
+    if (!selectedRow) return;
+    const reason = (pendingReason || '').trim();
+    if (!reason) return alert('Alasan penolakan kosong.');
+
     try {
-      setRejectLoading(true);
+      const wa = shouldOpenWA && selectedRow.phone ? waLink(selectedRow.phone, messageText || '') : '';
+
       const res = await fetch('/api/user-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedUser.id, action: 'reject', reason }),
+        body: JSON.stringify({ userId: selectedRow.id, action: 'reject', reason }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'Gagal menolak user');
 
-      if (shouldOpenWA && selectedUser.phone) {
-        const text = `Halo ${selectedUser?.name || ''},
-
-Pengajuan akun BI-ONE *DITOLAK* ❌
-
-Alasan:
-${reason}
-
-Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
-        const link = waLink(selectedUser.phone, text);
-        if (link) window.open(link, '_blank', 'noopener');
-      }
-
-      setRows((prev) => prev.filter((u) => u.id !== selectedUser.id));
-      setSelectedUser(null);
-      setShowRejectPopup(false);
+      if (wa) openWhatsAppSafely(wa);
+      setRows((prev) => prev.filter((u) => u.id !== selectedRow.id));
+      setSelectedRow(null);
+      setShowRejectPreviewUser(false);
       afterRowRemoved();
     } catch (e) {
       alert(e.message || 'Gagal menolak user');
-    } finally {
-      setRejectLoading(false);
     }
   }
 
-  // ===== ADMIN Verify / Reject =====
-  async function verifyAdmin(row) {
-    if (!row) return;
+  /* ===== ADMIN: verify/reject (dua langkah) ===== */
+  function openVerifyAdmin(a) {
+    setSelectedRow({
+      id: a.id, name: a.nama, email: a.email, phone: a.phone || '',
+      role_id: a.role_id, services: a.services || [],
+    });
+    setShowVerifyPopup(true);
+  }
+
+  function openRejectAdmin(a) {
+    setSelectedRow({
+      id: a.id, name: a.nama, email: a.email, phone: a.phone || '',
+      role_id: a.role_id, services: a.services || [],
+    });
+    setPendingReason('');
+    setAskReasonAdmin(true);
+  }
+
+  function proceedRejectAdmin(reason) {
+    setPendingReason(reason);
+    const msg = adminRejectTemplate(selectedRow || {}, reason);
+    setPreviewMessage(msg);
+    setAskReasonAdmin(false);
+    setShowRejectPreviewAdmin(true);
+  }
+
+  async function submitVerifyAdmin(messageText, shouldOpenWA) {
+    if (!selectedRow) return;
     try {
-      if (!confirm(`Verifikasi admin "${row.nama}"?`)) return;
+      const wa = shouldOpenWA && selectedRow.phone ? waLink(selectedRow.phone, messageText || '') : '';
+
       const res = await fetch('/api/admin/admin-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // NOTE: jika perlu kirim serviceIds, tambahkan di sini.
-        body: JSON.stringify({ adminId: row.id, action: 'verify' }),
+        body: JSON.stringify({ adminId: selectedRow.id, action: 'verify' }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'Gagal verifikasi admin');
 
-      setRows((prev) => prev.filter((r) => r.id !== row.id));
+      if (wa) openWhatsAppSafely(wa);
+      setRows((prev) => prev.filter((r) => r.id !== selectedRow.id));
+      setSelectedRow(null);
+      setShowVerifyPopup(false);
       afterRowRemoved();
-      alert('Admin berhasil diverifikasi.');
     } catch (e) {
       alert(e.message || 'Gagal verifikasi admin');
     }
   }
 
-  async function rejectAdmin(row) {
-    if (!row) return;
-    const reason = prompt(`Alasan penolakan untuk admin "${row.nama}" (wajib):`, '') || '';
-    if (!reason.trim()) return alert('Alasan wajib diisi.');
+  async function submitRejectAdmin(messageText, shouldOpenWA) {
+    if (!selectedRow) return;
+    const reason = (pendingReason || '').trim();
+    if (!reason) return alert('Alasan penolakan kosong.');
+
     try {
+      const wa = shouldOpenWA && selectedRow.phone ? waLink(selectedRow.phone, messageText || '') : '';
+
       const res = await fetch('/api/admin/admin-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminId: row.id, action: 'reject', reason: reason.trim() }),
+        body: JSON.stringify({ adminId: selectedRow.id, action: 'reject', reason }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'Gagal menolak admin');
 
-      setRows((prev) => prev.filter((r) => r.id !== row.id));
+      if (wa) openWhatsAppSafely(wa);
+      setRows((prev) => prev.filter((r) => r.id !== selectedRow.id));
+      setSelectedRow(null);
+      setShowRejectPreviewAdmin(false);
       afterRowRemoved();
-      alert('Admin berhasil ditolak.');
     } catch (e) {
       alert(e.message || 'Gagal menolak admin');
     }
   }
 
-  // ===== Logout =====
+  /* ===== Logout ===== */
   const handleLogout = async () => {
     try {
       const ns = new URLSearchParams(location.search).get('ns');
@@ -354,15 +441,9 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
     router.replace('/Signin/hal-signAdmin');
   };
 
-  const pillOf = (id) => STATUS_PILL[id] || STATUS_PILL[1];
-
-  // ==== kolom dinamis: colSpan & header ====
+  /* ===== table render ===== */
   const colSpan = useMemo(() => {
-    if (entityType === 'users') {
-      // ID, Nama, NIP, Phone, Email, Status, [Password kalau verified], Aksi
-      return activeStatusId === 2 ? 8 : 7;
-    }
-    // admins: ID, Nama, Email, Role, Status, Aksi
+    if (entityType === 'users') return activeStatusId === 2 ? 8 : 7;
     return 6;
   }, [entityType, activeStatusId]);
 
@@ -395,29 +476,15 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
 
   const renderTableBody = () => {
     if (loading) {
-      return (
-        <tr>
-          <td colSpan={colSpan} style={{ textAlign: 'center', color: '#888' }}>
-            Memuat data...
-          </td>
-        </tr>
-      );
+      return <tr><td colSpan={colSpan} style={{ textAlign:'center', color:'#888' }}>Memuat data…</td></tr>;
     }
-
     if (errorMsg) {
-      return (
-        <tr>
-          <td colSpan={colSpan} style={{ textAlign: 'center', color: '#b04141' }}>
-            {errorMsg}
-          </td>
-        </tr>
-      );
+      return <tr><td colSpan={colSpan} style={{ textAlign:'center', color:'#b04141' }}>{errorMsg}</td></tr>;
     }
-
     if (!rows.length) {
       return (
         <tr>
-          <td colSpan={colSpan} style={{ textAlign: 'center', color: '#888' }}>
+          <td colSpan={colSpan} style={{ textAlign:'center', color:'#888' }}>
             {activeTab === 'verified'
               ? `Belum ada ${entityType === 'users' ? 'user' : 'admin'} terverifikasi.`
               : activeTab === 'pending'
@@ -434,64 +501,40 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
         return (
           <tr key={u.id}>
             <td>{u.id}</td>
-            <td style={{ fontWeight: 'bold' }}>{u.name}</td>
+            <td style={{ fontWeight:'bold' }}>{u.name}</td>
             <td>{u.nip || '-'}</td>
             <td>{u.phone || '-'}</td>
             <td>{u.email}</td>
-            <td>
-              <span className={`${styles.statusPill} ${pill.className}`}>{pill.text}</span>
-            </td>
-
+            <td><span className={`${styles.statusPill} ${pill.className}`}>{pill.text}</span></td>
             {activeStatusId === 2 && (
               <td>
-                <button
-                  className={styles.editBtn}
-                  onClick={() => openEditPasswordPopup(u)}
-                  aria-label={`Ganti password untuk ${u.name}`}
-                >
-                  <FaLock style={{ marginRight: 4 }} /> Ganti Password
+                <button className={styles.editBtn} onClick={() => openEditPasswordPopup(u)}>
+                  <FaLock style={{ marginRight:4 }} /> Ganti Password
                 </button>
               </td>
             )}
-
             <td className={styles.actionCell}>
-              {/* Edit */}
-              <button
-                className={styles.editGhostBtn}
-                onClick={() => openEditPopup(u)}
-                aria-label={`Edit user ${u.name}`}
-              >
-                <FaEdit style={{ marginRight: 6 }} /> Edit User
+              <button className={styles.editGhostBtn} onClick={() => openEditPopup(u)}>
+                <FaEdit style={{ marginRight:6 }} /> Edit User
               </button>
 
-              {/* Pending: Verifikasi / Tolak */}
               {activeStatusId === 1 && (
                 <div className={styles.splitGroup}>
-                  <button
-                    className={`${styles.splitBtn} ${styles.approve}`}
-                    onClick={() => openVerifyUser(u)}
-                    title="Verifikasi user"
-                  >
-                    <FaCheck style={{ marginRight: 6 }} /> Verifikasi
+                  <button className={`${styles.splitBtn} ${styles.approve}`} onClick={() => openVerifyUser(u)}>
+                    <FaCheck style={{ marginRight:6 }} /> Verifikasi
                   </button>
-                  <button
-                    className={`${styles.splitBtn} ${styles.reject}`}
-                    onClick={() => openRejectUser(u)}
-                    title="Tolak verifikasi"
-                  >
-                    <FaTimes style={{ marginRight: 6 }} /> Tolak
+                  <button className={`${styles.splitBtn} ${styles.reject}`} onClick={() => openRejectUser(u)}>
+                    <FaTimes style={{ marginRight:6 }} /> Tolak
                   </button>
                 </div>
               )}
 
-              {/* Rejected: Lihat Alasan */}
               {u.verification_status_id === 3 && u.rejection_reason && (
                 <button
                   type="button"
                   className={styles.reasonBtn || styles.editBtn}
                   onClick={() => openReason(u)}
-                  title="Lihat alasan penolakan"
-                  style={{ marginLeft: 8 }}
+                  style={{ marginLeft:8 }}
                 >
                   Lihat Alasan
                 </button>
@@ -502,44 +545,32 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
       });
     }
 
-    // entityType === 'admins'
+    // admins
     return rows.map((a) => {
       const pill = pillOf(a.verification_id);
       const roleText = Number(a.role_id) === 1 ? 'Super Admin' : 'Admin Fitur';
       return (
         <tr key={a.id}>
           <td>{a.id}</td>
-          <td style={{ fontWeight: 'bold' }}>{a.nama}</td>
+          <td style={{ fontWeight:'bold' }}>{a.nama}</td>
           <td>{a.email}</td>
           <td>
             <span title={`role_id=${a.role_id}`}>{roleText}</span>
             {Array.isArray(a.services) && a.services.length > 0 && (
-              <div style={{ fontSize: 12, color: '#5a6aa3', marginTop: 4 }}>
+              <div style={{ fontSize:12, color:'#5a6aa3', marginTop:4 }}>
                 Layanan: {a.services.join(', ')}
               </div>
             )}
           </td>
-          <td>
-            <span className={`${styles.statusPill} ${pill.className}`}>{pill.text}</span>
-          </td>
+          <td><span className={`${styles.statusPill} ${pill.className}`}>{pill.text}</span></td>
           <td className={styles.actionCell}>
             {activeStatusId === 1 ? (
               <div className={styles.splitGroup}>
-                <button
-                  className={`${styles.splitBtn} ${styles.approve}`}
-                  onClick={() => verifyAdmin(a)}
-                  title="Verifikasi admin"
-                  disabled={loading}
-                >
-                  <FaUserShield style={{ marginRight: 6 }} /> Verifikasi
+                <button className={`${styles.splitBtn} ${styles.approve}`} onClick={() => openVerifyAdmin(a)} disabled={loading}>
+                  <FaUserShield style={{ marginRight:6 }} /> Verifikasi
                 </button>
-                <button
-                  className={`${styles.splitBtn} ${styles.reject}`}
-                  onClick={() => rejectAdmin(a)}
-                  title="Tolak admin"
-                  disabled={loading}
-                >
-                  <FaTimes style={{ marginRight: 6 }} /> Tolak
+                <button className={`${styles.splitBtn} ${styles.reject}`} onClick={() => openRejectAdmin(a)} disabled={loading}>
+                  <FaTimes style={{ marginRight:6 }} /> Tolak
                 </button>
               </div>
             ) : (
@@ -548,14 +579,8 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
                   <button
                     type="button"
                     className={styles.reasonBtn || styles.editBtn}
-                    onClick={() =>
-                      openReason({
-                        ...a,
-                        name: a.nama, // agar popup tetap bisa baca "name"
-                      })
-                    }
-                    title="Lihat alasan penolakan"
-                    style={{ marginLeft: 8 }}
+                    onClick={() => openReason({ ...a, name: a.nama })}
+                    style={{ marginLeft:8 }}
                   >
                     Lihat Alasan
                   </button>
@@ -584,20 +609,14 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
             <div className={styles.tableTitle}>PENGATURAN</div>
           </div>
 
-          {/* ==== NEW: Switch Users vs Admins ==== */}
-          <div className={styles.tabsRow} style={{ marginTop: 6, marginBottom: 8 }}>
-            <button
-              className={`${styles.tabBtn} ${entityType === 'users' ? styles.tabActive : ''}`}
-              onClick={() => { setEntityType('users'); setPagination((p) => ({ ...p, currentPage: 1 })); }}
-              type="button"
-            >
+          {/* Switch Users vs Admins */}
+          <div className={styles.tabsRow} style={{ marginTop:6, marginBottom:8 }}>
+            <button className={`${styles.tabBtn} ${entityType === 'users' ? styles.tabActive : ''}`}
+              onClick={() => { setEntityType('users'); setPagination((p) => ({ ...p, currentPage: 1 })); }}>
               Users
             </button>
-            <button
-              className={`${styles.tabBtn} ${entityType === 'admins' ? styles.tabActive : ''}`}
-              onClick={() => { setEntityType('admins'); setPagination((p) => ({ ...p, currentPage: 1 })); }}
-              type="button"
-            >
+            <button className={`${styles.tabBtn} ${entityType === 'admins' ? styles.tabActive : ''}`}
+              onClick={() => { setEntityType('admins'); setPagination((p) => ({ ...p, currentPage: 1 })); }}>
               Admins
             </button>
           </div>
@@ -605,12 +624,9 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
           {/* Tabs status */}
           <div className={styles.tabsRow}>
             {TABS.map((t) => (
-              <button
-                key={t.key}
+              <button key={t.key}
                 className={`${styles.tabBtn} ${activeTab === t.key ? styles.tabActive : ''}`}
-                onClick={() => { setActiveTab(t.key); setPagination((p) => ({ ...p, currentPage: 1 })); }}
-                type="button"
-              >
+                onClick={() => { setActiveTab(t.key); setPagination((p) => ({ ...p, currentPage: 1 })); }}>
                 {t.label}
               </button>
             ))}
@@ -631,13 +647,8 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
                 <span className={styles.resultsText}>{resultsRangeText}</span>
                 <div>
                   <label htmlFor="itemsPerPage" className={styles.label}>Items per page:</label>
-                  <select
-                    id="itemsPerPage"
-                    value={itemsPerPage}
-                    onChange={handleItemsPerPageChange}
-                    className={styles.itemsPerPageDropdown}
-                    aria-label="Items per page"
-                  >
+                  <select id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange}
+                    className={styles.itemsPerPageDropdown} aria-label="Items per page">
                     <option value="10">10</option>
                     <option value="25">25</option>
                     <option value="50">50</option>
@@ -645,11 +656,9 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
                 </div>
               </div>
 
-              <Pagination
-                currentPage={pagination.currentPage}
+              <Pagination currentPage={pagination.currentPage}
                 totalPages={pagination.totalPages}
-                onPageChange={handlePageChange}
-              />
+                onPageChange={handlePageChange} />
             </>
           )}
         </div>
@@ -707,24 +716,71 @@ Silakan melakukan pendaftaran ulang/konfirmasi data. Terima kasih.`;
         </div>
       )}
 
-      {/* Reject Verification Popup (USER) */}
-      <UserVerificationRejectPopup
-        show={entityType === 'users' && showRejectPopup}
-        loading={rejectLoading}
-        onClose={() => setShowRejectPopup(false)}
-        onSubmit={submitRejectUser}   // (reasonText[, shouldOpenWA]) => void
+      {/* ====== STEP-1 (ASK REASON) ====== */}
+      <ReasonPopup
+        show={entityType === 'users' && askReasonUser}
+        title="Tolak Verifikasi User - Alasan"
+        onClose={() => setAskReasonUser(false)}
+        onSubmit={proceedRejectUser}
+      />
+      <ReasonPopup
+        show={entityType === 'admins' && askReasonAdmin}
+        title="Tolak Verifikasi Admin - Alasan"
+        onClose={() => setAskReasonAdmin(false)}
+        onSubmit={proceedRejectAdmin}
       />
 
-      {/* Verify (Approve) Verification Popup (USER) */}
-      <UserVerificationApprovePopup
-        show={entityType === 'users' && showVerifyPopup}
-        loading={verifyLoading}
+      {/* ====== VERIFY / REJECT PREVIEW (WA) ====== */}
+      {/* VERIFY */}
+      <VerifyVerificationPopup
+        show={showVerifyPopup}
         onClose={() => setShowVerifyPopup(false)}
-        onSubmit={submitVerifyUser}   // (messageText, shouldOpenWA) => void
-        user={selectedUser || undefined}
+        onSubmit={entityType === 'users' ? submitVerifyUser : submitVerifyAdmin}
+        loading={verifyLoading}
+        user={{
+          name: selectedRow?.name,
+          nip: selectedRow?.nip,               // akan diabaikan oleh admin
+          email: selectedRow?.email,
+          phone: selectedRow?.phone,
+        }}
+        // >>>> defaultMessage khusus ADMIN agar format match dengan penolakan (tanpa NIP)
+        defaultMessage={
+          entityType === 'admins'
+            ? adminVerifyTemplate(selectedRow || {})
+            : undefined // biarkan popup pakai fallback user verify (punya NIP)
+        }
+        titleText={entityType === 'users' ? 'Verifikasi User' : 'Verifikasi Admin'}
+        infoText="Kirim informasi verifikasi. Pesan di bawah bisa kamu edit dulu sebelum dikirim."
+        variant="info"
       />
 
-      {/* Reason (Rejected) Popup */}
+      {/* REJECT PREVIEW (User) */}
+      <VerifyVerificationPopup
+        show={entityType === 'users' && showRejectPreviewUser}
+        onClose={() => setShowRejectPreviewUser(false)}
+        onSubmit={submitRejectUser}
+        loading={false}
+        defaultMessage={previewMessage}
+        user={{ name: selectedRow?.name, email: selectedRow?.email, phone: selectedRow?.phone, nip: selectedRow?.nip }}
+        titleText="Tolak Verifikasi User"
+        infoText="Kirim informasi penolakan ke user. Pesan berikut masih bisa kamu edit sebelum dikirim."
+        variant="danger"
+      />
+
+      {/* REJECT PREVIEW (Admin) */}
+      <VerifyVerificationPopup
+        show={entityType === 'admins' && showRejectPreviewAdmin}
+        onClose={() => setShowRejectPreviewAdmin(false)}
+        onSubmit={submitRejectAdmin}
+        loading={false}
+        defaultMessage={previewMessage}
+        user={{ name: selectedRow?.name, email: selectedRow?.email, phone: selectedRow?.phone }}
+        titleText="Tolak Verifikasi Admin"
+        infoText="Kirim informasi penolakan ke admin. Pesan berikut masih bisa kamu edit sebelum dikirim."
+        variant="danger"
+      />
+
+      {/* Reason viewer */}
       {showReasonPopup && reasonRow && (
         <div className={styles.popupOverlay} onClick={closeReason}>
           <div className={styles.popupBox} onClick={(e) => e.stopPropagation()}>
