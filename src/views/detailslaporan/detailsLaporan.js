@@ -769,7 +769,7 @@ export default function DetailsLaporan() {
                     )}
                     {/* ===================== BI.MEAL (ITEMS LIST) ===================== */}
                     {slug === 'bimeal' && (
-                      <div className={styles.detailRow} style={{ marginTop: 12 }}>
+                      <div className={styles.detailRow}>
                         <div className={styles.detailColLeft}>
                           <div className={styles.detailLabel}>Pesanan</div>
                           <div className={styles.detailValue}>
