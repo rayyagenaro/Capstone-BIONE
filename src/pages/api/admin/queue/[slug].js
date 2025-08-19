@@ -1,6 +1,14 @@
 // /src/pages/api/admin/queue/[slug].js
 import db from '@/lib/db';
 
+/**
+ * Konfigurasi per layanan
+ * - from: bisa pakai alias "b" dan join seperlunya
+ * - select: kolom yang ditampilkan ke UI
+ * - defaultOrder: ORDER BY yang dipakai (wajib sertakan "ORDER BY ...")
+ * - groupBy: (opsional) daftar kolom non-agregat untuk GROUP BY jika select berisi agregasi
+ * - pendingWhere: kondisi untuk "pending/masuk". Jika null -> anggap semua.
+ */
 const CFG = {
   dmove: {
     from: 'bidrive_bookings b LEFT JOIN booking_statuses s ON s.id = b.status_id',
