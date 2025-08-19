@@ -178,9 +178,6 @@ export default async function handler(req, res) {
     );
     if (!rooms.length) return res.status(404).json({ error: 'Ruangan tidak ditemukan' });
     const capacity = Number(rooms[0].capacity);
-    if (participantsNum > capacity) {
-      return res.status(400).json({ error: `Melebihi kapasitas (${capacity} org)` });
-    }
 
     const [conflict] = await db.execute(
       `SELECT id FROM bimeet_bookings

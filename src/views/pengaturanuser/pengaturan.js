@@ -680,15 +680,16 @@ export default function Pengaturan() {
               </div>
             ) : (
               <>
-                {/* === Edit Akses (Admin Fitur, max 2 layanan) === */}
-                <button
-                  className={styles.editGhostBtn}
-                  onClick={() => openEditAccess(a)}
-                  disabled={isSuper}
-                  title={isSuper ? 'Akses Super Admin tidak dapat diubah' : 'Edit layanan yang dipegang admin ini'}
-                >
-                  <FaEdit style={{ marginRight:6 }} /> Edit Akses
-                </button>
+                {!isRejected && !isSuper && (
+                  <button
+                    className={styles.editGhostBtn}
+                    onClick={() => openEditAccess(a)}
+                    title="Edit layanan yang dipegang admin ini"
+                  >
+                    <FaEdit style={{ marginRight:6 }} /> Edit Akses
+                  </button>
+                )}
+
 
                 {a.verification_id === 3 && a.rejection_reason && (
                   <button

@@ -180,8 +180,6 @@ export default function FiturBimeet() {
     if (!fields.picPhone.trim()) er.picPhone = "Nomor WA PIC wajib diisi";
     if (!fields.participants || Number(fields.participants) <= 0)
       er.participants = "Jumlah peserta wajib diisi";
-    if (selectedRoom && Number(fields.participants) > (selectedRoom.capacity || 0))
-      er.participants = `Melebihi kapasitas (${selectedRoom.capacity} Orang).`;
 
     // jika di availability statusnya tidak available → blokir
     if (fields.roomId) {
