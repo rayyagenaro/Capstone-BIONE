@@ -765,12 +765,6 @@ export default function DetailsLaporan() {
                         <div className={styles.detailValue}>
                           {detail.status_name || (detail.status_id === 1 ? 'Pending' : detail.status_id ?? '-')}
                         </div>
-
-                        <div className={styles.detailLabel}>Created At</div>
-                        <div className={styles.detailValue}>{formatDateTime(detail.created_at)}</div>
-
-                        <div className={styles.detailLabel}>Updated At</div>
-                        <div className={styles.detailValue}>{formatDateTime(detail.updated_at)}</div>
                       </>
                     )}
                     {/* ===================== BI.MEAL (ITEMS LIST) ===================== */}
