@@ -178,7 +178,15 @@
   cursor: pointer; user-select: none;
 }
 
-.cardLogo { width: 60px; height: 60px; object-fit: contain; margin-right: 8px; }
+.cardLogo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  object-position: center; 
+  display: block;         
+  align-self: center;     
+  margin-right: 4px;
+}
 .cardDetail { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .cardTitle { font-size: 1.22rem; font-weight: 700; color: #222; margin-bottom: 4px; }
 .cardSub { font-size: 1rem; color: #858ba1; margin-bottom: 4px; }
