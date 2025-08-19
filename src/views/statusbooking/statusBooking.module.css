@@ -122,8 +122,12 @@
 
 /* ================== TABS + BADGE ================== */
 .tabRow {
-  display: flex; align-items: center; justify-content: center;
-  gap: 28px; margin-bottom: 26px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  gap: 28px; 
+  margin-bottom: 26px;
+  margin-top: 20px;
 }
 
 .tabBtn {

@@ -60,19 +60,12 @@ export default function SignupAdmin() {
     setSelectedServices(prev => {
       const exists = prev.includes(id);
       if (exists) {
-        const next = prev.filter(x => x !== id);
-        if (submitted) setErrors(s => ({ ...s, services: undefined }));
-        return next;
+        return prev.filter(x => x !== id);
       }
-      if (prev.length >= 2) {
-        setErrors(s => ({ ...s, services: 'Maksimal pilih 2 layanan' }));
-        return prev;
-      }
-      const next = [...prev, id];
-      if (submitted) setErrors(s => ({ ...s, services: undefined }));
-      return next;
+      return [...prev, id];
     });
   }
+
 
   function validate() {
     const e = {};
@@ -86,9 +79,9 @@ export default function SignupAdmin() {
       e.konfirmasi = 'Konfirmasi tidak cocok';
     }
     if (selectedServices.length < 1) e.services = 'Pilih minimal 1 layanan';
-    if (selectedServices.length > 2) e.services = 'Maksimal pilih 2 layanan';
     return e;
   }
+
 
   const bolehDaftar =
     fields.nama &&
@@ -97,8 +90,8 @@ export default function SignupAdmin() {
     fields.password &&
     fields.konfirmasi &&
     fields.password === fields.konfirmasi &&
-    selectedServices.length >= 1 &&
-    selectedServices.length <= 2;
+    selectedServices.length >= 1;
+
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -227,9 +220,9 @@ export default function SignupAdmin() {
             {/* SERVICES wajib 1–2 */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label className={styles.mutedText}>Pilih Layanan (maks 2)</label>
+                <label className={styles.mutedText}>Pilih Layanan (maks 4)</label>
                 <span className={styles.badgeSmall} aria-live="polite">
-                  {selectedServices.length} / 2
+                  {selectedServices.length} layanan dipilih
                 </span>
               </div>
 
@@ -240,7 +233,7 @@ export default function SignupAdmin() {
                   services.map((s) => {
                     const id = s.id;
                     const checked = selectedServices.includes(id);
-                    const disabled = !checked && selectedServices.length >= 2;
+                    const disabled = !checked && selectedServices.length >= 4;
 
                     return (
                       <label

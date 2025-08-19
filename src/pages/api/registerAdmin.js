@@ -23,9 +23,9 @@ export default async function handler(req, res) {
   if (!Array.isArray(service_ids) || service_ids.length < 1) {
     return res.status(400).json({ error: 'Minimal pilih 1 layanan' });
   }
-  if (service_ids.length > 2) {
-    return res.status(400).json({ error: 'Maksimal pilih 2 layanan' });
-  }
+  // ⛔️ HAPUS batas maksimal:
+  // if (service_ids.length > 2) { ... }  // dihapus
+
   if (phone && !isValidPhone(phone)) {
     return res.status(400).json({ error: 'Format nomor telepon tidak valid (gunakan 08xx atau 62xx)' });
   }
@@ -78,8 +78,8 @@ export default async function handler(req, res) {
     );
     const adminId = result.insertId;
 
-    // Mapping layanan (maks 2)
-    const values = uniqueServiceIds.slice(0, 2).map((sid) => [adminId, sid]);
+    // Mapping layanan — ✅ TANPA slice(0,2)
+    const values = uniqueServiceIds.map((sid) => [adminId, sid]);
     await conn.query('INSERT INTO admin_services (admin_id, service_id) VALUES ?', [values]);
 
     if (conn.commit) await conn.commit();
