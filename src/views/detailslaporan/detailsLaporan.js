@@ -9,6 +9,8 @@ import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
 import PenolakanPopup from '@/components/penolakanpopup/PenolakanPopup';
 import KontakDriverPopup from '@/components/KontakDriverPopup/KontakDriverPopup';
 
+const ALLOWED_SLUGS = ['dmove', 'bicare', 'bimeet', 'bimail', 'bistay', 'bimeal'];
+
 // ===== Helpers (formatting) =====
 const formatDateTime = (dateString) => {
   if (!dateString) return '-';
@@ -63,55 +65,61 @@ function mapStatus(detail) {
   return info || null;
 }
 
-// Deteksi Pending berbasis slug/tabel yang kamu kirim
 const isPendingGeneric = (slug, d) => {
   if (!d) return false;
   const s = String(slug || '').toLowerCase();
 
-  // bimeal: ada status_id (1=Pending)
+  const numish = (v) => {
+    const n = Number(v);
+    return Number.isNaN(n) ? null : n;
+  };
+  const byText = () => {
+    const txt =
+      [d.status, d.status_name, d.approval_status, d.booking_status, d.state]
+        .map((v) => String(v ?? '').toLowerCase())
+        .find((t) => t);
+    return !!(
+      txt &&
+      (txt.includes('pend') ||
+        txt.includes('menunggu') ||
+        txt.includes('await') ||
+        txt.includes('diajukan') ||
+        txt.includes('submit'))
+    );
+  };
+
+  // BI.MEAL: pakai status_id
   if (s === 'bimeal') {
-    const n = Number(d.status_id);
-    if (Number.isNaN(n)) return false;
+    const n = numish(d.status_id);
     return n === 1 || n === 0;
   }
 
-  // bimeet: status_id bisa NULL ketika pending
+  // BI.MEET: pending bila NULL atau 0/1
   if (s === 'bimeet') {
-    const v = d.status_id;
-    if (v === null || v === undefined) return true; // NULL => pending
-    const n = Number(v);
+    if (d.status_id == null) return true;
+    const n = numish(d.status_id);
     return n === 1 || n === 0;
   }
 
-  // bistay: tabel tidak punya status_id -> anggap pending sampai ada mekanisme approve
+  // BI.STAY: JANGAN hardcode true lagi; cek status_id / teks
   if (s === 'bistay') {
-    return true;
+    const n = numish(d.status_id ?? d.booking_status_id ?? d.state);
+    if (n != null) return n === 1 || n === 0;
+    return byText(); // fallback kalau API belum kirim status_id
   }
 
-  // default for others (mis. bicare): heuristik umum
-  const candidates = [
-    d.status_id, d.status, d.status_name,
-    d.approval_status, d.booking_status, d.booking_status_id, d.state
-  ];
-  for (const v of candidates) {
-    if (v === undefined || v === null) continue;
-    const n = Number(v);
-    if (!Number.isNaN(n) && (n === 1 || n === 0)) return true;
-    const text = String(v).toLowerCase();
-    if (
-      text.includes('pend') || text.includes('menunggu') ||
-      text.includes('await') || text.includes('diajukan') ||
-      text.includes('submit')
-    ) return true;
-  }
-  return false;
+  // default heuristik
+  const n = numish(d.status_id ?? d.booking_status_id ?? d.state);
+  if (n != null) return n === 1 || n === 0;
+  return byText();
 };
 
 // ============================== COMPONENT ==============================
 export default function DetailsLaporan() {
-  const router = useRouter();
-  const { id, slug: qslug } = router.query;
-  const slug = String(qslug || '').toLowerCase() || 'dmove';
+  const router = useRouter();                        // ⟵ tambahkan ini
+  const { id, slug: qslug } = router.query || {};    // ⟵ aman kalau masih undefined
+  const raw = (typeof qslug === 'string' ? qslug : '').toLowerCase();
+  const slug = ALLOWED_SLUGS.includes(raw) ? raw : 'dmove';
 
   // D'MOVE
   const [booking, setBooking] = useState(null);
@@ -138,7 +146,7 @@ export default function DetailsLaporan() {
 
   // ===== FETCH utama
   useEffect(() => {
-    if (!id) return;
+    if (!router.isReady || !id) return;
     (async () => {
       setIsLoading(true);
       setError(null);
@@ -180,7 +188,7 @@ export default function DetailsLaporan() {
         setIsLoading(false);
       }
     })();
-  }, [id, slug]);
+  }, [router.isReady, id, slug]);
 
   // ========= Aksi BI-DRIVE =========
   const handleSubmitPersetujuan = async ({ driverIds, vehicleIds, keterangan }) => {
