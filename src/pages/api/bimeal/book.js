@@ -61,7 +61,7 @@ const toMysqlDatetime = (d) =>
 export default async function handler(req, res) {
   const auth = await verifyUser(req);
   if (!auth.ok) {
-    res.setHeader('Allow', ['GET', 'POST']);
+    res.setHeader('Allow', ['GET', 'POST', 'PUT']);
     return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
   }
   const userId = Number(auth.payload.sub);
@@ -91,14 +91,13 @@ export default async function handler(req, res) {
         [userId]
       );
 
-      // pastikan rows array
       const bookings = Array.isArray(rows) ? rows : [];
       if (bookings.length === 0) {
-        if (conn) conn.release();
-        return res.status(200).json([]); // kosong tapi 200
+        conn?.release();
+        return res.status(200).json([]);
       }
 
-      // 2) ambil items via IN (?) aman—driver mysql2 akan expand array otomatis
+      // 2) ambil items
       const ids = bookings.map((r) => r.id);
       const [items] = await conn.query(
         `
@@ -119,10 +118,10 @@ export default async function handler(req, res) {
       }
 
       const result = bookings.map((b) => ({ ...b, items: itemsMap[b.id] || [] }));
-      if (conn) conn.release();
+      conn?.release();
       return res.status(200).json(result);
     } catch (e) {
-      if (conn) conn.release();
+      conn?.release();
       console.error('GET /api/bimeal/book error:', e?.message, e);
       return res.status(500).json({ error: 'INTERNAL_ERROR', details: e?.message });
     }
@@ -195,10 +194,73 @@ export default async function handler(req, res) {
       console.error('POST /api/bimeal/book error:', e?.message, e);
       return res.status(500).json({ error: 'INTERNAL_ERROR', details: e?.message });
     } finally {
-      if (conn) conn.release();
+      conn?.release();
     }
   }
 
-  res.setHeader('Allow', ['GET', 'POST']);
+  // ===== PUT: update status booking (Finish, Approve/Reject, dll) =====
+  if (req.method === 'PUT') {
+    let body = {};
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch {
+      return res.status(400).json({ error: 'Body harus JSON' });
+    }
+
+    const bookingId = Number(body?.bookingId);
+    const newStatusId = Number(body?.newStatusId);
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : null;
+
+    if (!Number.isFinite(bookingId) || bookingId <= 0) {
+      return res.status(400).json({ error: 'bookingId tidak valid' });
+    }
+    if (![1, 2, 3, 4].includes(newStatusId)) {
+      return res.status(400).json({ error: 'newStatusId harus salah satu dari 1,2,3,4' });
+    }
+
+    let conn;
+    try {
+      conn = await db.getConnection();
+
+      // Pastikan booking milik user yang login
+      const [chk] = await conn.query(
+        'SELECT id FROM bimeal_bookings WHERE id = ? AND user_id = ? LIMIT 1',
+        [bookingId, userId]
+      );
+      if (!Array.isArray(chk) || chk.length === 0) {
+        conn?.release();
+        return res.status(404).json({ error: 'Booking tidak ditemukan atau bukan milik Anda' });
+      }
+
+      // Jika kamu punya kolom untuk alasan penolakan, aktifkan query berikut
+      // const [upd] = await conn.query(
+      //   `UPDATE bimeal_bookings
+      //     SET status_id = ?, rejection_reason = ?, updated_at = NOW()
+      //    WHERE id = ? AND user_id = ?`,
+      //   [newStatusId, newStatusId === 3 ? (reason || null) : null, bookingId, userId]
+      // );
+
+      const [upd] = await conn.query(
+        `UPDATE bimeal_bookings
+           SET status_id = ?, updated_at = NOW()
+         WHERE id = ? AND user_id = ?`,
+        [newStatusId, bookingId, userId]
+      );
+
+      if (upd.affectedRows === 0) {
+        conn?.release();
+        return res.status(404).json({ error: 'Booking tidak ditemukan' });
+      }
+
+      conn?.release();
+      return res.status(200).json({ ok: true });
+    } catch (e) {
+      conn?.release();
+      console.error('PUT /api/bimeal/book error:', e?.message, e);
+      return res.status(500).json({ error: 'INTERNAL_ERROR', details: e?.message });
+    }
+  }
+
+  res.setHeader('Allow', ['GET', 'POST', 'PUT']);
   return res.status(405).json({ error: `Method ${req.method} not allowed` });
 }

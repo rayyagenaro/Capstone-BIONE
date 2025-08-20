@@ -48,8 +48,7 @@ const SERVICE_ID_TO_KEY = {
 
 const norm = (s) => String(s || '').trim().toLowerCase();
 
-// === NEW: LOGO PER LAYANAN ===
-// Pastikan nama file sesuai isi folder /public/assets kamu
+// === LOGO PER LAYANAN (pastikan file ada di /public/assets) ===
 const FEATURE_LOGOS = {
   bidrive: "/assets/D'MOVE.svg",
   bicare:  "/assets/BI-CARE.svg",
@@ -60,7 +59,7 @@ const FEATURE_LOGOS = {
 };
 const logoSrcOf = (booking) => {
   const key = resolveFeatureKey(booking);
-  return FEATURE_LOGOS[key] || '/assets/BI-One-Blue.png'; // fallback aman
+  return FEATURE_LOGOS[key] || '/assets/BI-One-Blue.png';
 };
 
 // === helper untuk ambil ID numerik dari string seperti "bidrive-32"
@@ -163,6 +162,50 @@ async function setVehiclesAvailable(vehicleIds, availableStatusId = 1) {
   return { ok: true, affected: results.length };
 }
 
+/* ===================== Helper umum: update status booking per layanan ===================== */
+async function updateServiceStatus(featureKey, bookingId, newStatusId = 4, ns) {
+  // normalisasi ID
+  const idNum = numericIdOf(bookingId);
+  if (!Number.isFinite(idNum)) {
+    throw new Error('ID booking tidak valid');
+  }
+
+  // mapping endpoint PUT status untuk tiap layanan
+  const endpoint = {
+    bidrive: '/api/booking',                 // PUT { bookingId, newStatusId, ns? }
+    bimeet:  '/api/bimeet/createbooking',    // PUT { bookingId, newStatusId, ns? } (sudah kamu buat)
+    bimeal:  '/api/bimeal/book',          // siapkan di backend
+    bistay:  '/api/BIstaybook/bistaybooking',          // siapkan di backend
+  }[featureKey];
+
+  if (!endpoint) {
+    throw new Error(`Finish tidak didukung untuk layanan ${featureKey}.`);
+  }
+
+  const res = await fetch(endpoint, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookingId: idNum, newStatusId, ...(ns ? { ns } : {}) }),
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    let msg = `Gagal update status booking (${featureKey}).`;
+    try {
+      const err = await res.json();
+      if (err?.error) msg = err.error;
+      if (err?.message) msg += ` — ${err.message}`;
+    } catch {}
+    throw new Error(msg);
+  }
+
+  try {
+    return await res.json();
+  } catch {
+    return { ok: true };
+  }
+}
+
 /* ===================== Normalisasi BI.Care → kartu generik ===================== */
 const mapBICareStatusToId = (status) => {
   const s = String(status || '').toLowerCase();
@@ -225,7 +268,7 @@ function normalizeBIMailRow(row) {
     tujuan: row.perihal || `Dokumen ${row.nomor_surat || ''}`.trim(),
     start_date: start,
     end_date: start,
-    status_id: 1, // tabel tidak punya status → anggap Pending
+    status_id: 4, // tabel tidak punya status → anggap Pending
     // field khusus untuk modal/kartu
     nomor_surat: row.nomor_surat,
     tipe_dokumen: row.tipe_dokumen,   // 'B' | 'RHS'
@@ -290,14 +333,15 @@ function normalizeBIMeetRow(row) {
 }
 /* ===================== Normalisasi BI.Stay ===================== */
 function normalizeBIStayRow(row) {
-  // status approval belum ada di tabel → tampilkan sebagai Pending (1)
+  // API GET mengembalikan: id, nama_pemesan, nip, no_wa, asal_kpw, check_in, check_out, keterangan, status_pegawai (info jenis pegawai, bukan approval)
+  // status approval belum ada di tabel → tampilkan sebagai Pending (1) agar konsisten dengan tampilan
   return {
     id: `bistay-${row.id}`,
     feature_key: 'bistay',
     tujuan: row.asal_kpw ? `Menginap • ${row.asal_kpw}` : 'Menginap',
     start_date: row.check_in,
     end_date: row.check_out,
-    status_id: 1,
+    status_id: Number(row.status_id) || 1,
     _raw_bistay: {
       nama_pemesan: row.nama_pemesan,
       nip: row.nip,
@@ -387,7 +431,7 @@ const BookingCard = React.memo(({ booking, onClick }) => {
       role="button"
       tabIndex={0}
     >
-      {/* === LOGO DINAMIS PER LAYANAN === */}
+      {/* Logo dinamis per layanan */}
       <Image
         src={logoSrcOf(booking)}
         alt={featureLabel || 'logo'}
@@ -635,7 +679,8 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
             </>
           )}
 
-          {featureKey === 'bidrive' && Number(booking.status_id) === 2 && (
+          {/* Tombol Finish: untuk semua layanan KECUALI BI.Care & BI.Docs, ketika status Approved */}
+          {featureKey !== 'bicare' && featureKey !== 'bidocs' && Number(booking.status_id) === 2 && (
             <div className={styles.modalActions}>
               <button
                 type="button"
@@ -657,6 +702,7 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
 /* ===================== KOMPONEN UTAMA ===================== */
 export default function StatusBooking() {
   const router = useRouter();
+  const ns = router.query?.ns; // untuk cookie namespaced bila ada
   const [userId, setUserId] = useState(null);
 
   const [allBookings, setAllBookings] = useState([]);
@@ -721,7 +767,7 @@ export default function StatusBooking() {
           setSeenCounts(raw ? { ...DEFAULT_SEEN, ...JSON.parse(raw) } : DEFAULT_SEEN);
         } catch { setSeenCounts(DEFAULT_SEEN); }
 
-        // 1) Booking BI.Drive/umum (endpoint lama)
+        // 1) Booking BI.Drive/umum
         let dataMain = [];
         const resMain = await fetch(`/api/booking?userId=${uid}`, { cache: 'no-store' });
         if (resMain.ok) {
@@ -839,11 +885,11 @@ export default function StatusBooking() {
 
   const closeModal = useCallback(() => setSelectedBooking(null), []);
 
-  // Finish Booking → khusus BI.Drive
+  // Finish Booking → untuk semua layanan kecuali BI.Care & BI.Docs
   const markAsFinished = useCallback(async (booking) => {
     const featureKey = resolveFeatureKey(booking);
-    if (featureKey !== 'bidrive') {
-      alert('Finish hanya untuk BI.Drive.');
+    if (featureKey === 'bicare' || featureKey === 'bidocs') {
+      alert('Fitur ini tidak mendukung Finish dari UI.');
       return;
     }
 
@@ -856,53 +902,50 @@ export default function StatusBooking() {
     try {
       setFinishing(true);
 
-      // pastikan sudah punya data assignment
-      let fullBooking =
-        selectedBooking && numericIdOf(selectedBooking.id) === bid ? selectedBooking : null;
+      if (featureKey === 'bidrive') {
+        // pastikan sudah punya data assignment
+        let fullBooking =
+          selectedBooking && numericIdOf(selectedBooking.id) === bid ? selectedBooking : null;
 
-      if (!fullBooking?.assigned_drivers || !fullBooking?.assigned_vehicles) {
-        try {
-          const r = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
-          if (r.ok) fullBooking = await r.json();
-        } catch {}
-      }
-
-      const driverIds = (fullBooking?.assigned_drivers || []).map(d => d.id);
-      const vehicleIds = (fullBooking?.assigned_vehicles || []).map(v => v.id);
-
-      // 1) Update status ke Finished (4)
-      {
-        const res = await fetch('/api/booking', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: bid, newStatusId: 4 }),
-        });
-        if (!res.ok) {
-          const e = await res.json().catch(() => ({}));
-          throw new Error(e.error || 'Gagal mengubah status menjadi Finished.');
+        if (!fullBooking?.assigned_drivers || !fullBooking?.assigned_vehicles) {
+          try {
+            const r = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
+            if (r.ok) fullBooking = await r.json();
+          } catch {}
         }
-      }
 
-      // 2) Set available
-      await setDriversAvailable(driverIds, 1);
-      await setVehiclesAvailable(vehicleIds, 1);
+        const driverIds = (fullBooking?.assigned_drivers || []).map(d => d.id);
+        const vehicleIds = (fullBooking?.assigned_vehicles || []).map(v => v.id);
+
+        // 1) Update status ke Finished (4) — kirim ns bila ada
+        await updateServiceStatus('bidrive', bid, 4, ns);
+
+        // 2) Set available
+        await setDriversAvailable(driverIds, 1);
+        await setVehiclesAvailable(vehicleIds, 1);
+      } else {
+        // layanan lain: cukup update status saja (tidak ada assignment driver/vehicle)
+        await updateServiceStatus(featureKey, bid, 4, ns);
+      }
 
       // 3) Refresh state lokal
       setAllBookings(prev =>
         prev.map(b => (numericIdOf(b.id) === bid ? { ...b, status_id: 4 } : b))
       );
 
-      try {
-        const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
-        const full = await r2.json().catch(() => null);
-
-        // Tambahkan feature_key: 'bidrive' biar konsisten
-        setSelectedBooking(
-          full ? { ...full, feature_key: 'bidrive' } 
-              : { ...booking, status_id: 4 }
-        );
-
-      } catch {
+      // Perbarui selectedBooking (khusus bidrive coba ambil ulang detail)
+      if (featureKey === 'bidrive') {
+        try {
+          const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
+          const full = await r2.json().catch(() => null);
+          setSelectedBooking(
+            full ? { ...full, feature_key: 'bidrive' }
+                : { ...booking, status_id: 4 }
+          );
+        } catch {
+          setSelectedBooking(prev => (prev ? { ...prev, status_id: 4 } : prev));
+        }
+      } else {
         setSelectedBooking(prev => (prev ? { ...prev, status_id: 4 } : prev));
       }
 
@@ -913,7 +956,7 @@ export default function StatusBooking() {
     } finally {
       setFinishing(false);
     }
-  }, [selectedBooking]);
+  }, [selectedBooking, ns]);
 
   /* ===================== Hitung count & badge ===================== */
   const tabCounts = useMemo(() => {

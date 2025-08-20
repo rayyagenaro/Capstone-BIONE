@@ -11,6 +11,11 @@ import 'react-datepicker/dist/react-datepicker.css';
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 
+function makeNs() {
+  const rnd = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
+  return rnd.replace(/-/g, '').slice(0, 8);
+}
+
 // --- CUSTOM HOOKS ---
 const useDropdown = (initialState = false) => {
     const [isOpen, setIsOpen] = useState(initialState);
@@ -45,6 +50,7 @@ export default function FiturDmove() {
         .catch(err => console.error('Error availability:', err));
     }, []);
     const router = useRouter();
+    const { ns } = router.query;
     const { isOpen: isVehicleDropdownOpen, setIsOpen: setVehicleDropdownOpen, ref: vehicleDropdownRef } = useDropdown();
 
     const getMaxQuantity = (typeId) => {
@@ -300,7 +306,7 @@ export default function FiturDmove() {
 
     const closeSuccess = () => {
         setShowSuccess(false);
-        router.push("/User/StatusBooking/hal-statusBooking");
+        router.push(`/User/StatusBooking/hal-statusBooking?ns=${ns}`);
     };
     const handleLogout = async () => {
         try {

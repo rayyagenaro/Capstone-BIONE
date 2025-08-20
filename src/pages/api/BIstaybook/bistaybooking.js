@@ -3,7 +3,6 @@ import db from '@/lib/db';
 import { jwtVerify } from 'jose';
 
 /* ---------- Helpers ---------- */
-
 function toMySQLDateTime(value) {
   const d = new Date(value);
   const pad = (n) => String(n).padStart(2, '0');
@@ -16,16 +15,36 @@ function toMySQLDateTime(value) {
   return `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
 }
 
+// ===== NS-aware auth helpers =====
+const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+
+function getNsFromReq(req) {
+  const qns = req.query?.ns ?? req.body?.ns ?? req.cookies?.current_user_ns;
+  return (typeof qns === 'string' && NS_RE.test(qns)) ? qns : '';
+}
+
+function pickAnyUserSessionCookie(cookies = {}) {
+  const key = Object.keys(cookies).find((k) => /^user_session__/.test(k));
+  return key ? cookies[key] : null;
+}
+
 async function getUserIdFromCookie(req) {
   try {
-    const token = req.cookies?.user_session;
+    const ns = getNsFromReq(req);
+    const token =
+      (ns && req.cookies?.[`user_session__${ns}`]) ||
+      req.cookies?.user_session ||
+      pickAnyUserSessionCookie(req.cookies);
+
     if (!token) return null;
     const secret = process.env.JWT_SECRET;
+    if (!secret) return null;
+
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
       algorithms: ['HS256'],
       clockTolerance: 10,
     });
-    return payload?.sub || payload?.user_id || null;
+    return payload?.sub || payload?.user_id || payload?.id || null;
   } catch {
     return null;
   }
@@ -42,23 +61,15 @@ const ALLOWED_SORT = new Set([
   'nip',
   'check_in',
   'check_out',
+  'status_id',
   'created_at',
 ]);
 
 /* ---------- Handler ---------- */
-
 export default async function handler(req, res) {
+  // ===== GET: list/detail =====
   if (req.method === 'GET') {
     try {
-      // Query params:
-      // - id: number (jika diset -> fetch detail)
-      // - page: number (default 1)
-      // - limit: number (default 10)
-      // - q: string (search nama_pemesan/nip/no_wa/asal_kpw)
-      // - from, to: date string (filter rentang tanggal berdasarkan check_in/check_out)
-      // - orderBy: field (whitelist)
-      // - order: ASC|DESC
-      // - mine: "1" untuk hanya data milik user (berdasarkan cookie)
       const {
         id,
         page = '1',
@@ -87,6 +98,7 @@ export default async function handler(req, res) {
             b.check_in,
             b.check_out,
             b.keterangan,
+            b.status_id,
             b.created_at,
             b.updated_at
           FROM bistay_bookings b
@@ -98,7 +110,6 @@ export default async function handler(req, res) {
         );
         if (!rows?.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
 
-        // Opsi: batasi ke milik user
         if (mine === '1') {
           const uid = await getUserIdFromCookie(req);
           if (!uid || String(rows[0].user_id ?? '') !== String(uid)) {
@@ -109,7 +120,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, data: rows[0] });
       }
 
-      // List with filters
+      // List
       const pageNum = toInt(page, 1);
       const limitNum = toInt(limit, 10);
       const offset = (pageNum - 1) * limitNum;
@@ -140,7 +151,6 @@ export default async function handler(req, res) {
       }
 
       const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-
       const sortField = ALLOWED_SORT.has(String(orderBy)) ? String(orderBy) : 'created_at';
       const sortDir = String(order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
@@ -158,6 +168,7 @@ export default async function handler(req, res) {
           b.check_in,
           b.check_out,
           b.keterangan,
+          b.status_id,
           b.created_at,
           b.updated_at
         FROM bistay_bookings b
@@ -194,8 +205,52 @@ export default async function handler(req, res) {
     }
   }
 
+  // ===== PUT: update status_id =====
+  if (req.method === 'PUT') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+      const bookingId = Number.parseInt(body?.bookingId, 10);
+      const newStatusId = Number.parseInt(body?.newStatusId, 10);
+
+      if (!Number.isFinite(bookingId) || bookingId <= 0) {
+        return res.status(400).json({ error: 'bookingId tidak valid' });
+      }
+      if (![1, 2, 3, 4].includes(newStatusId)) {
+        return res.status(400).json({ error: 'newStatusId harus 1|2|3|4' });
+      }
+
+      // Auth & pembatasan kepemilikan
+      const uid = await getUserIdFromCookie(req);
+      if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+
+      const [own] = await db.execute(
+        'SELECT id, user_id FROM bistay_bookings WHERE id = ? LIMIT 1',
+        [bookingId]
+      );
+      if (!own?.length) return res.status(404).json({ error: 'Booking tidak ditemukan' });
+      if (String(own[0].user_id) !== String(uid)) {
+        return res.status(403).json({ error: 'Tidak boleh mengubah booking ini' });
+      }
+
+      const [result] = await db.execute(
+        'UPDATE bistay_bookings SET status_id = ?, updated_at = NOW() WHERE id = ? AND user_id = ?',
+        [newStatusId, bookingId, uid]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(409).json({ error: 'Gagal mengubah status (tidak ada baris terpengaruh)' });
+      }
+
+      return res.status(200).json({ ok: true, id: bookingId, status_id: newStatusId });
+    } catch (e) {
+      console.error('PUT /api/BIstaybook/bistaybooking error:', e);
+      return res.status(500).json({ error: 'INTERNAL_ERROR', message: e?.message });
+    }
+  }
+
+  // ===== POST: create =====
   if (req.method !== 'POST') {
-    res.setHeader('Allow', ['GET', 'POST']);
+    res.setHeader('Allow', ['GET', 'POST', 'PUT']);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -205,14 +260,15 @@ export default async function handler(req, res) {
       nama_pemesan,
       nip,
       no_wa,
-      status,
+      status,        // status pegawai (id atau nama)
       asal_kpw,
       check_in,
       check_out,
       keterangan,
-    } = req.body || {};
+      status_id,     // status booking (approval) optional
+      ns,            // optional namespace; hanya untuk baca cookie lain
+    } = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) || {};
 
-    // Validasi dasar
     const missing = [];
     if (!nama_pemesan?.trim()) missing.push('nama_pemesan');
     if (!nip?.trim()) missing.push('nip');
@@ -231,9 +287,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'check_out harus setelah check_in' });
     }
 
-    // Map status -> status_pegawai_id
-    let statusId = Number(status);
-    if (!statusId) {
+    // map status (pegawai) → status_pegawai_id
+    let statusPegId = Number(status);
+    if (!statusPegId) {
       const [rows] = await db.execute(
         'SELECT id FROM bistay_status_pegawai WHERE status = ? LIMIT 1',
         [String(status)]
@@ -241,32 +297,33 @@ export default async function handler(req, res) {
       if (!rows?.length) {
         return res.status(400).json({ error: 'Status pegawai tidak valid' });
       }
-      statusId = rows[0].id;
+      statusPegId = rows[0].id;
     }
 
-    // Ambil user id dari cookie jika tidak dikirim
+    // user_id dari cookie jika tidak dikirim
     let finalUserId = user_id ?? null;
     if (finalUserId == null) {
-      finalUserId = await getUserIdFromCookie(req);
+      // getUserIdFromCookie sudah NS-aware, jadi cukup panggil saja
+      finalUserId = await getUserIdFromCookie({ ...req, body: { ...req.body, ns } });
     }
 
-    // Simpan ke tabel
     const sql = `
       INSERT INTO bistay_bookings
-        (user_id, nama_pemesan, nip, no_wa, status_pegawai_id, asal_kpw, check_in, check_out, keterangan)
+        (user_id, nama_pemesan, nip, no_wa, status_pegawai_id, asal_kpw, check_in, check_out, keterangan, status_id)
       VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       finalUserId ?? null,
       nama_pemesan.trim(),
       nip.trim(),
       no_wa.trim(),
-      statusId,
+      statusPegId,
       asal_kpw.trim(),
       toMySQLDateTime(check_in),
       toMySQLDateTime(check_out),
       keterangan ?? null,
+      status_id ?? 1, // default Pending
     ];
 
     const [result] = await db.execute(sql, params);
@@ -274,6 +331,7 @@ export default async function handler(req, res) {
     return res.status(201).json({
       ok: true,
       id: result.insertId,
+      status_id: status_id ?? 1,
       message: 'Booking BI.STAY berhasil disimpan.',
     });
   } catch (e) {
