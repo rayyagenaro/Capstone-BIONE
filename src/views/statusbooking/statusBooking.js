@@ -48,7 +48,22 @@ const SERVICE_ID_TO_KEY = {
 
 const norm = (s) => String(s || '').trim().toLowerCase();
 
-// === NEW: helper untuk ambil ID numerik dari string seperti "bidrive-32"
+// === NEW: LOGO PER LAYANAN ===
+// Pastikan nama file sesuai isi folder /public/assets kamu
+const FEATURE_LOGOS = {
+  bidrive: "/assets/D'MOVE.svg",
+  bicare:  "/assets/BI-CARE.svg",
+  bimeal:  "/assets/D'MEAL.svg",
+  bimeet:  "/assets/D'ROOM.svg",
+  bidocs:  "/assets/BI-MAIL.svg",
+  bistay:  "/assets/D'REST.svg",
+};
+const logoSrcOf = (booking) => {
+  const key = resolveFeatureKey(booking);
+  return FEATURE_LOGOS[key] || '/assets/BI-One-Blue.png'; // fallback aman
+};
+
+// === helper untuk ambil ID numerik dari string seperti "bidrive-32"
 const numericIdOf = (id) => {
   const m = String(id ?? '').match(/(\d+)$/);
   return m ? Number(m[1]) : NaN;
@@ -275,16 +290,14 @@ function normalizeBIMeetRow(row) {
 }
 /* ===================== Normalisasi BI.Stay ===================== */
 function normalizeBIStayRow(row) {
-  // API GET mengembalikan: id, nama_pemesan, nip, no_wa, asal_kpw, check_in, check_out, keterangan, status_pegawai (info jenis pegawai, bukan approval)
-  // status approval belum ada di tabel → tampilkan sebagai Pending (1) agar konsisten dengan tampilan
+  // status approval belum ada di tabel → tampilkan sebagai Pending (1)
   return {
     id: `bistay-${row.id}`,
     feature_key: 'bistay',
     tujuan: row.asal_kpw ? `Menginap • ${row.asal_kpw}` : 'Menginap',
     start_date: row.check_in,
     end_date: row.check_out,
-    status_id: 1, // pending (default, sampai ada kolom status booking)
-    // field khusus untuk kartu/modal:
+    status_id: 1,
     _raw_bistay: {
       nama_pemesan: row.nama_pemesan,
       nip: row.nip,
@@ -374,7 +387,14 @@ const BookingCard = React.memo(({ booking, onClick }) => {
       role="button"
       tabIndex={0}
     >
-      <Image src={"/assets/D'MOVE.svg"} alt="logo" width={70} height={70} className={styles.cardLogo} />
+      {/* === LOGO DINAMIS PER LAYANAN === */}
+      <Image
+        src={logoSrcOf(booking)}
+        alt={featureLabel || 'logo'}
+        width={70}
+        height={70}
+        className={styles.cardLogo}
+      />
       <div className={styles.cardDetail}>
         <div className={styles.cardTitle}>
           {featureLabel ? `[${featureLabel}] ` : ''}Booking | {booking.tujuan || 'Tanpa Tujuan'}
@@ -675,7 +695,7 @@ export default function StatusBooking() {
     finally { router.replace('/Signin/hal-sign'); }
   };
 
-  // Load user, seenCounts, dan data booking (Drive + BI.Care + BI.Docs)
+  // Load user, seenCounts, dan data booking (Drive + BI.Care + BI.Docs + dll)
   useEffect(() => {
     let active = true;
 
@@ -876,7 +896,7 @@ export default function StatusBooking() {
         const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
         const full = await r2.json().catch(() => null);
 
-        // 🔧 Tambahkan feature_key: 'bidrive' biar konsisten
+        // Tambahkan feature_key: 'bidrive' biar konsisten
         setSelectedBooking(
           full ? { ...full, feature_key: 'bidrive' } 
               : { ...booking, status_id: 4 }
