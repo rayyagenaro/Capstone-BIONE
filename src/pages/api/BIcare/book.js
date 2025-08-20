@@ -1,189 +1,148 @@
 // /pages/api/BIcare/book.js
 import db from '@/lib/db';
+import { jwtVerify } from 'jose';
 
-function toMinutes(hms) {
-  const [H, M] = String(hms).split(':').map((x) => parseInt(x, 10));
-  return (H || 0) * 60 + (M || 0);
-}
-function toHHMM(mins) {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-}
-function expandSlots(start_time, end_time, stepMinutes) {
-  const start = toMinutes(start_time);
-  const end   = toMinutes(end_time);
-  const out = [];
-  for (let t = start; t < end; t += stepMinutes) out.push(toHHMM(t));
-  return out;
-}
-const DOW = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
-export default async function handler(req, res) {
+/* ===== helpers: ns & auth (mirip bimeal.js) ===== */
+function getNsFromReq(req) {
+  const q = req.query?.ns;
+  if (typeof q === 'string' && NS_RE.test(q)) return q;
+  const sticky = req.cookies?.current_user_ns;
+  if (typeof sticky === 'string' && NS_RE.test(sticky)) return sticky;
+  const keys = Object.keys(req.cookies || {});
+  const pref = 'user_session__';
+  const found = keys.find((k) => k.startsWith(pref));
+  if (found) return found.slice(pref.length);
+  return '';
+}
+
+async function verifyUser(req) {
   try {
-    /* ===================== GET: list booking milik user (tetap) ===================== */
-    if (req.method === 'GET') {
-      try {
-        const userId = Number(req.query.userId || 0);
-        const wa = String(req.query.wa || '').trim();
+    const ns = getNsFromReq(req);
+    if (!ns) return { ok: false, reason: 'NO_NS' };
+    const token = req.cookies?.[`user_session__${ns}`];
+    if (!token) return { ok: false, reason: 'NO_TOKEN' };
 
-        if (!userId && !wa) {
-          res.setHeader('Allow', ['GET', 'POST']);
-          return res.status(400).json({ error: 'userId atau wa wajib diisi' });
-        }
+    const secret = process.env.JWT_SECRET;
+    if (!secret) return { ok: false, reason: 'NO_SECRET' };
 
-        let rows = [];
-        if (userId) {
-          [rows] = await db.query(
-            `SELECT id, user_id, doctor_id, booking_date, slot_time, status,
-                    booker_name, nip, wa, patient_name, patient_status,
-                    gender, birth_date, complaint, created_at
-               FROM dmove_db1.bicare_bookings
-              WHERE user_id = ?
-              ORDER BY booking_date DESC, slot_time DESC`,
-            [userId]
-          );
-        } else {
-          [rows] = await db.query(
-            `SELECT id, user_id, doctor_id, booking_date, slot_time, status,
-                    booker_name, nip, wa, patient_name, patient_status,
-                    gender, birth_date, complaint, created_at
-               FROM dmove_db1.bicare_bookings
-              WHERE wa = ?
-              ORDER BY booking_date DESC, slot_time DESC`,
-            [wa]
-          );
-
-          const maybeUserId = Number(req.query.userId || 0);
-          if (rows.length && maybeUserId > 0) {
-            await db.query(
-              `UPDATE dmove_db1.bicare_bookings
-                  SET user_id = ?
-                WHERE wa = ? AND user_id IS NULL`,
-              [maybeUserId, wa]
-            );
-          }
-        }
-
-        return res.status(200).json(rows);
-      } catch (e) {
-        console.error('GET /api/BIcare/book error:', e);
-        return res.status(500).json({ error: 'Gagal ambil data BI.Care' });
-      }
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+      clockTolerance: 10,
+    });
+    // payload harus milik role user
+    if (!payload || (payload.role && String(payload.role) !== 'user')) {
+      return { ok: false, reason: 'ROLE' };
     }
+    // user id bisa ada di sub / user_id / id (amankan semua kemungkinan)
+    const userId = Number(payload.sub ?? payload.user_id ?? payload.id);
+    if (!userId) return { ok: false, reason: 'NO_USERID' };
 
-    /* ===================== POST: buat booking baru (validasi pakai aturan) ===================== */
-    if (req.method === 'POST') {
-      const b = req.body || {};
-
-      // Catatan: kalau layer auth kamu menyuntikkan userId di server, bagian ini boleh di-relax.
-      const userId = Number(b.userId || 0);
-      if (!userId) {
-        res.setHeader('Allow', ['GET', 'POST']);
-        return res.status(400).json({ error: 'userId wajib diisi' });
-      }
-
-      const doctorId     = Number(b.doctorId || 1);
-      const bookingDate  = String(b.bookingDate || '').trim(); // "YYYY-MM-DD"
-      let   slotTime     = String(b.slotTime || '').trim();    // "HH:MM" atau "HH:MM:SS"
-
-      const booker_name   = (b.booker_name || '').trim();
-      const nip           = (b.nip || '').trim();
-      const wa            = (b.wa || '').trim();
-      const patient_name  = (b.patient_name || '').trim();
-      const patient_status= (b.patient_status || '').trim();
-      const gender        = (b.gender || '').trim();
-      const birth_date    = (b.birth_date || '').trim();
-      const complaint     = (b.complaint || null);
-
-      if (!doctorId || !/^\d{4}-\d{2}-\d{2}$/.test(bookingDate)) {
-        return res.status(400).json({ error: 'doctorId/bookingDate tidak valid' });
-      }
-      if (!slotTime) return res.status(400).json({ error: 'slotTime wajib diisi' });
-      if (/^\d{2}:\d{2}$/.test(slotTime)) slotTime = `${slotTime}:00`;
-      const hhmm = slotTime.slice(0,5);
-
-      if (!booker_name || !nip || !wa || !patient_name || !patient_status || !gender || !birth_date) {
-        return res.status(400).json({ error: 'Data pasien/pemesan belum lengkap' });
-      }
-
-      const conn = await db.getConnection();
-      try {
-        await conn.beginTransaction();
-
-        // 1) Ambil aturan aktif untuk DOW tanggal tsb
-        const dow = DOW[new Date(`${bookingDate}T00:00:00+07:00`).getDay()];
-        const [rules] = await conn.query(
-          `SELECT start_time, end_time, slot_minutes
-             FROM dmove_db1.bicare_availability_rules
-            WHERE doctor_id = ? AND is_active = 1 AND weekday = ?`,
-          [doctorId, dow]
-        );
-
-        if (!rules.length) {
-          await conn.rollback(); conn.release();
-          return res.status(400).json({ error: 'Tanggal ini tidak ada jadwal praktik' });
-        }
-
-        // 2) Ekspansi slot dari aturan hari tsb
-        let allowedSet = new Set();
-        for (const r of rules) {
-          const slots = expandSlots(String(r.start_time).slice(0,5), String(r.end_time).slice(0,5), Number(r.slot_minutes || 30));
-          slots.forEach((s) => allowedSet.add(s));
-        }
-        if (!allowedSet.has(hhmm)) {
-          await conn.rollback(); conn.release();
-          return res.status(400).json({ error: 'Jam tidak tersedia pada tanggal tersebut' });
-        }
-
-        // 3) Cek konflik (Booked / ADMIN_BLOCK)
-        const [exists] = await conn.query(
-          `SELECT id, booker_name
-             FROM dmove_db1.bicare_bookings
-            WHERE doctor_id = ? AND booking_date = ? AND slot_time = ? AND status = 'Booked'
-            FOR UPDATE`,
-          [doctorId, bookingDate, slotTime]
-        );
-        if (exists.length) {
-          await conn.rollback(); conn.release();
-          return res.status(409).json({ error: 'Slot sudah terisi' });
-        }
-
-        // 4) Insert booking
-        const [result] = await conn.query(
-          `INSERT INTO dmove_db1.bicare_bookings
-            (user_id, doctor_id, booking_date, slot_time, status,
-             booker_name, nip, wa, patient_name, patient_status,
-             gender, birth_date, complaint, created_at)
-           VALUES (?, ?, ?, ?, 'Booked',
-                   ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-          [
-            userId, doctorId, bookingDate, slotTime,
-            booker_name, nip, wa, patient_name, patient_status,
-            gender, birth_date, complaint
-          ]
-        );
-
-        await conn.commit();
-        conn.release();
-        return res.status(201).json({ ok: true, id: result?.insertId });
-      } catch (e) {
-        try { await conn.rollback(); } catch {}
-        try { conn.release(); } catch {}
-
-        if (e && (e.code === 'ER_DUP_ENTRY' || String(e.message || '').includes('Duplicate'))) {
-          return res.status(409).json({ error: 'Slot sudah dibooking orang lain' });
-        }
-        console.error('POST /api/BIcare/book error:', e);
-        return res.status(500).json({ error: 'Gagal booking', details: e?.message });
-      }
-    }
-
-    /* ===================== Method lain ===================== */
-    res.setHeader('Allow', ['GET', 'POST']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+    return { ok: true, userId, payload, ns };
   } catch (e) {
-    console.error('API /BIcare/book outer error:', e);
-    return res.status(500).json({ error: 'Internal Server Error', details: e?.message });
+    console.error('verifyUser BIcare fail:', e);
+    return { ok: false, reason: 'VERIFY_FAIL' };
+  }
+}
+
+/* ===== utils ===== */
+const to62 = (val) => {
+  let p = String(val || '').replace(/[^\d]/g, '');
+  if (!p) return null;
+  if (p.startsWith('62')) return p.replace(/^620+/, '62');
+  if (p.startsWith('0')) return '62' + p.slice(1);
+  if (p.startsWith('8')) return '62' + p;
+  return p;
+};
+const hhmmToHms = (t) => {
+  const s = String(t || '').trim();
+  if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s;
+  if (/^\d{1,2}:\d{2}$/.test(s)) {
+    const [h, m] = s.split(':');
+    return `${h.padStart(2, '0')}:${m}:00`;
+  }
+  return null;
+};
+
+/* ===== handler ===== */
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: `Method ${req.method} not allowed` });
+  }
+
+  const auth = await verifyUser(req);
+  if (!auth.ok) {
+    return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+  }
+  const userId = auth.userId;
+
+  let body = {};
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch {
+    return res.status(400).json({ error: 'Body harus JSON' });
+  }
+
+  // Support camelCase (dari form kamu) dan snake_case
+  const doctor_id    = body.doctor_id ?? body.doctorId;
+  const booking_date = body.booking_date ?? body.bookingDate;        // "YYYY-MM-DD"
+  const slot_time_in = body.slot_time ?? body.slotTime;              // "HH:mm" / "HH:mm:ss"
+  const booker_name  = body.booker_name ?? body.booker_name ?? body.bookerName;
+  const nip          = body.nip;
+  const wa_in        = body.wa;
+  const patient_name = body.patient_name ?? body.patientName;
+  const patient_status = body.patient_status ?? body.patientStatus;
+  const gender       = body.gender;
+  const birth_date   = body.birth_date ?? body.birthDate ?? null;    // "YYYY-MM-DD"
+  const complaint    = body.complaint ?? null;
+
+  const slot_time = hhmmToHms(slot_time_in);
+  const wa = to62(wa_in);
+
+  // Validasi minimal
+  const errors = {};
+  if (!doctor_id) errors.doctor_id = 'doctor_id wajib';
+  if (!booking_date) errors.booking_date = 'booking_date wajib';
+  if (!slot_time) errors.slot_time = 'slot_time tidak valid';
+  if (!booker_name) errors.booker_name = 'booker_name wajib';
+  if (!nip) errors.nip = 'nip wajib';
+  if (!wa) errors.wa = 'wa wajib';
+  if (!patient_name) errors.patient_name = 'patient_name wajib';
+  if (!patient_status) errors.patient_status = 'patient_status wajib';
+  if (!gender) errors.gender = 'gender wajib';
+  if (Object.keys(errors).length) {
+    return res.status(422).json({ error: 'VALIDATION_ERROR', details: errors });
+  }
+
+  try {
+    const [result] = await db.execute(
+      `
+      INSERT INTO bicare_bookings
+        (user_id, doctor_id, booking_date, slot_time, status, booker_name, nip, wa, patient_name, patient_status, gender, birth_date, complaint, created_at)
+      VALUES
+        (?,       ?,         ?,            ?,         'Booked', ?,           ?,   ?,  ?,            ?,             ?,      ?,          ?,        NOW())
+      `,
+      [
+        userId,
+        Number(doctor_id),
+        booking_date,
+        slot_time,
+        String(booker_name),
+        String(nip),
+        String(wa),
+        String(patient_name),
+        String(patient_status),
+        String(gender),
+        birth_date || null,
+        complaint || null,
+      ]
+    );
+
+    return res.status(201).json({ ok: true, id: result.insertId });
+  } catch (e) {
+    console.error('POST /api/BIcare/book error:', e?.message, e);
+    return res.status(500).json({ error: 'INTERNAL_ERROR', details: e?.message });
   }
 }
