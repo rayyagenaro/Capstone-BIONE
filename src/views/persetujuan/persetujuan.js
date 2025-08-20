@@ -484,7 +484,7 @@ export default function PersetujuanBooking() {
         // 6) BI.Stay (ADMIN)
         let dataStay = [];
         try {
-          const r = await fetch(withNs('/api/BIstaybook/bistaybooking?scope=admin', ns), { cache: 'no-store' });
+          const r = await fetch(withNs('/api/BIstaybook/bistaybooking?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
           if (r.ok) {
             const payload = await r.json();
             const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);

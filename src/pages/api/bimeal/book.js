@@ -66,7 +66,7 @@ const toMysqlDatetime = (d) =>
 
 /* ===== handler ===== */
 export default async function handler(req, res) {
-  // ===== GET =====
+  // ===== GET: user (milik sendiri) atau admin (semua / userId tertentu) =====
   if (req.method === 'GET') {
     const isAdminScope = String(req.query?.scope || '').toLowerCase() === 'admin';
     const auth = await verifyAuth(req, isAdminScope ? ['user', 'admin'] : ['user']);
@@ -74,37 +74,41 @@ export default async function handler(req, res) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
       return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
-    const { ns } = auth;
-    if (!ns) return res.status(400).json({ error: 'Namespace (ns) wajib' });
 
     const requestedUserId = req.query.userId ? Number(req.query.userId) : null;
     const listForUserId =
       isAdminScope && Number.isFinite(requestedUserId) && requestedUserId > 0
         ? requestedUserId
-        : (!isAdminScope ? auth.userId : null);
+        : (!isAdminScope ? auth.userId : null); // admin tanpa userId => semua
 
     let conn;
     try {
       conn = await db.getConnection();
 
+      // 1) header bookings
       let rows;
       if (listForUserId) {
         [rows] = await conn.query(
-          `SELECT id, user_id, nama_pic, nip_pic, no_wa_pic, unit_kerja,
-                  waktu_pesanan, status_id, created_at
-             FROM bimeal_bookings
-            WHERE user_id = ? AND ns = ?
-            ORDER BY created_at DESC`,
-          [listForUserId, ns]
+          `
+          SELECT
+            b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
+            b.waktu_pesanan, b.status_id, b.created_at
+          FROM bimeal_bookings b
+          WHERE b.user_id = ?
+          ORDER BY b.created_at DESC
+          `,
+          [listForUserId]
         );
       } else {
+        // admin lihat semua
         [rows] = await conn.query(
-          `SELECT id, user_id, nama_pic, nip_pic, no_wa_pic, unit_kerja,
-                  waktu_pesanan, status_id, created_at
-             FROM bimeal_bookings
-            WHERE ns = ?
-            ORDER BY created_at DESC`,
-          [ns]
+          `
+          SELECT
+            b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
+            b.waktu_pesanan, b.status_id, b.created_at
+          FROM bimeal_bookings b
+          ORDER BY b.created_at DESC
+          `
         );
       }
 
@@ -114,6 +118,7 @@ export default async function handler(req, res) {
         return res.status(200).json([]);
       }
 
+      // 2) items
       const ids = bookings.map((r) => r.id);
       const [items] = await conn.query(
         `SELECT booking_id, nama_pesanan, jumlah
@@ -137,15 +142,14 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== POST =====
+  // ===== POST: hanya user membuat booking =====
   if (req.method === 'POST') {
     const auth = await verifyAuth(req, ['user']);
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
       return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
-    const { userId, ns } = auth;
-    if (!ns) return res.status(400).json({ error: 'Namespace (ns) wajib' });
+    const userId = Number(auth.userId);
 
     let body = {};
     try { body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; }
@@ -180,8 +184,10 @@ export default async function handler(req, res) {
       if (pesanan.length) {
         const values = pesanan.map((p) => [bookingId, p.item, p.qty]);
         await conn.query(
-          `INSERT INTO bimeal_booking_items (booking_id, nama_pesanan, jumlah)
-           VALUES ?`,
+          `
+          INSERT INTO bimeal_booking_items (booking_id, nama_pesanan, jumlah)
+          VALUES ?
+          `,
           [values]
         );
       }
@@ -197,15 +203,13 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== PUT =====
+  // ===== PUT: update status (user: miliknya saja; admin: bebas) =====
   if (req.method === 'PUT') {
     const auth = await verifyAuth(req, ['user', 'admin']);
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
       return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
-    const { ns } = auth;
-    if (!ns) return res.status(400).json({ error: 'Namespace (ns) wajib' });
 
     let body = {};
     try { body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; }
@@ -223,9 +227,10 @@ export default async function handler(req, res) {
     try {
       conn = await db.getConnection();
 
+      // cek kepemilikan
       const [own] = await conn.query(
-        'SELECT id, user_id FROM bimeal_bookings WHERE id = ? AND ns = ? LIMIT 1',
-        [bookingId, ns]
+        'SELECT id, user_id FROM bimeal_bookings WHERE id = ? LIMIT 1',
+        [bookingId]
       );
       if (!Array.isArray(own) || own.length === 0) {
         conn?.release();
@@ -237,12 +242,25 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Booking bukan milik Anda' });
       }
 
+      // jika punya kolom rejection_reason, aktifkan versi berikut
+      // const [upd] = await conn.query(
+      //   `UPDATE bimeal_bookings
+      //      SET status_id = ?, rejection_reason = ?, updated_at = NOW()
+      //    WHERE id = ?`,
+      //   [newStatusId, newStatusId === 3 ? (reason || null) : null, bookingId]
+      // );
+
       const [upd] = await conn.query(
         `UPDATE bimeal_bookings
-            SET status_id = ?, updated_at = NOW()
-          WHERE id = ? AND ns = ?`,
-        [newStatusId, bookingId, ns]
+           SET status_id = ?, updated_at = NOW()
+         WHERE id = ?`,
+        [newStatusId, bookingId]
       );
+
+      if (upd.affectedRows === 0) {
+        conn?.release();
+        return res.status(409).json({ error: 'Tidak ada baris yang berubah' });
+      }
 
       conn?.release();
       return res.status(200).json({ ok: true, affected: upd.affectedRows });
