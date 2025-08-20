@@ -9,6 +9,7 @@ import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
 import RejectReasonPopup from '@/components/RejectReasonPopup/RejectReasonPopup';
 import RejectVerificationPopup from '@/components/rejectVerification/RejectVerification';
 import KontakDriverPopup from '@/components/KontakDriverPopup/KontakDriverPopup';
+import PopupAdmin from '@/components/PopupAdmin/PopupAdmin';
 
 const ALLOWED_SLUGS = ['dmove', 'bicare', 'bimeet', 'bimail', 'bistay', 'bimeal'];
 
@@ -36,12 +37,12 @@ const formatDuration = (start, end) => {
 
 const toWaNumber = (val) => {
   if (!val) return '';
-  let p = String(val).trim().replace(/[^\d]/g, ''); // keep digits only
+  let p = String(val).trim().replace(/[^\d]/g, '');
   if (!p) return '';
-  if (p.startsWith('62')) return p.replace(/^620+/, '62'); // handle 6208… -> 628…
-  if (p.startsWith('0'))  return '62' + p.slice(1);        // 08… -> 628…
-  if (p.startsWith('8'))  return '62' + p;                 // 812… -> 62812…
-  return p;                                                // already intl
+  if (p.startsWith('62')) return p.replace(/^620+/, '62');
+  if (p.startsWith('0'))  return '62' + p.slice(1);
+  if (p.startsWith('8'))  return '62' + p;
+  return p;
 };
 
 // ===== Status styles =====
@@ -102,27 +103,20 @@ const isPendingGeneric = (slug, d) => {
     );
   };
 
-  // BI.MEAL: pakai status_id
   if (s === 'bimeal') {
     const n = numish(d.status_id);
     return n === 1 || n === 0;
   }
-
-  // BI.MEET: pending bila NULL atau 0/1
   if (s === 'bimeet') {
     if (d.status_id == null) return true;
     const n = numish(d.status_id);
     return n === 1 || n === 0;
   }
-
-  // BI.STAY
   if (s === 'bistay') {
     const n = numish(d.status_id ?? d.booking_status_id ?? d.state);
     if (n != null) return n === 1 || n === 0;
     return byText();
   }
-
-  // default
   const n = numish(d.status_id ?? d.booking_status_id ?? d.state);
   if (n != null) return n === 1 || n === 0;
   return byText();
@@ -188,6 +182,14 @@ export default function DetailsLaporan() {
   const [pendingRejectReason, setPendingRejectReason] = useState('');
   const [rejectLoading, setRejectLoading] = useState(false);
 
+  // ✅ Notifikasi (PopupAdmin) — pengganti alert()
+  const [showNotif, setShowNotif] = useState(false);
+  const [notif, setNotif] = useState({ message: '', type: 'success' });
+  const openNotif = (message, type = 'success') => {
+    setNotif({ message, type });
+    setShowNotif(true);
+  };
+
   // ===== FETCH utama
   useEffect(() => {
     if (!router.isReady || !id) return;
@@ -240,12 +242,12 @@ export default function DetailsLaporan() {
     setIsUpdating(true);
     try {
       if ((driverIds?.length || 0) !== Number(booking.jumlah_driver)) {
-        alert(`Jumlah driver yang dipilih harus tepat ${booking.jumlah_driver}.`);
+        openNotif(`Jumlah driver yang dipilih harus tepat ${booking.jumlah_driver}.`, 'error');
         setIsUpdating(false);
         return;
       }
       if (!vehicleIds?.length) {
-        alert('Pilih kendaraan dulu ya.');
+        openNotif('Pilih kendaraan dulu ya.', 'error');
         setIsUpdating(false);
         return;
       }
@@ -274,10 +276,10 @@ export default function DetailsLaporan() {
           if (!r.ok) throw new Error(`Gagal update driver ${driverId}`);
         })
       );
-      alert('Persetujuan berhasil diproses.');
+      openNotif('Persetujuan berhasil diproses.', 'success');
       router.push('/Admin/Persetujuan/hal-persetujuan');
     } catch (err) {
-      alert(`Error: ${err.message || err}`);
+      openNotif(`Error: ${err.message || err}`, 'error');
     } finally {
       setIsUpdating(false);
       setShowPopup(false);
@@ -285,21 +287,18 @@ export default function DetailsLaporan() {
   };
 
   // ========= REJECT (2 langkah) =========
-  // Step 1 -> simpan alasan sementara & lanjut ke popup kirim
   const handleRejectStep1Done = (reasonText) => {
     setPendingRejectReason(reasonText);
     setShowRejectReason(false);
     setShowRejectSend(true);
   };
 
-  // Step 2: simpan ke DB + (opsional) buka WA
   const handleRejectStep2Submit = async (reasonText, openWhatsApp, messageText) => {
     const reason = (reasonText || '').trim();
-    if (!reason) { alert('Alasan kosong.'); return; }
+    if (!reason) { openNotif('Alasan kosong.', 'error'); return; }
 
     setRejectLoading(true);
     try {
-      // panggil endpoint generik (kamu sudah buat /api/admin/reject/[slug] termasuk dmove)
       const res = await fetch(`/api/admin/reject/${slug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -308,7 +307,6 @@ export default function DetailsLaporan() {
       const j = await res.json().catch(() => ({}));
       if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menolak.');
 
-      // refresh detail
       if (slug === 'dmove') {
         const r = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
         setBooking(await r.json());
@@ -317,7 +315,6 @@ export default function DetailsLaporan() {
         const d = await r.json(); setDetail(d.item || null);
       }
 
-      // buka WhatsApp kalau dipilih
       if (openWhatsApp) {
         const person = pickPersonForWA(slug, booking, detail);
         const target = toWaNumber(person?.phone);
@@ -325,11 +322,11 @@ export default function DetailsLaporan() {
         if (target) window.open(`https://wa.me/${target}?text=${encodeURIComponent(msg)}`, '_blank');
       }
 
-      alert('Permohonan berhasil ditolak.');
+      openNotif('Permohonan berhasil ditolak.', 'success');
       setShowRejectSend(false);
       setPendingRejectReason('');
     } catch (e) {
-      alert(`Error: ${e.message || e}`);
+      openNotif(`Error: ${e.message || e}`, 'error');
     } finally {
       setRejectLoading(false);
     }
@@ -346,12 +343,16 @@ export default function DetailsLaporan() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menyetujui.');
-      alert('Permohonan disetujui.');
+
+      const svc = META[slug]?.title || slug.toUpperCase();
+      // ✅ format pesan sesuai desain: "Pengajuan {SERVICE} Berhasil!"
+      openNotif(`Pengajuan ${svc} Berhasil!`, 'success');
+
       const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
       const d = await r.json();
       setDetail(d.item || null);
     } catch (err) {
-      alert(`Error: ${err.message || err}`);
+      openNotif(`Error: ${err.message || err}`, 'error');
     } finally {
       setIsUpdatingGeneric(false);
     }
@@ -385,7 +386,7 @@ export default function DetailsLaporan() {
       }
       pdf.save(`detail-${slug}-${id}.pdf`);
     } catch (e) {
-      alert('Gagal mengekspor PDF. ' + e.message);
+      openNotif('Gagal mengekspor PDF. ' + e.message, 'error');
     } finally {
       setExporting(false);
     }
@@ -554,7 +555,7 @@ export default function DetailsLaporan() {
             )}
 
             {booking?.status_id === 1 && (
-              <div className={styles.actionBtnRow}>
+              <div className={styles.detailRow} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <button className={styles.btnTolak} onClick={() => setShowRejectReason(true)} disabled={isUpdating}>
                   {isUpdating ? 'Memproses...' : 'Tolak'}
                 </button>
@@ -614,7 +615,7 @@ export default function DetailsLaporan() {
                 {/* ===================== GRID KIRI ===================== */}
                 <div className={styles.detailRow}>
                   <div className={styles.detailColLeft}>
-                    {/* ===================== BI.CARE ===================== */}
+                    {/* ===== BI.CARE ===== */}
                     {slug === 'bicare' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -651,7 +652,7 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===================== BI.MEET ===================== */}
+                    {/* ===== BI.MEET ===== */}
                     {slug === 'bimeet' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -679,7 +680,7 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===================== BI.STAY ===================== */}
+                    {/* ===== BI.STAY ===== */}
                     {slug === 'bistay' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -705,7 +706,7 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===================== BI.MAIL (LEFT) ===================== */}
+                    {/* ===== BI.MAIL (LEFT) ===== */}
                     {slug === 'bimail' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -745,7 +746,7 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===================== BI.MEAL (LEFT) ===================== */}
+                    {/* ===== BI.MEAL (LEFT) ===== */}
                     {slug === 'bimeal' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -768,7 +769,6 @@ export default function DetailsLaporan() {
 
                   {/* ===================== GRID KANAN ===================== */}
                   <div className={styles.detailColRight}>
-                    {/* ===================== BI.CARE ===================== */}
                     {slug === 'bicare' && (
                       <>
                         <div className={styles.detailLabel}>Tanggal Booking</div>
@@ -784,7 +784,6 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===================== BI.MEET ===================== */}
                     {slug === 'bimeet' && (
                       <>
                         <div className={styles.detailLabel}>Waktu</div>
@@ -813,7 +812,6 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===================== BI.STAY ===================== */}
                     {slug === 'bistay' && (
                       <>
                         <div className={styles.detailLabel}>Jadwal</div>
@@ -829,7 +827,6 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===================== BI.MAIL (RIGHT) ===================== */}
                     {slug === 'bimail' && (
                       <>
                         <div className={styles.detailLabel}>Tanggal Surat</div>
@@ -881,7 +878,6 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===================== BI.MEAL (RIGHT) ===================== */}
                     {slug === 'bimeal' && (
                       <>
                         <div className={styles.detailLabel}>Waktu Pesanan</div>
@@ -896,7 +892,6 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===================== BI.MEAL (ITEMS LIST) ===================== */}
                     {slug === 'bimeal' && (
                       <div className={styles.detailRow}>
                         <div className={styles.detailColLeft}>
@@ -980,7 +975,7 @@ export default function DetailsLaporan() {
       <RejectVerificationPopup
         show={showRejectSend}
         onClose={() => setShowRejectSend(false)}
-        onSubmit={handleRejectStep2Submit}   // (reason, openWhatsApp, messageText)
+        onSubmit={handleRejectStep2Submit}
         loading={rejectLoading}
         person={pickPersonForWA(slug, booking, detail)}
         titleText={`Kirimkan Pesan Penolakan ${META[slug]?.title || ''}`}
@@ -988,6 +983,15 @@ export default function DetailsLaporan() {
         previewBuilder={(person, r) => buildRejectPreview(slug, person, r, id)}
         initialReason={pendingRejectReason}
       />
+
+      {/* ✅ Notifikasi Global */}
+      {showNotif && (
+        <PopupAdmin
+          message={notif.message}
+          type={notif.type}
+          onClose={() => setShowNotif(false)}
+        />
+      )}
     </div>
   );
 }
