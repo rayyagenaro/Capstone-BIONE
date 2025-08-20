@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+// /src/pages/views/signup/signupAdmin.js
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -7,8 +8,11 @@ import styles from './signupAdmin.module.css';
 function validPhone(v) {
   if (!v) return false;
   const s = String(v).replace(/[^\d+]/g, '');
-  // 08xxxxxxxx / 62xxxxxxxx (7–13 digits setelah prefix)
   return /^(?:\+?62|0)\d{7,13}$/.test(s);
+}
+function getEmailDomain(email = '') {
+  const at = String(email).toLowerCase().trim().split('@');
+  return at.length === 2 ? at[1] : '';
 }
 
 export default function SignupAdmin() {
@@ -17,24 +21,24 @@ export default function SignupAdmin() {
   const [fields, setFields] = useState({
     nama: '',
     email: '',
-    phone: '',       // NEW
+    phone: '',
     password: '',
     konfirmasi: '',
   });
 
   const [services, setServices] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]); // wajib 1–2
+  const [selectedServices, setSelectedServices] = useState([]);
   const [showPass, setShowPass] = useState(false);
   const [showConf, setShowConf] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Ambil daftar layanan
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        // FIX path → tanpa /admin/
         const r = await fetch('/api/admin/admin-services', { cache: 'no-store' });
         if (!active) return;
         if (r.ok) {
@@ -50,6 +54,17 @@ export default function SignupAdmin() {
     return () => { active = false; };
   }, []);
 
+  const maxAllowed = useMemo(() => {
+    return getEmailDomain(fields.email) === 'umi.com' ? 4 : 2;
+  }, [fields.email]);
+
+  // Jika kuota turun (ubah email), pangkas seleksi
+  useEffect(() => {
+    if (selectedServices.length > maxAllowed) {
+      setSelectedServices((arr) => arr.slice(0, maxAllowed));
+    }
+  }, [maxAllowed, selectedServices.length]);
+
   function handleChange(e) {
     const { name, value } = e.target;
     setFields(prev => ({ ...prev, [name]: value }));
@@ -59,13 +74,11 @@ export default function SignupAdmin() {
   function toggleService(id) {
     setSelectedServices(prev => {
       const exists = prev.includes(id);
-      if (exists) {
-        return prev.filter(x => x !== id);
-      }
+      if (exists) return prev.filter(x => x !== id);
+      if (prev.length >= maxAllowed) return prev; // lock jika sudah max
       return [...prev, id];
     });
   }
-
 
   function validate() {
     const e = {};
@@ -79,9 +92,9 @@ export default function SignupAdmin() {
       e.konfirmasi = 'Konfirmasi tidak cocok';
     }
     if (selectedServices.length < 1) e.services = 'Pilih minimal 1 layanan';
+    if (selectedServices.length > maxAllowed) e.services = `Maksimal ${maxAllowed} layanan untuk domain ini`;
     return e;
   }
-
 
   const bolehDaftar =
     fields.nama &&
@@ -90,8 +103,8 @@ export default function SignupAdmin() {
     fields.password &&
     fields.konfirmasi &&
     fields.password === fields.konfirmasi &&
-    selectedServices.length >= 1;
-
+    selectedServices.length >= 1 &&
+    selectedServices.length <= maxAllowed;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -104,9 +117,9 @@ export default function SignupAdmin() {
         const payload = {
           nama: fields.nama,
           email: fields.email,
-          phone: fields.phone,     // NEW
+          phone: fields.phone,
           password: fields.password,
-          role_id: 2,              // Admin Fitur
+          role_id: 2, // Admin Fitur
           service_ids: [...new Set(selectedServices)],
         };
 
@@ -152,12 +165,7 @@ export default function SignupAdmin() {
         <div className={styles.card}>
           {/* HEADER */}
           <div className={styles.cardHeaderRowMod}>
-            <button
-              className={styles.backBtn}
-              type="button"
-              onClick={handleBack}
-              aria-label="Kembali"
-            >
+            <button className={styles.backBtn} type="button" onClick={handleBack} aria-label="Kembali">
               <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
                 <circle cx="14" cy="12" r="11" fill="#fff" />
                 <path d="M15 5l-7 7 7 7" stroke="#2F4D8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -165,13 +173,7 @@ export default function SignupAdmin() {
             </button>
 
             <div className={styles.headerLogoWrapper}>
-              <Image
-                src="/assets/BI-One-Blue.png"
-                alt="BI One Logo"
-                width={180}
-                height={60}
-                priority
-              />
+              <Image src="/assets/BI-One-Blue.png" alt="BI One Logo" width={180} height={60} priority />
             </div>
           </div>
 
@@ -217,12 +219,12 @@ export default function SignupAdmin() {
               {submitted && errors.phone && <div className={styles.errorMsg}>{errors.phone}</div>}
             </div>
 
-            {/* SERVICES wajib 1–2 */}
+            {/* SERVICES: kuota dinamis */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label className={styles.mutedText}>Pilih Layanan (maks 4)</label>
+                <label className={styles.mutedText}>Pilih Layanan (maks {maxAllowed})</label>
                 <span className={styles.badgeSmall} aria-live="polite">
-                  {selectedServices.length} layanan dipilih
+                  {selectedServices.length}/{maxAllowed} dipilih
                 </span>
               </div>
 
@@ -233,8 +235,7 @@ export default function SignupAdmin() {
                   services.map((s) => {
                     const id = s.id;
                     const checked = selectedServices.includes(id);
-                    const disabled = !checked && selectedServices.length >= 4;
-
+                    const disabled = !checked && selectedServices.length >= maxAllowed;
                     return (
                       <label
                         key={id}
@@ -271,7 +272,7 @@ export default function SignupAdmin() {
                 value={fields.password}
                 onChange={handleChange}
               />
-              <span className={styles.eyeIcon} onClick={() => setShowPass(s => !s)} />
+              <span className={styles.eyeIcon} onClick={() => setShowPass((s) => !s)} />
               {submitted && errors.password && <div className={styles.errorMsg}>{errors.password}</div>}
             </div>
 
@@ -284,7 +285,7 @@ export default function SignupAdmin() {
                 value={fields.konfirmasi}
                 onChange={handleChange}
               />
-              <span className={styles.eyeIcon} onClick={() => setShowConf(s => !s)} />
+              <span className={styles.eyeIcon} onClick={() => setShowConf((s) => !s)} />
               {submitted && errors.konfirmasi && <div className={styles.errorMsg}>{errors.konfirmasi}</div>}
             </div>
 

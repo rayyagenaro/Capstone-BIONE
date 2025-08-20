@@ -1,25 +1,18 @@
 // /pages/api/BIcare/book.js
 import db from '@/lib/db';
+import { jwtVerify } from 'jose';
 
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
-/* ========== NS-aware helpers (user + admin) ========== */
 function getNsFromReq(req) {
-  // 1) dari query ?ns=
   const q = req.query?.ns;
   if (typeof q === 'string' && NS_RE.test(q)) return q;
-
-  // 2) dari sticky ns
   const sticky = req.cookies?.current_user_ns;
   if (typeof sticky === 'string' && NS_RE.test(sticky)) return sticky;
-
-  // 3) tebak dari nama cookie user/admin
   const keys = Object.keys(req.cookies || {});
-  const u = keys.find((k) => k.startsWith('user_session__'));
-  const a = keys.find((k) => k.startsWith('admin_session__'));
-  if (u) return u.slice('user_session__'.length);
-  if (a) return a.slice('admin_session__'.length);
-
+  const pref = 'user_session__';
+  const found = keys.find((k) => k.startsWith(pref));
+  if (found) return found.slice(pref.length);
   return '';
 }
 
@@ -27,13 +20,9 @@ async function verifyUser(req) {
   try {
     const ns = getNsFromReq(req);
     if (!ns) return { ok: false, reason: 'NO_NS' };
-
-    const scope = String(req.query?.scope || '').toLowerCase(); // "" | "admin"
-    const cookieName = scope === 'admin' ? `admin_session__${ns}` : `user_session__${ns}`;
-    const token = req.cookies?.[cookieName];
+    const token = req.cookies?.[user_session__${ns}];
     if (!token) return { ok: false, reason: 'NO_TOKEN' };
 
-    const { jwtVerify } = await import('jose');
     const secret = process.env.JWT_SECRET;
     if (!secret) return { ok: false, reason: 'NO_SECRET' };
 
@@ -41,108 +30,118 @@ async function verifyUser(req) {
       algorithms: ['HS256'],
       clockTolerance: 10,
     });
+    // payload harus milik role user
+    if (!payload || (payload.role && String(payload.role) !== 'user')) {
+      return { ok: false, reason: 'ROLE' };
+    }
+    // user id bisa ada di sub / user_id / id (amankan semua kemungkinan)
+    const userId = Number(payload.sub ?? payload.user_id ?? payload.id);
+    if (!userId) return { ok: false, reason: 'NO_USERID' };
 
-    const role = payload?.role;
-    const roleOk = scope === 'admin' ? role === 'admin' : (role === 'user' || role === 'admin');
-    if (!roleOk) return { ok: false, reason: 'ROLE' };
-
-    return { ok: true, payload, ns, scope };
+    return { ok: true, userId, payload, ns };
   } catch (e) {
-    console.error('verifyUser(BCare) fail:', e);
+    console.error('verifyUser BIcare fail:', e);
     return { ok: false, reason: 'VERIFY_FAIL' };
   }
 }
 
-/* ========== time helpers (tidak berubah) ========== */
-function toMinutes(hms){const [H,M]=String(hms).split(':').map((x)=>parseInt(x,10));return (H||0)*60+(M||0)}
-function toHHMM(mins){const h=Math.floor(mins/60);const m=mins%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`}
-function expandSlots(start_time,end_time,step){const s=toMinutes(start_time),e=toMinutes(end_time),out=[];for(let t=s;t<e;t+=step)out.push(toHHMM(t));return out}
-const DOW=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+/* ===== utils ===== */
+const to62 = (val) => {
+  let p = String(val || '').replace(/[^\d]/g, '');
+  if (!p) return null;
+  if (p.startsWith('62')) return p.replace(/^620+/, '62');
+  if (p.startsWith('0')) return '62' + p.slice(1);
+  if (p.startsWith('8')) return '62' + p;
+  return p;
+};
+const hhmmToHms = (t) => {
+  const s = String(t || '').trim();
+  if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s;
+  if (/^\d{1,2}:\d{2}$/.test(s)) {
+    const [h, m] = s.split(':');
+    return ${h.padStart(2, '0')}:${m}:00;
+  }
+  return null;
+};
 
-/* ========== handler ========== */
+/* ===== handler ===== */
 export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: Method ${req.method} not allowed });
+  }
+
+  const auth = await verifyUser(req);
+  if (!auth.ok) {
+    return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+  }
+  const userId = auth.userId;
+
+  let body = {};
   try {
-    const auth = await verifyUser(req);
-    if (!auth.ok) {
-      res.setHeader('Allow', ['GET', 'POST']);
-      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
-    }
-    const userIdFromToken = Number(auth.payload.sub);
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch {
+    return res.status(400).json({ error: 'Body harus JSON' });
+  }
 
-    // ===== GET =====
-    if (req.method === 'GET') {
-      try {
-        // Admin dapat melihat semuanya (silakan tambah pagination/filter kalau perlu)
-        if (auth.scope === 'admin') {
-          const [rows] = await db.query(
-            `SELECT id, user_id, doctor_id, booking_date, slot_time, status,
-                    booker_name, nip, wa, patient_name, patient_status,
-                    gender, birth_date, complaint, created_at
-               FROM dmove_db1.bicare_bookings
-              ORDER BY booking_date DESC, slot_time DESC`
-          );
-          return res.status(200).json(Array.isArray(rows) ? rows : []);
-        }
+  // Support camelCase (dari form kamu) dan snake_case
+  const doctor_id    = body.doctor_id ?? body.doctorId;
+  const booking_date = body.booking_date ?? body.bookingDate;        // "YYYY-MM-DD"
+  const slot_time_in = body.slot_time ?? body.slotTime;              // "HH:mm" / "HH:mm:ss"
+  const booker_name  = body.booker_name ?? body.booker_name ?? body.bookerName;
+  const nip          = body.nip;
+  const wa_in        = body.wa;
+  const patient_name = body.patient_name ?? body.patientName;
+  const patient_status = body.patient_status ?? body.patientStatus;
+  const gender       = body.gender;
+  const birth_date   = body.birth_date ?? body.birthDate ?? null;    // "YYYY-MM-DD"
+  const complaint    = body.complaint ?? null;
 
-        // User biasa: tetap logika lama (by userId/wa atau fallback ke token)
-        const userIdQ = Number(req.query.userId || 0);
-        const wa = String(req.query.wa || '').trim();
-        const effectiveUserId = userIdQ > 0 ? userIdQ : (wa ? 0 : userIdFromToken || 0);
+  const slot_time = hhmmToHms(slot_time_in);
+  const wa = to62(wa_in);
 
-        if (!effectiveUserId && !wa) {
-          return res.status(400).json({ error: 'userId atau wa wajib diisi (atau login yang valid)' });
-        }
+  // Validasi minimal
+  const errors = {};
+  if (!doctor_id) errors.doctor_id = 'doctor_id wajib';
+  if (!booking_date) errors.booking_date = 'booking_date wajib';
+  if (!slot_time) errors.slot_time = 'slot_time tidak valid';
+  if (!booker_name) errors.booker_name = 'booker_name wajib';
+  if (!nip) errors.nip = 'nip wajib';
+  if (!wa) errors.wa = 'wa wajib';
+  if (!patient_name) errors.patient_name = 'patient_name wajib';
+  if (!patient_status) errors.patient_status = 'patient_status wajib';
+  if (!gender) errors.gender = 'gender wajib';
+  if (Object.keys(errors).length) {
+    return res.status(422).json({ error: 'VALIDATION_ERROR', details: errors });
+  }
 
-        let rows = [];
-        if (effectiveUserId) {
-          const [r] = await db.query(
-            `SELECT id, user_id, doctor_id, booking_date, slot_time, status,
-                    booker_name, nip, wa, patient_name, patient_status,
-                    gender, birth_date, complaint, created_at
-               FROM dmove_db1.bicare_bookings
-              WHERE user_id = ?
-              ORDER BY booking_date DESC, slot_time DESC`,
-            [effectiveUserId]
-          );
-          rows = Array.isArray(r) ? r : [];
-        } else {
-          const [r] = await db.query(
-            `SELECT id, user_id, doctor_id, booking_date, slot_time, status,
-                    booker_name, nip, wa, patient_name, patient_status,
-                    gender, birth_date, complaint, created_at
-               FROM dmove_db1.bicare_bookings
-              WHERE wa = ?
-              ORDER BY booking_date DESC, slot_time DESC`,
-            [wa]
-          );
-          rows = Array.isArray(r) ? r : [];
-          if (rows.length && userIdFromToken > 0) {
-            await db.query(
-              `UPDATE dmove_db1.bicare_bookings
-                  SET user_id = ?
-                WHERE wa = ? AND (user_id IS NULL OR user_id = 0)`,
-              [userIdFromToken, wa]
-            );
-          }
-        }
+  try {
+    const [result] = await db.execute(
+      `
+      INSERT INTO bicare_bookings
+        (user_id, doctor_id, booking_date, slot_time, status, booker_name, nip, wa, patient_name, patient_status, gender, birth_date, complaint, created_at)
+      VALUES
+        (?,       ?,         ?,            ?,         'Booked', ?,           ?,   ?,  ?,            ?,             ?,      ?,          ?,        NOW())
+      `,
+      [
+        userId,
+        Number(doctor_id),
+        booking_date,
+        slot_time,
+        String(booker_name),
+        String(nip),
+        String(wa),
+        String(patient_name),
+        String(patient_status),
+        String(gender),
+        birth_date || null,
+        complaint || null,
+      ]
+    );
 
-        return res.status(200).json(rows);
-      } catch (e) {
-        console.error('GET /api/BIcare/book error:', e);
-        return res.status(500).json({ error: 'Gagal ambil data BI.Care' });
-      }
-    }
-
-    // ===== POST (tidak berubah) =====
-    if (req.method === 'POST') {
-      // ... (blok POST kamu tetap, tak perlu diubah)
-      // pastikan tetap pakai userIdFromToken sebagai fallback
-    }
-
-    res.setHeader('Allow', ['GET', 'POST']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(201).json({ ok: true, id: result.insertId });
   } catch (e) {
-    console.error('API /BIcare/book outer error:', e);
-    return res.status(500).json({ error: 'Internal Server Error', details: e?.message });
+    console.error('POST /api/BIcare/book error:', e?.message, e);
+    return res.status(500).json({ error: 'INTERNAL_ERROR', details: e?.message });
   }
 }
