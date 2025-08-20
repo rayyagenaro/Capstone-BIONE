@@ -304,3 +304,15 @@
   .dataTable th, .dataTable td { padding: 7px 5px; font-size: 12px; }
   .modalContent { width: 96vw; min-width: unset; padding: 18px 8px 14px 8px; }
 }
+
+/* booked oleh user -> tidak bisa diklik */
+.sessionBtn:disabled,
+.sessionBtn[data-state="booked"] {
+  cursor: not-allowed !important;
+}
+
+/* ditutup admin (masih bisa diklik untuk buka kembali) & open */
+.sessionBtn[data-state="admin"],
+.sessionBtn[data-state="open"] {
+  cursor: pointer;
+}
