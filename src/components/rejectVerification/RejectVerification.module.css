@@ -135,3 +135,16 @@
 @media (max-width: 860px){
   .box{ min-width: 92vw; width: 92vw; }
 }
+
+.previewTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;   /* gray-300 */
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;              /* gray-900 -> hitam */
+  font: 400 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  white-space: pre-wrap;
+  resize: vertical;
+}

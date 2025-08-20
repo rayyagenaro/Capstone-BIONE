@@ -6,7 +6,8 @@ import { FaFilePdf, FaArrowLeft } from 'react-icons/fa';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
-import PenolakanPopup from '@/components/penolakanpopup/PenolakanPopup';
+import RejectReasonPopup from '@/components/RejectReasonPopup/RejectReasonPopup';
+import RejectVerificationPopup from '@/components/rejectVerification/RejectVerification';
 import KontakDriverPopup from '@/components/KontakDriverPopup/KontakDriverPopup';
 
 const ALLOWED_SLUGS = ['dmove', 'bicare', 'bimeet', 'bimail', 'bistay', 'bimeal'];
@@ -16,7 +17,10 @@ const formatDateTime = (dateString) => {
   if (!dateString) return '-';
   const d = new Date(dateString);
   if (Number.isNaN(d.valueOf())) return String(dateString);
-  return d.toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('id-ID', {
+    day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
 };
 const formatDateOnly = (d) => {
   if (!d) return '-';
@@ -28,6 +32,16 @@ const formatDuration = (start, end) => {
   if (!start || !end) return '-';
   const diff = Math.ceil(Math.abs(new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
   return `${diff || 1} Hari | ${formatDateOnly(start)} - ${formatDateOnly(end)}`;
+};
+
+const toWaNumber = (val) => {
+  if (!val) return '';
+  let p = String(val).trim().replace(/[^\d]/g, ''); // keep digits only
+  if (!p) return '';
+  if (p.startsWith('62')) return p.replace(/^620+/, '62'); // handle 6208… -> 628…
+  if (p.startsWith('0'))  return '62' + p.slice(1);        // 08… -> 628…
+  if (p.startsWith('8'))  return '62' + p;                 // 812… -> 62812…
+  return p;                                                // already intl
 };
 
 // ===== Status styles =====
@@ -101,23 +115,49 @@ const isPendingGeneric = (slug, d) => {
     return n === 1 || n === 0;
   }
 
-  // BI.STAY: JANGAN hardcode true lagi; cek status_id / teks
+  // BI.STAY
   if (s === 'bistay') {
     const n = numish(d.status_id ?? d.booking_status_id ?? d.state);
     if (n != null) return n === 1 || n === 0;
-    return byText(); // fallback kalau API belum kirim status_id
+    return byText();
   }
 
-  // default heuristik
+  // default
   const n = numish(d.status_id ?? d.booking_status_id ?? d.state);
   if (n != null) return n === 1 || n === 0;
   return byText();
 };
 
+// ===== Penerima WA per fitur =====
+const pickPersonForWA = (slug, booking, detail) => {
+  switch (slug) {
+    case 'dmove':  return { name: booking?.user_name,  phone: booking?.phone };
+    case 'bicare': return { name: detail?.booker_name || detail?.patient_name, phone: detail?.wa };
+    case 'bimeet': return { name: detail?.pic_name,    phone: detail?.contact_phone };
+    case 'bistay': return { name: detail?.nama_pemesan, phone: detail?.no_wa };
+    case 'bimeal': return { name: detail?.nama_pic,     phone: detail?.no_wa_pic };
+    default:       return { name: '', phone: '' };
+  }
+};
+
+// ===== Builder pesan WA default =====
+const buildRejectPreview = (slug, person, reason, id) => {
+  const service = META[slug]?.title || slug.toUpperCase();
+  return `Halo ${person?.name || ''},
+
+Pengajuan ${service} Anda *DITOLAK* ❌
+• ID Pengajuan: ${id}
+
+Alasan:
+${reason}
+
+Silakan lakukan perbaikan/pengajuan ulang. Terima kasih.`;
+};
+
 // ============================== COMPONENT ==============================
 export default function DetailsLaporan() {
-  const router = useRouter();                        // ⟵ tambahkan ini
-  const { id, slug: qslug } = router.query || {};    // ⟵ aman kalau masih undefined
+  const router = useRouter();
+  const { id, slug: qslug } = router.query || {};
   const raw = (typeof qslug === 'string' ? qslug : '').toLowerCase();
   const slug = ALLOWED_SLUGS.includes(raw) ? raw : 'dmove';
 
@@ -133,8 +173,6 @@ export default function DetailsLaporan() {
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [showReject, setShowReject] = useState(false);
-  const [rejectLoading, setRejectLoading] = useState(false);
 
   const [availableDrivers, setAvailableDrivers] = useState([]);
   const [availableVehicles, setAvailableVehicles] = useState([]);
@@ -143,6 +181,12 @@ export default function DetailsLaporan() {
   const [exporting, setExporting] = useState(false);
 
   const detailRef = useRef(null);
+
+  // 🔴 POPUP REJECT BARU (2 langkah)
+  const [showRejectReason, setShowRejectReason] = useState(false);
+  const [showRejectSend, setShowRejectSend] = useState(false);
+  const [pendingRejectReason, setPendingRejectReason] = useState('');
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   // ===== FETCH utama
   useEffect(() => {
@@ -240,53 +284,60 @@ export default function DetailsLaporan() {
     }
   };
 
-  const handleSubmitPenolakan = async (reason) => {
-    if (slug !== 'dmove') {
-      if (slug === 'bimail') return; // tidak berlaku untuk BI.DOCS
-      setRejectLoading(true);
-      try {
-        const res = await fetch(`/api/admin/reject/${slug}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: Number(id), reason }),
-        });
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menolak.');
-        alert('Permohonan berhasil ditolak.');
-        const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
-        const d = await r.json();
-        setDetail(d.item || null);
-        setShowReject(false);
-      } catch (err) {
-        alert(`Error: ${err.message || err}`);
-      } finally {
-        setRejectLoading(false);
-      }
-      return;
-    }
-    // D'MOVE reject
+  // ========= REJECT (2 langkah) =========
+  // Step 1 -> simpan alasan sementara & lanjut ke popup kirim
+  const handleRejectStep1Done = (reasonText) => {
+    setPendingRejectReason(reasonText);
+    setShowRejectReason(false);
+    setShowRejectSend(true);
+  };
+
+  // Step 2: simpan ke DB + (opsional) buka WA
+  const handleRejectStep2Submit = async (reasonText, openWhatsApp, messageText) => {
+    const reason = (reasonText || '').trim();
+    if (!reason) { alert('Alasan kosong.'); return; }
+
     setRejectLoading(true);
     try {
-      const res = await fetch('/api/reject-booking', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: Number(id), reason }),
+      // panggil endpoint generik (kamu sudah buat /api/admin/reject/[slug] termasuk dmove)
+      const res = await fetch(`/api/admin/reject/${slug}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(id), reason })
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || json?.ok === false) throw new Error(json?.message || 'Gagal menolak booking.');
-      alert('Booking berhasil ditolak.');
-      setShowReject(false);
-      const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
-      const d2 = await r2.json();
-      setBooking(d2);
-    } catch (err) {
-      alert(`Error: ${err.message || err}`);
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menolak.');
+
+      // refresh detail
+      if (slug === 'dmove') {
+        const r = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
+        setBooking(await r.json());
+      } else {
+        const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
+        const d = await r.json(); setDetail(d.item || null);
+      }
+
+      // buka WhatsApp kalau dipilih
+      if (openWhatsApp) {
+        const person = pickPersonForWA(slug, booking, detail);
+        const target = toWaNumber(person?.phone);
+        const msg = (messageText || buildRejectPreview(slug, person, reason, id)).trim();
+        if (target) window.open(`https://wa.me/${target}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
+
+      alert('Permohonan berhasil ditolak.');
+      setShowRejectSend(false);
+      setPendingRejectReason('');
+    } catch (e) {
+      alert(`Error: ${e.message || e}`);
     } finally {
       setRejectLoading(false);
     }
   };
 
+  // ===== Approve generic (selain BI.DOCS) =====
   const handleApproveGeneric = async () => {
-    if (slug === 'bimail') return; // tidak berlaku untuk BI.DOCS
+    if (slug === 'bimail') return;
     setIsUpdatingGeneric(true);
     try {
       const res = await fetch(`/api/admin/approve/${slug}`, {
@@ -306,6 +357,7 @@ export default function DetailsLaporan() {
     }
   };
 
+  // ===== Export PDF =====
   const handleExportPDF = async () => {
     try {
       const el = detailRef.current;
@@ -503,7 +555,7 @@ export default function DetailsLaporan() {
 
             {booking?.status_id === 1 && (
               <div className={styles.actionBtnRow}>
-                <button className={styles.btnTolak} onClick={() => setShowReject(true)} disabled={isUpdating}>
+                <button className={styles.btnTolak} onClick={() => setShowRejectReason(true)} disabled={isUpdating}>
                   {isUpdating ? 'Memproses...' : 'Tolak'}
                 </button>
                 <button className={styles.btnSetujui} onClick={() => setShowPopup(true)} disabled={isUpdating}>
@@ -820,7 +872,6 @@ export default function DetailsLaporan() {
                               Buka di SharePoint
                             </a>
                           ) : ('-')}
-
                         </div>
 
                         <div className={styles.detailLabel}>Created At</div>
@@ -874,7 +925,7 @@ export default function DetailsLaporan() {
                   <div className={styles.actionBtnRow} style={{ marginTop: 16 }}>
                     <button
                       className={styles.btnTolak}
-                      onClick={() => setShowReject(true)}
+                      onClick={() => setShowRejectReason(true)}
                       disabled={isUpdatingGeneric}
                     >
                       {isUpdatingGeneric ? 'Memproses...' : 'Tolak'}
@@ -901,11 +952,13 @@ export default function DetailsLaporan() {
         drivers={booking?.assigned_drivers || []}
         booking={booking || {}}
       />
+
       <LogoutPopup
         open={showLogoutPopup}
         onCancel={() => setShowLogoutPopup(false)}
         onLogout={handleLogout}
       />
+
       <PersetujuanPopup
         show={showPopup}
         onClose={() => setShowPopup(false)}
@@ -914,11 +967,26 @@ export default function DetailsLaporan() {
         driverList={availableDrivers}
         vehicleList={availableVehicles}
       />
-      <PenolakanPopup
-        show={showReject}
-        onClose={() => setShowReject(false)}
-        onSubmit={handleSubmitPenolakan}
+
+      {/* Step 1: input alasan */}
+      <RejectReasonPopup
+        show={showRejectReason}
+        onClose={() => setShowRejectReason(false)}
+        onNext={handleRejectStep1Done}
+        title={`Alasan Penolakan ${META[slug]?.title || ''}`}
+      />
+
+      {/* Step 2: kirim WA + simpan */}
+      <RejectVerificationPopup
+        show={showRejectSend}
+        onClose={() => setShowRejectSend(false)}
+        onSubmit={handleRejectStep2Submit}   // (reason, openWhatsApp, messageText)
         loading={rejectLoading}
+        person={pickPersonForWA(slug, booking, detail)}
+        titleText={`Kirimkan Pesan Penolakan ${META[slug]?.title || ''}`}
+        infoText="Periksa / ubah pesan yang akan dikirim via WhatsApp. Klik 'Tolak & Kirim' untuk menyimpan dan (opsional) mengirim."
+        previewBuilder={(person, r) => buildRejectPreview(slug, person, r, id)}
+        initialReason={pendingRejectReason}
       />
     </div>
   );
