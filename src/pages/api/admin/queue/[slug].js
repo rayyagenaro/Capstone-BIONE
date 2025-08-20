@@ -65,11 +65,23 @@ const CFG = {
   },
 
   bistay: {
-    from: 'bistay_bookings b',
+    from: `
+      bistay_bookings b
+      LEFT JOIN booking_statuses s ON s.id = b.status_id
+    `,
     tableForCount: 'bistay_bookings b',
-    select: 'b.id, b.nama_pemesan, b.check_in, b.check_out, b.created_at',
+    select: `
+      b.id,
+      b.nama_pemesan,
+      b.check_in,
+      b.check_out,
+      b.status_id,
+      s.name AS status_name,
+      b.created_at
+    `,
     defaultOrder: 'ORDER BY b.created_at DESC',
-    pendingWhere: null // treat as ALL
+    // anggap pending = 1 (boleh tambahkan 0/NULL jika ada sistem lama)
+    pendingWhere: '(b.status_id IS NULL OR b.status_id IN (0,1))'
   }
 };
 
