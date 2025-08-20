@@ -68,7 +68,7 @@ const hhmmToHms = (t) => {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: Method ${req.method} not allowed });
+    return res.status(405).json({ error: `Method ${req.method} not allowed` });
   }
 
   const auth = await verifyUser(req);
