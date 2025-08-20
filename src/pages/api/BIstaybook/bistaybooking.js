@@ -219,7 +219,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'newStatusId harus 1|2|3|4' });
       }
 
-      // Auth & pembatasan kepemilikan
       const uid = await getUserIdFromCookie(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -248,7 +247,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== POST: create =====
+  // ===== POST: create (durasi BEBAS; hanya cek check_out > check_in) =====
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['GET', 'POST', 'PUT']);
     return res.status(405).json({ error: 'Method not allowed' });
@@ -260,13 +259,13 @@ export default async function handler(req, res) {
       nama_pemesan,
       nip,
       no_wa,
-      status,        // status pegawai (id atau nama)
+      status,
       asal_kpw,
       check_in,
       check_out,
       keterangan,
-      status_id,     // status booking (approval) optional
-      ns,            // optional namespace; hanya untuk baca cookie lain
+      status_id,
+      ns,
     } = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) || {};
 
     const missing = [];
@@ -303,7 +302,6 @@ export default async function handler(req, res) {
     // user_id dari cookie jika tidak dikirim
     let finalUserId = user_id ?? null;
     if (finalUserId == null) {
-      // getUserIdFromCookie sudah NS-aware, jadi cukup panggil saja
       finalUserId = await getUserIdFromCookie({ ...req, body: { ...req.body, ns } });
     }
 

@@ -289,14 +289,19 @@
 }
 
 @keyframes popupfade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .popupBox {
   background: #fff;
   border-radius: 22px;
-  box-shadow: 0 4px 32px rgba(60, 60, 60, 0.1), 0 1.5px 6px rgba(70, 90, 150, 0.05);
+  box-shadow: 0 4px 32px rgba(60, 60, 60, 0.1),
+              0 1.5px 6px rgba(70, 90, 150, 0.05);
   text-align: center;
   width: 97vw;
   max-width: 370px;
@@ -306,8 +311,14 @@
 }
 
 @keyframes fadeinpop {
-  from { transform: scale(0.92); opacity: 0; }
-  to   { transform: scale(1);    opacity: 1; }
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .popupIcon {
@@ -380,7 +391,10 @@
   font-size: 22px;
   cursor: pointer;
 }
-.sopClose:hover { color: #e14d4d; }
+
+.sopClose:hover {
+  color: #e14d4d;
+}
 
 .sopWarnIcon {
   display: flex;
@@ -413,6 +427,7 @@
   cursor: pointer;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
+
 .sopLinkBtn:hover {
   background: #e6edff;
   box-shadow: 0 3px 12px rgba(47, 77, 142, 0.15);
@@ -426,8 +441,24 @@
 
 /* Responsive */
 @media (max-width: 720px) {
-  .mainContent { margin-left: 0; }
-  .formBox { padding: 12px 2vw; border-radius: 10px; margin: 12px 0; }
-  .formGrid { grid-template-columns: 1fr; gap: 14px; }
-  .bookingBtn { width: 100%; padding: 11px 0; font-size: 18px; }
+  .mainContent {
+    margin-left: 0;
+  }
+
+  .formBox {
+    padding: 12px 2vw;
+    border-radius: 10px;
+    margin: 12px 0;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .bookingBtn {
+    width: 100%;
+    padding: 11px 0;
+    font-size: 18px;
+  }
 }
