@@ -1,6 +1,8 @@
 // pages/api/admin/admin-services.js
 import db from '@/lib/db';
 
+const ALLOW_4_DOMAINS = new Set(['umi.com']); // domain spesial
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
@@ -8,7 +10,10 @@ export default async function handler(req, res) {
 
       // layanan milik admin tertentu
       if (adminId) {
-        const [adminRows] = await db.query('SELECT id, role_id FROM admins WHERE id = ? LIMIT 1', [adminId]);
+        const [adminRows] = await db.query(
+          'SELECT id, role_id FROM admins WHERE id = ? LIMIT 1',
+          [adminId]
+        );
         if (!adminRows.length) return res.status(404).json({ error: 'Admin tidak ditemukan' });
 
         const [rows] = await db.query(
@@ -35,25 +40,39 @@ export default async function handler(req, res) {
       const aId = Number(adminId);
 
       if (!aId) return res.status(400).json({ error: 'adminId wajib diisi' });
-      if (!Array.isArray(serviceIds)) return res.status(400).json({ error: 'serviceIds harus array of number' });
+      if (!Array.isArray(serviceIds)) {
+        return res.status(400).json({ error: 'serviceIds harus array of number' });
+      }
 
       // validasi admin & cegah edit super admin
-      const [adminRows] = await db.query('SELECT id, role_id FROM admins WHERE id = ? LIMIT 1', [aId]);
+      const [adminRows] = await db.query(
+        'SELECT id, role_id, email FROM admins WHERE id = ? LIMIT 1',
+        [aId]
+      );
       if (!adminRows.length) return res.status(404).json({ error: 'Admin tidak ditemukan' });
       if (Number(adminRows[0].role_id) === 1) {
         return res.status(403).json({ error: 'Akses Super Admin tidak dapat diubah' });
       }
 
-      // filter id layanan valid (opsional tapi baik)
-      let validIds = serviceIds.map(Number).filter(Boolean);
-      if (validIds.length) {
-        const [sv] = await db.query(
-          `SELECT id FROM services WHERE id IN (${validIds.map(() => '?').join(',')})`,
-          validIds
-        );
-        const set = new Set(sv.map(r => r.id));
-        validIds = validIds.filter(id => set.has(id));
+      // tentukan batas max berdasarkan domain
+      const domain = String(adminRows[0].email || '').split('@')[1]?.toLowerCase() || '';
+      const maxAllowed = ALLOW_4_DOMAINS.has(domain) ? 4 : 2;
+
+      // bersihkan & validasi ids
+      let validIds = [...new Set(serviceIds.map(Number).filter(Boolean))];
+      if (validIds.length < 1 || validIds.length > maxAllowed) {
+        return res.status(400).json({
+          error: `Admin dengan domain ${domain || '(unknown)'} harus memiliki 1–${maxAllowed} layanan.`,
+        });
       }
+
+      // pastikan id layanan valid
+      const [sv] = await db.query(
+        `SELECT id FROM services WHERE id IN (${validIds.map(() => '?').join(',')})`,
+        validIds
+      );
+      const set = new Set(sv.map(r => r.id));
+      validIds = validIds.filter(id => set.has(id));
 
       // transaksi: kosongkan -> isi ulang
       await db.query('START TRANSACTION');
@@ -63,7 +82,10 @@ export default async function handler(req, res) {
         if (validIds.length) {
           const placeholders = validIds.map(() => '(?,?)').join(',');
           const params = validIds.flatMap(id => [aId, id]);
-          await db.query(`INSERT INTO admin_services (admin_id, service_id) VALUES ${placeholders}`, params);
+          await db.query(
+            `INSERT INTO admin_services (admin_id, service_id) VALUES ${placeholders}`,
+            params
+          );
         }
 
         await db.query('COMMIT');

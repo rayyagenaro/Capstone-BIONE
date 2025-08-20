@@ -4,37 +4,44 @@ import db from '@/lib/db';
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 const PENDING_STATUS_ID = 1;
 
-/* ===== auth helpers ===== */
+/* ===== auth helpers (user/admin + namespaced) ===== */
 function getNsFromReq(req) {
-  const q = req.query?.ns;
-  if (typeof q === 'string' && NS_RE.test(q)) return q;
-  const sticky = req.cookies?.current_user_ns;
-  if (typeof sticky === 'string' && NS_RE.test(sticky)) return sticky;
-  const keys = Object.keys(req.cookies || {});
-  const pref = 'user_session__';
-  const found = keys.find((k) => k.startsWith(pref));
-  if (found) return found.slice(pref.length);
-  return '';
+  const v = req.query?.ns ?? req.body?.ns ?? req.cookies?.current_user_ns;
+  return (typeof v === 'string' && NS_RE.test(v)) ? v : '';
 }
-
-async function verifyUser(req) {
+function pickAnySessionToken(cookies = {}) {
+  const key = Object.keys(cookies).find((k) =>
+    /^user_session__|^admin_session__|^user_session$|^admin_session$/.test(k)
+  );
+  return key ? cookies[key] : null;
+}
+async function verifyAuth(req, roles = ['user']) {
   try {
     const ns = getNsFromReq(req);
-    if (!ns) return { ok: false, reason: 'NO_NS' };
-    const cookieName = `user_session__${ns}`;
-    const token = req.cookies?.[cookieName];
+    const token =
+      (ns && (req.cookies?.[`user_session__${ns}`] || req.cookies?.[`admin_session__${ns}`])) ||
+      req.cookies?.user_session ||
+      req.cookies?.admin_session ||
+      pickAnySessionToken(req.cookies);
+
     if (!token) return { ok: false, reason: 'NO_TOKEN' };
+
     const { jwtVerify } = await import('jose');
     const secret = process.env.JWT_SECRET;
     if (!secret) return { ok: false, reason: 'NO_SECRET' };
+
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
       algorithms: ['HS256'],
       clockTolerance: 10,
     });
-    if (!payload || payload.role !== 'user') return { ok: false, reason: 'ROLE' };
-    return { ok: true, payload, ns };
+
+    const role = payload?.role || '';
+    if (!roles.includes(role)) return { ok: false, reason: 'ROLE' };
+
+    const userId = Number(payload?.sub ?? payload?.user_id ?? payload?.id);
+    return { ok: true, payload, userId, role, ns };
   } catch (e) {
-    console.error('verifyUser fail', e);
+    console.error('verifyAuth fail', e);
     return { ok: false, reason: 'VERIFY_FAIL' };
   }
 }
@@ -59,37 +66,51 @@ const toMysqlDatetime = (d) =>
 
 /* ===== handler ===== */
 export default async function handler(req, res) {
-  const auth = await verifyUser(req);
-  if (!auth.ok) {
-    res.setHeader('Allow', ['GET', 'POST', 'PUT']);
-    return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
-  }
-  const userId = Number(auth.payload.sub);
-
+  // ===== GET: user (milik sendiri) atau admin (semua / userId tertentu) =====
   if (req.method === 'GET') {
+    const isAdminScope = String(req.query?.scope || '').toLowerCase() === 'admin';
+    const auth = await verifyAuth(req, isAdminScope ? ['user', 'admin'] : ['user']);
+    if (!auth.ok) {
+      res.setHeader('Allow', ['GET', 'POST', 'PUT']);
+      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+    }
+
+    const requestedUserId = req.query.userId ? Number(req.query.userId) : null;
+    const listForUserId =
+      isAdminScope && Number.isFinite(requestedUserId) && requestedUserId > 0
+        ? requestedUserId
+        : (!isAdminScope ? auth.userId : null); // admin tanpa userId => semua
+
     let conn;
     try {
       conn = await db.getConnection();
 
-      // 1) ambil header booking milik user
-      const [rows] = await conn.query(
-        `
-        SELECT
-          b.id,
-          b.user_id,
-          b.nama_pic,
-          b.nip_pic,
-          b.no_wa_pic,
-          b.unit_kerja,
-          b.waktu_pesanan,
-          b.status_id,
-          b.created_at
-        FROM bimeal_bookings b
-        WHERE b.user_id = ?
-        ORDER BY b.created_at DESC
-        `,
-        [userId]
-      );
+      // 1) header bookings
+      let rows;
+      if (listForUserId) {
+        [rows] = await conn.query(
+          `
+          SELECT
+            b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
+            b.waktu_pesanan, b.status_id, b.created_at
+          FROM bimeal_bookings b
+          WHERE b.user_id = ?
+          ORDER BY b.created_at DESC
+          `,
+          [listForUserId]
+        );
+      } else {
+        // admin lihat semua
+        [rows] = await conn.query(
+          `
+          SELECT
+            b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
+            b.waktu_pesanan, b.status_id, b.created_at
+          FROM bimeal_bookings b
+          ORDER BY b.created_at DESC
+          `
+        );
+      }
 
       const bookings = Array.isArray(rows) ? rows : [];
       if (bookings.length === 0) {
@@ -97,24 +118,18 @@ export default async function handler(req, res) {
         return res.status(200).json([]);
       }
 
-      // 2) ambil items
+      // 2) items
       const ids = bookings.map((r) => r.id);
       const [items] = await conn.query(
-        `
-        SELECT booking_id, nama_pesanan, jumlah
-        FROM bimeal_booking_items
-        WHERE booking_id IN (?)
-        ORDER BY booking_id, id
-        `,
+        `SELECT booking_id, nama_pesanan, jumlah
+           FROM bimeal_booking_items
+          WHERE booking_id IN (?)`,
         [ids]
       );
 
-      const itemsArr = Array.isArray(items) ? items : [];
       const itemsMap = {};
-      for (const it of itemsArr) {
-        const bid = it.booking_id;
-        if (!itemsMap[bid]) itemsMap[bid] = [];
-        itemsMap[bid].push({ item: it.nama_pesanan, qty: it.jumlah });
+      for (const it of Array.isArray(items) ? items : []) {
+        (itemsMap[it.booking_id] ||= []).push({ item: it.nama_pesanan, qty: it.jumlah });
       }
 
       const result = bookings.map((b) => ({ ...b, items: itemsMap[b.id] || [] }));
@@ -127,13 +142,18 @@ export default async function handler(req, res) {
     }
   }
 
+  // ===== POST: hanya user membuat booking =====
   if (req.method === 'POST') {
-    let body = {};
-    try {
-      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    } catch {
-      return res.status(400).json({ error: 'Body harus JSON' });
+    const auth = await verifyAuth(req, ['user']);
+    if (!auth.ok) {
+      res.setHeader('Allow', ['GET', 'POST', 'PUT']);
+      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
+    const userId = Number(auth.userId);
+
+    let body = {};
+    try { body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; }
+    catch { return res.status(400).json({ error: 'Body harus JSON' }); }
 
     const nama = String(body?.nama || '').trim();
     const nip = String(body?.nip || '').trim();
@@ -142,15 +162,8 @@ export default async function handler(req, res) {
     const tgl = body?.tgl ? new Date(body.tgl) : null;
     const pesanan = normalizeItems(body?.pesanan);
 
-    const errors = {};
-    if (!nama) errors.nama = 'Nama wajib diisi';
-    if (!nip) errors.nip = 'NIP wajib diisi';
-    if (!wa) errors.wa = 'No WA wajib diisi';
-    if (!uker) errors.uker = 'Unit Kerja wajib dipilih';
-    if (!tgl || Number.isNaN(tgl.getTime())) errors.tgl = 'Tanggal pesanan tidak valid';
-    if (!pesanan.length) errors.pesanan = 'Minimal satu pesanan diisi';
-    if (Object.keys(errors).length) {
-      return res.status(422).json({ error: 'VALIDATION_ERROR', details: errors });
+    if (!nama || !nip || !wa || !uker || !tgl || Number.isNaN(tgl.getTime()) || !pesanan.length) {
+      return res.status(422).json({ error: 'VALIDATION_ERROR' });
     }
 
     const waktu_pesanan = toMysqlDatetime(tgl);
@@ -161,12 +174,10 @@ export default async function handler(req, res) {
       await conn.beginTransaction();
 
       const [result] = await conn.query(
-        `
-        INSERT INTO bimeal_bookings
-          (user_id, nama_pic, nip_pic, no_wa_pic, unit_kerja, waktu_pesanan, status_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        `,
-        [userId, nama, nip, wa, uker, waktu_pesanan, PENDING_STATUS_ID]
+        `INSERT INTO bimeal_bookings
+           (user_id, ns, nama_pic, nip_pic, no_wa_pic, unit_kerja, waktu_pesanan, status_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, ns, nama, nip, wa, uker, waktu_pesanan, PENDING_STATUS_ID]
       );
       const bookingId = result.insertId;
 
@@ -174,8 +185,7 @@ export default async function handler(req, res) {
         const values = pesanan.map((p) => [bookingId, p.item, p.qty]);
         await conn.query(
           `
-          INSERT INTO bimeal_booking_items
-            (booking_id, nama_pesanan, jumlah)
+          INSERT INTO bimeal_booking_items (booking_id, nama_pesanan, jumlah)
           VALUES ?
           `,
           [values]
@@ -183,12 +193,7 @@ export default async function handler(req, res) {
       }
 
       await conn.commit();
-      return res.status(201).json({
-        ok: true,
-        booking_id: bookingId,
-        status_id: PENDING_STATUS_ID,
-        message: 'Booking BI.MEAL berhasil dibuat',
-      });
+      return res.status(201).json({ ok: true, booking_id: bookingId, status_id: PENDING_STATUS_ID });
     } catch (e) {
       if (conn) await conn.rollback();
       console.error('POST /api/bimeal/book error:', e?.message, e);
@@ -198,62 +203,67 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== PUT: update status booking (Finish, Approve/Reject, dll) =====
+  // ===== PUT: update status (user: miliknya saja; admin: bebas) =====
   if (req.method === 'PUT') {
-    let body = {};
-    try {
-      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    } catch {
-      return res.status(400).json({ error: 'Body harus JSON' });
+    const auth = await verifyAuth(req, ['user', 'admin']);
+    if (!auth.ok) {
+      res.setHeader('Allow', ['GET', 'POST', 'PUT']);
+      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
+
+    let body = {};
+    try { body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; }
+    catch { return res.status(400).json({ error: 'Body harus JSON' }); }
 
     const bookingId = Number(body?.bookingId);
     const newStatusId = Number(body?.newStatusId);
-    const reason = typeof body?.reason === 'string' ? body.reason.trim() : null;
 
-    if (!Number.isFinite(bookingId) || bookingId <= 0) {
+    if (!Number.isFinite(bookingId) || bookingId <= 0)
       return res.status(400).json({ error: 'bookingId tidak valid' });
-    }
-    if (![1, 2, 3, 4].includes(newStatusId)) {
+    if (![1, 2, 3, 4].includes(newStatusId))
       return res.status(400).json({ error: 'newStatusId harus salah satu dari 1,2,3,4' });
-    }
 
     let conn;
     try {
       conn = await db.getConnection();
 
-      // Pastikan booking milik user yang login
-      const [chk] = await conn.query(
-        'SELECT id FROM bimeal_bookings WHERE id = ? AND user_id = ? LIMIT 1',
-        [bookingId, userId]
+      // cek kepemilikan
+      const [own] = await conn.query(
+        'SELECT id, user_id FROM bimeal_bookings WHERE id = ? LIMIT 1',
+        [bookingId]
       );
-      if (!Array.isArray(chk) || chk.length === 0) {
+      if (!Array.isArray(own) || own.length === 0) {
         conn?.release();
-        return res.status(404).json({ error: 'Booking tidak ditemukan atau bukan milik Anda' });
+        return res.status(404).json({ error: 'Booking tidak ditemukan' });
+      }
+      const isOwner = String(own[0].user_id) === String(auth.userId);
+      if (auth.role === 'user' && !isOwner) {
+        conn?.release();
+        return res.status(403).json({ error: 'Booking bukan milik Anda' });
       }
 
-      // Jika kamu punya kolom untuk alasan penolakan, aktifkan query berikut
+      // jika punya kolom rejection_reason, aktifkan versi berikut
       // const [upd] = await conn.query(
       //   `UPDATE bimeal_bookings
-      //     SET status_id = ?, rejection_reason = ?, updated_at = NOW()
-      //    WHERE id = ? AND user_id = ?`,
-      //   [newStatusId, newStatusId === 3 ? (reason || null) : null, bookingId, userId]
+      //      SET status_id = ?, rejection_reason = ?, updated_at = NOW()
+      //    WHERE id = ?`,
+      //   [newStatusId, newStatusId === 3 ? (reason || null) : null, bookingId]
       // );
 
       const [upd] = await conn.query(
         `UPDATE bimeal_bookings
            SET status_id = ?, updated_at = NOW()
-         WHERE id = ? AND user_id = ?`,
-        [newStatusId, bookingId, userId]
+         WHERE id = ?`,
+        [newStatusId, bookingId]
       );
 
       if (upd.affectedRows === 0) {
         conn?.release();
-        return res.status(404).json({ error: 'Booking tidak ditemukan' });
+        return res.status(409).json({ error: 'Tidak ada baris yang berubah' });
       }
 
       conn?.release();
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, affected: upd.affectedRows });
     } catch (e) {
       conn?.release();
       console.error('PUT /api/bimeal/book error:', e?.message, e);
