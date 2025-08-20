@@ -31,7 +31,7 @@ export default function LandingPage() {
 
           <div className="logo-landing-wrapper">
             <Image
-              src="/assets/Logo D'ONE.png"
+              src="/assets/BI.ONE.svg"
               alt="BI.ONE Logo"
               fill
               style={{ objectFit: 'contain' }}
