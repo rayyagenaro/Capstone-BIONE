@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './fiturBIstay.module.css';
 import { FaArrowLeft } from 'react-icons/fa';
@@ -10,7 +9,6 @@ import { jwtVerify } from 'jose';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import idLocale from 'date-fns/locale/id';
-import { addDays } from 'date-fns';
 
 /* ---------------- Popup Sukses ---------------- */
 
@@ -43,11 +41,11 @@ const SuccessPopup = ({ onClose }) => (
 /* ---------------- Popup SOP (selalu muncul saat masuk halaman) ---------------- */
 
 const SOPPopup = ({ onClose, onOpenLink }) => {
-  // ganti dengan link SOP Anda
-  const SOP_URL = 'https://github.com/RafiefChalvani/ProjectBI-D-ONE';
+  const SOP_URL =
+    'https://docs.google.com/document/d/1McbCcASEltz4xX5lb49wRV1jx6hYCkya1a9ay1QAhkM/edit?usp=sharing';
 
   const handleOpenSOP = () => {
-    onOpenLink?.(); // beri tahu parent bahwa link diklik
+    onOpenLink?.();
     window.open(SOP_URL, '_blank', 'noopener,noreferrer');
   };
 
@@ -96,12 +94,6 @@ const startOfDay = (d) => {
   x.setHours(0, 0, 0, 0);
   return x;
 };
-const diffNights = (checkIn, checkOut) => {
-  if (!checkIn || !checkOut) return 0;
-  const a = startOfDay(checkIn);
-  const b = startOfDay(checkOut);
-  return Math.round((b - a) / (1000 * 60 * 60 * 24));
-};
 
 /* ===================== Page ===================== */
 
@@ -125,16 +117,14 @@ export default function FiturBIstay() {
     return () => { active = false; };
   }, [router]);
 
-  /* ---------- SOP gate: selalu tampil saat masuk halaman ---------- */
+  /* ---------- SOP gate ---------- */
   const [showSOP, setShowSOP] = useState(true);
   const sopLinkClickedRef = useRef(false);
-
-  // Tutup otomatis saat kembali fokus hanya jika user sempat klik link SOP
   useEffect(() => {
     const onFocus = () => {
       if (sopLinkClickedRef.current) {
         setShowSOP(false);
-        sopLinkClickedRef.current = false; // reset
+        sopLinkClickedRef.current = false;
       }
     };
     window.addEventListener('focus', onFocus);
@@ -152,8 +142,8 @@ export default function FiturBIstay() {
     wa: '',
     status: '',
     asalKPw: '',
-    checkIn: null, // jam 14:00
-    checkOut: null, // jam 12:00
+    checkIn: null, // 14:00
+    checkOut: null, // 12:00
     ket: '',
   });
   const [errors, setErrors] = useState({});
@@ -164,33 +154,26 @@ export default function FiturBIstay() {
     if (errors[name]) setErrors((p) => ({ ...p, [name]: null }));
   };
 
-  // Date only (jam check-in/out otomatis)
+  // Date only (jam check-in/out otomatis) — TIDAK ada batasan durasi
   const handleDateChange = (date, key) => {
     if (key === 'checkIn') {
-      const ci = atTime(date, 14, 0);
-      setFields((prev) => {
-        const next = { ...prev, checkIn: ci };
-        if (prev.checkOut) {
-          const nights = diffNights(ci, prev.checkOut);
-          if (nights < 1 || nights > 2) {
-            next.checkOut = null;
-            setErrors((p) => ({ ...p, checkOut: 'Pilih ulang. Maksimal 2 malam & minimal 1 malam.' }));
-          }
-        }
-        return next;
-      });
+      const ci = atTime(date, 14, 0); // 14:00
+      setFields((prev) => ({ ...prev, checkIn: ci }));
       if (errors.checkIn) setErrors((p) => ({ ...p, checkIn: null }));
+      // Jika checkOut ada & tidak valid (<= checkIn), hapus error saja; user bebas pilih ulang
+      if (fields.checkOut && fields.checkOut <= ci) {
+        setErrors((p) => ({ ...p, checkOut: 'Check out harus setelah check in.' }));
+      }
       return;
     }
 
     if (key === 'checkOut') {
-      const co = atTime(date, 12, 0);
-      const nights = diffNights(fields.checkIn, co);
+      const co = atTime(date, 12, 0); // 12:00
       setFields((prev) => ({ ...prev, checkOut: co }));
       if (!fields.checkIn) {
         setErrors((p) => ({ ...p, checkOut: 'Pilih tanggal check-in terlebih dulu.' }));
-      } else if (nights < 1 || nights > 2) {
-        setErrors((p) => ({ ...p, checkOut: 'Durasi hanya 1–2 malam (maks 3 hari).' }));
+      } else if (co <= fields.checkIn) {
+        setErrors((p) => ({ ...p, checkOut: 'Check out harus setelah check in.' }));
       } else if (errors.checkOut) {
         setErrors((p) => ({ ...p, checkOut: null }));
       }
@@ -207,10 +190,8 @@ export default function FiturBIstay() {
     if (!fields.asalKPw.trim()) e.asalKPw = 'Asal KPw wajib diisi';
     if (!fields.checkIn) e.checkIn = 'Tanggal check in wajib diisi';
     if (!fields.checkOut) e.checkOut = 'Tanggal check out wajib diisi';
-    if (fields.checkIn && fields.checkOut) {
-      const nights = diffNights(fields.checkIn, fields.checkOut);
-      if (nights < 1) e.checkOut = 'Minimal 1 malam.';
-      else if (nights > 2) e.checkOut = 'Maksimal 2 malam (3 hari).';
+    if (fields.checkIn && fields.checkOut && fields.checkOut <= fields.checkIn) {
+      e.checkOut = 'Check out harus setelah check in.';
     }
     return e;
   };
@@ -218,7 +199,6 @@ export default function FiturBIstay() {
   /* -------- Custom dropdown: Status Pegawai -------- */
   const statusRef = useRef(null);
   const [statusOpen, setStatusOpen] = useState(false);
-
   useEffect(() => {
     const onDoc = (ev) => {
       if (!statusRef.current) return;
@@ -227,7 +207,6 @@ export default function FiturBIstay() {
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
-
   const selectStatus = (val) => {
     setFields((p) => ({ ...p, status: val }));
     if (errors.status) setErrors((p) => ({ ...p, status: null }));
@@ -248,7 +227,6 @@ export default function FiturBIstay() {
     setIsSubmitting(true);
 
     try {
-      // ambil user id dari token (API me)
       const meRes = await fetch('/api/me?scope=user', { cache: 'no-store' });
       const me = await meRes.json().catch(() => ({}));
       const userId = me?.payload?.sub || me?.payload?.user_id || null;
@@ -295,9 +273,6 @@ export default function FiturBIstay() {
     router.replace('/Signin/hal-sign');
   };
 
-  const minCheckoutDate = fields.checkIn ? addDays(fields.checkIn, 1) : null;
-  const maxCheckoutDate = fields.checkIn ? addDays(fields.checkIn, 2) : null;
-
   return (
     <div className={styles.background}>
       <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
@@ -306,7 +281,6 @@ export default function FiturBIstay() {
         <div className={styles.formBox}>
           {/* Header */}
           <div className={styles.topRow}>
-            
             <button className={styles.backBtn} onClick={() => router.back()} type="button">
               <FaArrowLeft /> Kembali
             </button>
@@ -428,7 +402,7 @@ export default function FiturBIstay() {
                 selected={fields.checkIn}
                 onChange={(d) => handleDateChange(d, 'checkIn')}
                 dateFormat="dd MMMM yyyy"
-                minDate={new Date()}
+                // >>> Tidak dibatasi tanggalnya
                 locale={idLocale}
                 placeholderText="Pilih tanggal"
               />
@@ -442,8 +416,7 @@ export default function FiturBIstay() {
                 selected={fields.checkOut}
                 onChange={(d) => handleDateChange(d, 'checkOut')}
                 dateFormat="dd MMMM yyyy"
-                minDate={minCheckoutDate || undefined}
-                maxDate={maxCheckoutDate || undefined}
+                // >>> Tidak ada min/max tanggal
                 locale={idLocale}
                 placeholderText="Pilih tanggal"
                 disabled={!fields.checkIn}
