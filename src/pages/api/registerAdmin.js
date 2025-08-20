@@ -1,12 +1,17 @@
-// pages/api/registerAdmin.js
+// /src/pages/api/registerAdmin.js
 import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 function isValidPhone(raw) {
   if (!raw) return false;
   const s = String(raw).replace(/[^\d+]/g, '');
-  // minimal 8 digit, maksimal 15 (WhatsApp range umum), boleh mulai +, 62, atau 0
+  // 08xxxxxxxx / 62xxxxxxxx (7–13 digits setelah prefix)
   return /^(?:\+?62|0)\d{7,13}$/.test(s);
+}
+
+function getEmailDomain(email = '') {
+  const at = String(email).trim().toLowerCase().split('@');
+  return at.length === 2 ? at[1] : '';
 }
 
 export default async function handler(req, res) {
@@ -16,29 +21,36 @@ export default async function handler(req, res) {
 
   // role_id DIHARDCODE = 2 (admin fitur)
   const { nama, email, phone, password, service_ids = [] } = req.body || {};
-
   if (!nama || !email || !password) {
     return res.status(400).json({ error: 'Semua field wajib diisi' });
   }
   if (!Array.isArray(service_ids) || service_ids.length < 1) {
     return res.status(400).json({ error: 'Minimal pilih 1 layanan' });
   }
-  // ⛔️ HAPUS batas maksimal:
-  // if (service_ids.length > 2) { ... }  // dihapus
-
   if (phone && !isValidPhone(phone)) {
     return res.status(400).json({ error: 'Format nomor telepon tidak valid (gunakan 08xx atau 62xx)' });
   }
 
-  const ROLE_ADMIN_FITUR = 2;
-  const uniqueServiceIds = [...new Set(service_ids.map(Number))];
+  // === aturan domain → kuota
+  const domain = getEmailDomain(email);
+  const isUmi = domain === 'umi.com';
+  const maxAllowed = isUmi ? 4 : 2;
 
+  const uniqueServiceIds = [...new Set(service_ids.map(Number))];
+  if (uniqueServiceIds.length > maxAllowed) {
+    return res.status(400).json({
+      error: `Maksimal ${maxAllowed} layanan untuk domain ${isUmi ? '@umi.com' : 'non-@umi.com'}.`,
+      maxAllowed,
+    });
+  }
+
+  const ROLE_ADMIN_FITUR = 2;
   const conn = (await db.getConnection?.()) || db;
 
   try {
     if (conn.beginTransaction) await conn.beginTransaction();
 
-    // Cek email unik
+    // Email unik
     const [existing] = await conn.query(
       'SELECT id FROM admins WHERE email = ? LIMIT 1',
       [email]
@@ -48,7 +60,7 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Email sudah digunakan' });
     }
 
-    // Validasi role & layanan
+    // Pastikan role admin fitur ada
     const [roles] = await conn.query(
       'SELECT id FROM admin_roles WHERE id = ? LIMIT 1',
       [ROLE_ADMIN_FITUR]
@@ -58,9 +70,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Role Admin Fitur belum tersedia di database' });
     }
 
-    const placeholdersSvc = uniqueServiceIds.map(() => '?').join(',');
+    // Validasi service id terhadap tabel services
+    const placeholders = uniqueServiceIds.map(() => '?').join(',');
     const [validSvcs] = await conn.query(
-      `SELECT id FROM services WHERE id IN (${placeholdersSvc})`,
+      `SELECT id FROM services WHERE id IN (${placeholders})`,
       uniqueServiceIds
     );
     if (validSvcs.length !== uniqueServiceIds.length) {
@@ -68,26 +81,30 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Terdapat service_id yang tidak valid' });
     }
 
-    // Hash password
+    // Hash & insert admin
     const hashed = await bcrypt.hash(password, 10);
-
-    // Insert admin (dengan phone)
-    const [result] = await conn.query(
-      'INSERT INTO admins (nama, email, phone, password, role_id, verification_id) VALUES (?, ?, ?, ?, ?, 1)',
+    const [ins] = await conn.query(
+      `INSERT INTO admins (nama, email, phone, password, role_id, verification_id)
+       VALUES (?, ?, ?, ?, ?, 1)`,
       [nama, email, phone || null, hashed, ROLE_ADMIN_FITUR]
     );
-    const adminId = result.insertId;
+    const adminId = ins.insertId;
 
-    // Mapping layanan — ✅ TANPA slice(0,2)
-    const values = uniqueServiceIds.map((sid) => [adminId, sid]);
-    await conn.query('INSERT INTO admin_services (admin_id, service_id) VALUES ?', [values]);
+    // Mapping layanan
+    if (uniqueServiceIds.length) {
+      const values = uniqueServiceIds.map((sid) => [adminId, sid]);
+      await conn.query(
+        'INSERT INTO admin_services (admin_id, service_id) VALUES ?',
+        [values]
+      );
+    }
 
     if (conn.commit) await conn.commit();
-
     return res.status(201).json({
-      message: 'Pendaftaran admin berhasil dan layanan tersimpan.',
+      message: `Pendaftaran admin berhasil. Kuota domain: ${maxAllowed}.`,
       admin_id: adminId,
       service_ids: uniqueServiceIds,
+      maxAllowed,
     });
   } catch (err) {
     if (conn.rollback) await conn.rollback();
