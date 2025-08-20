@@ -4,7 +4,6 @@ import { jwtVerify } from 'jose';
 
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
-/* ===== helpers: ns & auth (mirip bimeal.js) ===== */
 function getNsFromReq(req) {
   const q = req.query?.ns;
   if (typeof q === 'string' && NS_RE.test(q)) return q;

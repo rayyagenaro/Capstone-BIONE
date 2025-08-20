@@ -8,6 +8,7 @@ import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import idLocale from 'date-fns/locale/id';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 
 /* ===================== hooks & helpers ===================== */
 const useDropdown = (initial = false) => {
@@ -250,6 +251,7 @@ export default function FiturBICare() {
   const [slotMap, setSlotMap] = useState({});
   const [bookedMap, setBookedMap] = useState({});
   const [adminMap, setAdminMap] = useState({});
+  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
   const handleMonthChange = useCallback(async (ym) => {
     try {
@@ -346,19 +348,40 @@ export default function FiturBICare() {
       // NOTE: kalau API kamu tetap butuh userId, pastikan layer auth menambahkan userId di server.
     };
 
-    const res = await fetch('/api/BIcare/book', {
+    const ns = typeof window !== 'undefined' ? new URLSearchParams(location.search).get('ns') : '';
+    const url = `/api/BIcare/book${ns ? `?ns=${encodeURIComponent(ns)}` : ''}`;
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
-    if (res.status === 201) {
-      setShowSuccess(true);
-      const ymKey = `${payload.bookingDate.slice(0, 4)}-${payload.bookingDate.slice(5, 7)}`;
+    const json = await res.json().catch(() => ({}));
+
+    if (res.status === 201 || json?.ok) {
+      const dateKey = payload.bookingDate;                 // "YYYY-MM-DD"
+      const timeHHMM = String(payload.slotTime).slice(0,5);
+      setBookedMap((prev) => {
+        const set = new Set(prev[dateKey] || []);
+        set.add(timeHHMM);
+        return { ...prev, [dateKey]: Array.from(set).sort() };
+      });
+
+      // 2) tetap re-fetch untuk sinkronisasi akhir
+      const ymKey = `${dateKey.slice(0, 4)}-${dateKey.slice(5, 7)}`;
       handleMonthChange(ymKey);
+      setShowSuccess(true);
     } else {
-      const err = await res.json().catch(() => ({}));
-      alert(err?.error || 'Gagal booking');
+      if (res.status === 422 && json?.details) {
+        // kalau mau, kamu bisa sekalian setErrors(json.details) juga
+        alert('Form belum lengkap:\n' +
+          Object.entries(json.details).map(([k,v]) => `• ${k}: ${v}`).join('\n'));
+      } else if (res.status === 401) {
+        alert('Sesi habis. Silakan login ulang.');
+        // router.push('/Login/hal-login'); // optional
+      } else {
+        alert(json?.error || 'Gagal booking');
+      }
     }
   };
 
@@ -375,7 +398,8 @@ export default function FiturBICare() {
 
   return (
     <div className={styles.background}>
-      <SidebarUser />
+      <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
+
       <main className={styles.mainContent}>
         <div className={styles.formBox}>
           {/* Header */}
@@ -543,6 +567,24 @@ export default function FiturBICare() {
 
         {showSuccess && <SuccessPopup onClose={closeSuccess} />}
       </main>
+
+      <LogoutPopup
+        open={showLogoutPopup}
+        onCancel={() => setShowLogoutPopup(false)}
+        onLogout={async () => {
+          try {
+            const ns = typeof window !== 'undefined'
+              ? new URLSearchParams(location.search).get('ns') || ''
+              : '';
+            await fetch(`/api/logout${ns ? `?ns=${encodeURIComponent(ns)}` : ''}`, {
+              method: 'POST',
+              credentials: 'include', // biar cookie session ikut
+            });
+          } finally {
+            router.replace('/Signin/hal-sign');
+          }
+        }}
+      />
     </div>
   );
 }
