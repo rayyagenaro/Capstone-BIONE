@@ -20,7 +20,7 @@ const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished'];
 const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
 
 /* ===================== KONFIGURASI FITUR/LAYANAN ===================== */
-/** Standar kunci kanonik (yang kita pakai di FE): 
+/** Standar kunci kanonik (yang kita pakai di FE):
  *  bidrive | bicare | bimeal | bimeet | bimail | bistay
  *  -> "bimail" = BI.Docs (alias: bidocs/docs/mail)
  */
@@ -367,7 +367,6 @@ const BookingCard = React.memo(({ booking, onClick }) => {
 BookingCard.displayName = 'BookingCard';
 
 const ADMIN_DETAIL_ROUTES = {
-
   bimeet: (id) => `/Admin/Fitur/bimeet/detail?id=${id}`,
   bicare: (id) => `/Admin/Fitur/bicare/detail?id=${id}`,
   bimeal: (id) => `/Admin/Fitur/bimeal/detail?id=${id}`,
@@ -418,79 +417,108 @@ export default function PersetujuanBooking() {
     }
   };
 
-  // Ambil semua booking lintas layanan (ADMIN)
+  // Ambil semua booking lintas layanan (ADMIN) — paralel, dengan parsing payload yang benar
   useEffect(() => {
     if (!router.isReady) return;
     let mounted = true;
+    const ctrl = new AbortController();
+
+    const parseArray = (payload, keys = []) => {
+      for (const k of keys) {
+        if (Array.isArray(payload?.[k])) return payload[k];
+      }
+      return Array.isArray(payload) ? payload : [];
+    };
 
     const fetchAll = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        // 1) BI.Drive (endpoint admin lama yang sudah ada)
-        let dataDrive = [];
-        {
-          const res = await fetch(withNs('/api/booking', ns), { cache: 'no-store', credentials: 'include' });
-          if (res.ok) {
-            const rows = await res.json();
-            dataDrive = Array.isArray(rows) ? rows.map(normalizeBIDriveRow) : [];
-          } else {
-            const e = await res.json().catch(() => ({}));
+        const opts = { cache: 'no-store', credentials: 'include', signal: ctrl.signal };
+
+        const pDrive = (async () => {
+          try {
+            const res = await fetch(withNs('/api/booking', ns), opts);
+            if (!res.ok) {
+              const j = await res.json().catch(() => ({}));
+              throw new Error(j?.reason || j?.error || `HTTP ${res.status}`);
+            }
+            const rows = await res.json(); // endpoint lama: array langsung
+            return Array.isArray(rows) ? rows.map(normalizeBIDriveRow) : [];
+          } catch (e) {
             console.warn('Drive fetch error:', e);
+            return [];
           }
-        }
+        })();
 
-        // 2) BI.Care (ADMIN)
-        let dataCare = [];
-        try {
-          const r = await fetch(withNs('/api/BIcare/book?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
-          if (r.ok) {
-            const rows = await r.json();
-            dataCare = Array.isArray(rows) ? rows.map(normalizeBICareRow) : [];
+        const pCare = (async () => {
+          try {
+            const r = await fetch(withNs('/api/BIcare/booked?scope=admin', ns), opts);
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j?.reason || j?.error || `HTTP ${r.status}`);
+            const rows = parseArray(j, ['items']);
+            return rows.map(normalizeBICareRow);
+          } catch (e) {
+            console.warn('Care fetch error:', e?.message || e);
+            if (mounted && !error) setError(`BI.Care: ${e?.message || 'gagal memuat'}`);
+            return [];
           }
-        } catch (e) { console.warn('Care fetch error:', e); }
+        })();
 
-        // 3) BI.Docs (BImail) (ADMIN)
-        let dataDocs = [];
-        try {
-          const r = await fetch(withNs('/api/BImail?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
-          if (r.ok) {
-            const payload = await r.json();
-            const rows = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);
-            dataDocs = rows.map(normalizeBIMailRow);
+        const pDocs = (async () => {
+          try {
+            const r = await fetch(withNs('/api/BImail?scope=admin', ns), opts);
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j?.reason || j?.error || `HTTP ${r.status}`);
+            const rows = parseArray(j, ['items']);
+            return rows.map(normalizeBIMailRow);
+          } catch (e) {
+            console.warn('Docs fetch error:', e);
+            return [];
           }
-        } catch (e) { console.warn('Docs fetch error:', e); }
+        })();
 
-        // 4) BI.Meal (ADMIN)
-        let dataMeal = [];
-        try {
-          const r = await fetch(withNs('/api/bimeal/book?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
-          if (r.ok) {
-            const rows = await r.json();
-            dataMeal = Array.isArray(rows) ? rows.map(normalizeBIMealRow) : [];
+        const pMeal = (async () => {
+          try {
+            const r = await fetch(withNs('/api/bimeal/book?scope=admin', ns), opts);
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j?.reason || j?.error || `HTTP ${r.status}`);
+            const rows = parseArray(j);
+            return rows.map(normalizeBIMealRow);
+          } catch (e) {
+            console.warn('Meal fetch error:', e);
+            return [];
           }
-        } catch (e) { console.warn('Meal fetch error:', e); }
+        })();
 
-        // 5) BI.Meet (ADMIN)
-        let dataMeet = [];
-        try {
-          const r = await fetch(withNs('/api/bimeet/createbooking?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
-          if (r.ok) {
-            const payload = await r.json();
-            const rows = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);
-            dataMeet = rows.map(normalizeBIMeetRow);
+        const pMeet = (async () => {
+          try {
+            const r = await fetch(withNs('/api/bimeet/createbooking?scope=admin', ns), opts);
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j?.reason || j?.error || `HTTP ${r.status}`);
+            const rows = parseArray(j, ['items']);
+            return rows.map(normalizeBIMeetRow);
+          } catch (e) {
+            console.warn('Meet fetch error:', e);
+            return [];
           }
-        } catch (e) { console.warn('Meet fetch error:', e); }
+        })();
 
-        // 6) BI.Stay (ADMIN)
-        let dataStay = [];
-        try {
-          const r = await fetch(withNs('/api/BIstaybook/bistaybooking?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
-          if (r.ok) {
-            const payload = await r.json();
-            const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
-            dataStay = rows.map(normalizeBIStayRow);
+        const pStay = (async () => {
+          try {
+            const r = await fetch(withNs('/api/BIstaybook/bistaybooking?scope=admin', ns), opts);
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j?.reason || j?.error || `HTTP ${r.status}`);
+            const rows = parseArray(j, ['data']);
+            return rows.map(normalizeBIStayRow);
+          } catch (e) {
+            console.warn('Stay fetch error:', e);
+            return [];
           }
-        } catch (e) { console.warn('Stay fetch error:', e); }
+        })();
+
+        const [dataDrive, dataCare, dataDocs, dataMeal, dataMeet, dataStay] =
+          await Promise.all([pDrive, pCare, pDocs, pMeal, pMeet, pStay]);
 
         const merged = [
           ...(Array.isArray(dataDrive) ? dataDrive : []),
@@ -499,18 +527,21 @@ export default function PersetujuanBooking() {
           ...dataMeal,
           ...dataMeet,
           ...dataStay,
-        ];
+        ].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
         if (mounted) setAllBookings(merged);
       } catch (err) {
-        if (mounted) setError(err.message);
+        if (mounted) setError(err.message || 'Gagal memuat data');
       } finally {
         if (mounted) setIsLoading(false);
       }
     };
 
     fetchAll();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+      ctrl.abort();
+    };
   }, [router.isReady, ns]);
 
   /* ===================== FILTER & PAGINATION ===================== */
@@ -534,7 +565,6 @@ export default function PersetujuanBooking() {
 
   const filteredBookings = useMemo(() => {
     if (featureValue === 'all') return statusFiltered;
-
     // terima alias bidocs <-> bimail biar aman
     return statusFiltered.filter((b) => isAlias(resolveFeatureKey(b), featureValue));
   }, [statusFiltered, featureValue]);
@@ -596,6 +626,10 @@ export default function PersetujuanBooking() {
             </button>
             <h1 className={styles.title}>PERSETUJUAN BOOKING</h1>
           </div>
+
+          {!ns && !isLoading && (
+            <p className={styles.emptyText}>Namespace tidak ditemukan. Buka halaman melalui tautan admin yang benar.</p>
+          )}
 
           {/* Dropdown Fitur/Layanan */}
           <FeatureDropdown value={featureValue} onChange={handleFeatureChange} />

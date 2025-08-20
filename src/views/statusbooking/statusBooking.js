@@ -178,6 +178,7 @@ async function updateServiceStatus(featureKey, bookingId, newStatusId = 4, ns) {
     bidrive: '/api/booking',                 // PUT { bookingId, newStatusId, ns? }
     bimeet:  '/api/bimeet/createbooking',    // PUT { bookingId, newStatusId, ns? } (sudah kamu buat)
     bimeal:  '/api/bimeal/book',          // siapkan di backend
+    bicare: '/api/BIcare/booked',          // siapkan di backend
     bistay:  '/api/BIstaybook/bistaybooking',          // siapkan di backend
   }[featureKey];
 
@@ -783,14 +784,23 @@ export default function StatusBooking() {
         // 2) BI.Care milik user
         let dataBICare = [];
         try {
-          const rCare = await fetch(`/api/BIcare/book?userId=${uid}`, { cache: 'no-store', credentials: 'include' });
+          const rCare = await fetch(
+            withNs(`/api/BIcare/booked?userId=${uid}`, ns),
+            { cache: 'no-store', credentials: 'include' }
+          );
           if (rCare.ok) {
-            const rows = await rCare.json();
-            dataBICare = Array.isArray(rows) ? rows.map(normalizeBICareRow) : [];
+            const payload = await rCare.json();
+            const rows = Array.isArray(payload?.items) ? payload.items
+                      : Array.isArray(payload)       ? payload
+                      : [];
+            dataBICare = rows.map(normalizeBICareRow);
+          } else if (rCare.status === 401 || rCare.status === 403) {
+            throw new Error('Sesi login/NS tidak valid untuk BI.Care.');
           }
         } catch (e) {
           console.warn('Gagal load BI.Care:', e);
         }
+
 
         // 3) BI.Docs (BImail) milik user
         let dataBIDocs = [];
@@ -833,7 +843,7 @@ export default function StatusBooking() {
         // 6) BI.Stay
         let dataBIStay = [];
         try {
-          const rStay = await fetch(`/api/BIstaybook/bistaybooking?userID=${uid}`, { cache: 'no-store', credentials: 'include' });
+          const rStay = await fetch(`/api/BIstaybook/bistaybooking?userId=${uid}`, { cache: 'no-store', credentials: 'include' });
           if (rStay.ok) {
             const payload = await rStay.json();
             const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
