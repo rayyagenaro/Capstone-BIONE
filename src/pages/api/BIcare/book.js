@@ -1,9 +1,27 @@
 // /pages/api/BIcare/book.js
 import db from '@/lib/db';
 
+function toMinutes(hms) {
+  const [H, M] = String(hms).split(':').map((x) => parseInt(x, 10));
+  return (H || 0) * 60 + (M || 0);
+}
+function toHHMM(mins) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+function expandSlots(start_time, end_time, stepMinutes) {
+  const start = toMinutes(start_time);
+  const end   = toMinutes(end_time);
+  const out = [];
+  for (let t = start; t < end; t += stepMinutes) out.push(toHHMM(t));
+  return out;
+}
+const DOW = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+
 export default async function handler(req, res) {
   try {
-    /* ===================== GET: list booking milik user ===================== */
+    /* ===================== GET: list booking milik user (tetap) ===================== */
     if (req.method === 'GET') {
       try {
         const userId = Number(req.query.userId || 0);
@@ -16,7 +34,6 @@ export default async function handler(req, res) {
 
         let rows = [];
         if (userId) {
-          // normal: by userId
           [rows] = await db.query(
             `SELECT id, user_id, doctor_id, booking_date, slot_time, status,
                     booker_name, nip, wa, patient_name, patient_status,
@@ -27,7 +44,6 @@ export default async function handler(req, res) {
             [userId]
           );
         } else {
-          // fallback: by wa
           [rows] = await db.query(
             `SELECT id, user_id, doctor_id, booking_date, slot_time, status,
                     booker_name, nip, wa, patient_name, patient_status,
@@ -38,7 +54,6 @@ export default async function handler(req, res) {
             [wa]
           );
 
-          // Backfill user_id kalau dikirimkan di query & masih NULL di tabel
           const maybeUserId = Number(req.query.userId || 0);
           if (rows.length && maybeUserId > 0) {
             await db.query(
@@ -57,11 +72,11 @@ export default async function handler(req, res) {
       }
     }
 
-    /* ===================== POST: buat booking baru ===================== */
+    /* ===================== POST: buat booking baru (validasi pakai aturan) ===================== */
     if (req.method === 'POST') {
       const b = req.body || {};
 
-      // Wajib: userId (karena sudah FK ke users)
+      // Catatan: kalau layer auth kamu menyuntikkan userId di server, bagian ini boleh di-relax.
       const userId = Number(b.userId || 0);
       if (!userId) {
         res.setHeader('Allow', ['GET', 'POST']);
@@ -78,15 +93,15 @@ export default async function handler(req, res) {
       const patient_name  = (b.patient_name || '').trim();
       const patient_status= (b.patient_status || '').trim();
       const gender        = (b.gender || '').trim();
-      const birth_date    = (b.birth_date || '').trim();      // "YYYY-MM-DD"
+      const birth_date    = (b.birth_date || '').trim();
       const complaint     = (b.complaint || null);
 
-      // Validasi
       if (!doctorId || !/^\d{4}-\d{2}-\d{2}$/.test(bookingDate)) {
         return res.status(400).json({ error: 'doctorId/bookingDate tidak valid' });
       }
       if (!slotTime) return res.status(400).json({ error: 'slotTime wajib diisi' });
       if (/^\d{2}:\d{2}$/.test(slotTime)) slotTime = `${slotTime}:00`;
+      const hhmm = slotTime.slice(0,5);
 
       if (!booker_name || !nip || !wa || !patient_name || !patient_status || !gender || !birth_date) {
         return res.status(400).json({ error: 'Data pasien/pemesan belum lengkap' });
@@ -96,23 +111,45 @@ export default async function handler(req, res) {
       try {
         await conn.beginTransaction();
 
-        // Validasi hari praktik (Sen/Jum) — pakai zona +07:00
-        const dow = new Date(`${bookingDate}T00:00:00+07:00`).getDay(); // 0..6
-        const isMon = dow === 1;
-        const isFri = dow === 5;
-        if (!isMon && !isFri) {
+        // 1) Ambil aturan aktif untuk DOW tanggal tsb
+        const dow = DOW[new Date(`${bookingDate}T00:00:00+07:00`).getDay()];
+        const [rules] = await conn.query(
+          `SELECT start_time, end_time, slot_minutes
+             FROM dmove_db1.bicare_availability_rules
+            WHERE doctor_id = ? AND is_active = 1 AND weekday = ?`,
+          [doctorId, dow]
+        );
+
+        if (!rules.length) {
           await conn.rollback(); conn.release();
-          return res.status(400).json({ error: 'Tanggal bukan hari praktik (Senin/Jumat)' });
+          return res.status(400).json({ error: 'Tanggal ini tidak ada jadwal praktik' });
         }
 
-        // Validasi jam slot
-        const allowed = ['12:00:00', '12:30:00', '13:00:00'];
-        if (!allowed.includes(slotTime)) {
+        // 2) Ekspansi slot dari aturan hari tsb
+        let allowedSet = new Set();
+        for (const r of rules) {
+          const slots = expandSlots(String(r.start_time).slice(0,5), String(r.end_time).slice(0,5), Number(r.slot_minutes || 30));
+          slots.forEach((s) => allowedSet.add(s));
+        }
+        if (!allowedSet.has(hhmm)) {
           await conn.rollback(); conn.release();
-          return res.status(400).json({ error: 'Jam tidak valid untuk slot' });
+          return res.status(400).json({ error: 'Jam tidak tersedia pada tanggal tersebut' });
         }
 
-        // Insert
+        // 3) Cek konflik (Booked / ADMIN_BLOCK)
+        const [exists] = await conn.query(
+          `SELECT id, booker_name
+             FROM dmove_db1.bicare_bookings
+            WHERE doctor_id = ? AND booking_date = ? AND slot_time = ? AND status = 'Booked'
+            FOR UPDATE`,
+          [doctorId, bookingDate, slotTime]
+        );
+        if (exists.length) {
+          await conn.rollback(); conn.release();
+          return res.status(409).json({ error: 'Slot sudah terisi' });
+        }
+
+        // 4) Insert booking
         const [result] = await conn.query(
           `INSERT INTO dmove_db1.bicare_bookings
             (user_id, doctor_id, booking_date, slot_time, status,

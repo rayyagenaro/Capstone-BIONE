@@ -29,110 +29,6 @@
   pointer-events: none;
 }
 
-/* --- Sidebar --- */
-.sidebar {
-  width: 255px;
-  background: #fff;
-  border-right: 1px solid #ececec;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  min-height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 99;
-}
-.logoSidebar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  height: 92px;
-  padding-left: 28px;
-  padding-top: 18px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #ececec;
-}
-.logoDone {
-  width: 110px !important;
-  height: 36px !important;
-  object-fit: contain;
-}
-.navMenu {
-  flex: 1;
-  width: 100%;
-  margin-top: 10px;
-}
-.navMenu ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.navMenu li {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 30px 14px 28px;
-  font-size: 17px;
-  color: #888b96;
-  cursor: pointer;
-  border-radius: 0 28px 28px 0;
-  transition: background .15s, color .15s;
-  margin-bottom: 2px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-.menuIcon {
-  font-size: 20px;
-}
-.navMenu li.active,
-.navMenu li:hover {
-  background: #2f4d8e;
-  color: #fff;
-}
-.logout {
-  margin: 20px 0 28px 28px;
-  color: #ed6257;
-  font-weight: 600;
-  font-size: 17px;
-  cursor: pointer;
-  letter-spacing: 0.01em;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.logoutIcon {
-  font-size: 20px;
-}
-
-/* --- Header --- */
-.header {
-  position: fixed;
-  top: 0;
-  left: 255px;
-  right: 0;
-  height: 92px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 60px 0 38px;
-  box-sizing: border-box;
-  box-shadow: 0 1px 4px 0 rgba(47,77,142,0.04);
-  z-index: 10;
-}
-.logoBIWrapper {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.logoBI {
-  width: 170px !important;
-  height: 34px !important;
-  object-fit: contain;
-}
-
 /* --- Main Content --- */
 .mainContent {
   flex: 1;
@@ -142,7 +38,6 @@
   background: #2f4d8e;
   min-height: 100vh;
   margin-left: 255px;
-  /* padding-top: 92px; */
 }
 .cardContainer {
   width: 90%;
@@ -157,39 +52,68 @@
   flex-direction: column;
   align-items: stretch;
 }
-.tabButtons {
+
+/* --- Main Tabs (BI.DRIVE / BI.CARE / BI.MEET) --- */
+.mainTabs {
   display: flex;
   gap: 14px;
-  margin-bottom: 22px;
-  justify-content: flex-start;
+  margin-bottom: 14px;
 }
-.tabBtn {
+.mainTabBtn {
   background: #f3f7ff;
   color: #2F4D8E;
   border: 1.6px solid #bcd0f0;
-  padding: 12px 36px;
-  font-size: 17px;
-  font-weight: 700;
-  font-family: inherit;
-  border-radius: 16px 16px 0 0;
+  padding: 10px 26px;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 12px;
   cursor: pointer;
-  outline: none;
-  transition: background 0.14s, color 0.14s, border 0.14s;
+  transition: all .14s;
+  display: inline-flex;
+  align-items: center;
 }
-.tabBtnActive {
+.mainTabActive {
   background: #2F4D8E;
   color: #fff;
-  border-bottom: 2.5px solid #fff;
-  z-index: 2;
+  border-color: #2F4D8E;
 }
+
+/* --- Sub Tabs --- */
+.subTabs {
+  display: flex;
+  gap: 10px;
+  margin: 8px 0 14px 0;
+}
+.subTabBtn {
+  background: #eef3ff;
+  color: #2F4D8E;
+  border: 1.5px solid #c9d8fa;
+  padding: 9px 18px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .14s;
+  display: inline-flex;
+  align-items: center;
+}
+.subTabActive {
+  background: #2F4D8E;
+  color: #fff;
+  border-color: #2F4D8E;
+}
+
+/* --- Table Wrapper --- */
 .tableWrapper {
   width: 100%;
   overflow-x: auto;
   background: #fff;
-  border-radius: 0 0 18px 18px;
+  border-radius: 14px;
   box-shadow: 0 2px 8px rgba(47,77,142,0.03);
   padding: 0;
 }
+
+/* --- Table --- */
 .dataTable {
   width: 100%;
   border-collapse: collapse;
@@ -213,14 +137,8 @@
 .dataTable tbody tr:hover {
   background: #f7faff;
 }
-.statusTersedia {
-  color: #22a455;
-  font-weight: bold;
-}
-.statusTidak {
-  color: #ed6257;
-  font-weight: bold;
-}
+
+/* --- Buttons --- */
 .addRow {
   width: 100%;
   display: flex;
@@ -234,7 +152,6 @@
   border-radius: 8px;
   font-size: 15px;
   font-weight: 700;
-  font-family: inherit;
   padding: 9px 18px;
   display: flex;
   align-items: center;
@@ -256,15 +173,9 @@
   border-radius: 6px;
   transition: background 0.13s;
 }
-.btnAction:hover {
-  background: #e8f0fe;
-}
-.btnActionDelete {
-  color: #e64b3b;
-}
-.btnActionDelete:hover {
-  background: #ffeaea;
-}
+.btnAction:hover { background: #e8f0fe; }
+.btnActionDelete { color: #e64b3b; }
+.btnActionDelete:hover { background: #ffeaea; }
 
 /* --- Modal --- */
 .modalBackdrop {
@@ -272,12 +183,10 @@
   z-index: 9000;
   left: 0; top: 0; right: 0; bottom: 0;
   background: rgba(48,58,92,0.23);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
 }
 .modalContent {
-  width: 400px;
+  width: 420px;
   background: #fff;
   border-radius: 16px;
   padding: 32px 26px 22px 26px;
@@ -289,17 +198,8 @@
   0% { transform: translateY(60px) scale(.96); opacity: 0; }
   100% { transform: none; opacity: 1; }
 }
-.formGroup {
-  margin-bottom: 18px;
-  display: flex;
-  flex-direction: column;
-}
-.formGroup label {
-  font-size: 15px;
-  color: #555;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
+.formGroup { margin-bottom: 18px; display: flex; flex-direction: column; }
+.formGroup label { font-size: 15px; color: #555; font-weight: 700; margin-bottom: 6px; }
 .input {
   border: 1.2px solid #bcd0f0;
   border-radius: 7px;
@@ -311,128 +211,96 @@
   transition: border .14s;
   background: #f4f7fb;
 }
-.input:focus {
-  border: 1.7px solid #2F4D8E;
-  background: #f0f7ff;
-}
-.label {
-  margin-right: 8px;
-  color: #555;
-  font-weight: 600;
-}
-.modalBtnGroup {
-  display: flex;
-  gap: 16px;
-  margin-top: 12px;
-  justify-content: flex-end;
-}
-.btnCancel {
-  background: #e4e7f5;
-  color: #22335e;
-  border: none;
-  border-radius: 6px;
-  padding: 7px 18px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.14s;
-}
-.btnCancel:hover {
-  background: #d3d8ea;
-}
-.btnSave {
-  background: #2F4D8E;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 7px 18px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.14s;
-}
-.btnSave:hover {
-  background: #233969;
-}
+.input:focus { border: 1.7px solid #2F4D8E; background: #f0f7ff; }
+.label { margin-right: 8px; color: #555; font-weight: 600; }
 
-/* Responsive */
-@media (max-width: 900px) {
-  .mainContent {
-    margin-left: 0;
-    padding-top: 92px;
-  }
-  .sidebar {
-    display: none;
-  }
-  .header {
-    left: 0;
-    padding: 0 8px 0 8px;
-  }
-  .cardContainer {
-    width: 98vw;
-    padding: 18px 4vw 14px 4vw;
-    border-radius: 12px;
-  }
-  .tabBtn {
-    padding: 10px 18px;
-    font-size: 15px;
-  }
-  .modalContent { width: 96vw; min-width: unset; }
+.modalBtnGroup { display: flex; gap: 16px; margin-top: 12px; justify-content: flex-end; }
+.btnCancel {
+  background: #e4e7f5; color: #22335e; border: none; border-radius: 6px;
+  padding: 7px 18px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .14s;
 }
-@media (max-width: 600px) {
-  .cardContainer {
-    padding: 7vw 2vw 8vw 2vw;
-  }
-  .tabBtn {
-    font-size: 13px;
-    padding: 7px 10px;
-  }
-  .dataTable th, .dataTable td {
-    padding: 7px 5px;
-    font-size: 12px;
-  }
-  .modalContent { padding: 18px 8px 14px 8px; }
+.btnCancel:hover { background: #d3d8ea; }
+.btnSave {
+  background: #2F4D8E; color: #fff; border: none; border-radius: 6px;
+  padding: 7px 18px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .14s;
 }
+.btnSave:hover { background: #233969; }
 .modalTitle {
-  color: #2F4D8E;    /* Atau warna biru tua lain yang sesuai brand kamu */
+  color: #2F4D8E;
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 20px;
   letter-spacing: 0.04em;
 }
-/* ===== Pagination (Ketersediaan) ===== */
-.paginateArea {
-  padding: 16px 14px 22px 14px;
-  border-top: 1px solid #e7e9f2;
-}
 
-.paginateControls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 8px 0 16px 0;
-  padding: 0 6px;
-}
-
-.resultsText {
-  color: #555;
-  font-weight: 600;
-}
-
+/* ===== Pagination ===== */
+.paginateArea { padding: 16px 14px 22px 14px; border-top: 1px solid #e7e9f2; }
+.paginateControls { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px 0; padding: 0 6px; }
+.resultsText { color: #555; font-weight: 600; }
 .itemsPerPageDropdown {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1.5px solid #e0e0e0;
-  background-color: #fff;
-  color: #000000;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
+  padding: 8px 12px; border-radius: 8px; border: 1.5px solid #e0e0e0;
+  background-color: #fff; color: #000; font-size: 15px; font-weight: 500; cursor: pointer;
 }
 
+/* ======== Kalender (Admin BI.CARE) ======== */
+.calendarBlock { padding: 8px 6px; }
+.calendarHintAdmin { font-size: 13px; color: #5b6b91; margin-top: 8px; }
+
+.calWrap {
+  background: #fff;
+  border: 1px solid #e1e6f3;
+  border-radius: 14px;
+  padding: 14px;
+}
+.calHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.calTitle { font-weight: 800; color: #233969; }
+.calLoading { font-weight: 600; color: #7d89a9; margin-left: 8px; }
+.calNavBtn {
+  border: 1px solid #cfd7ee; background: #f7f9ff; border-radius: 8px; padding: 4px 10px;
+  cursor: pointer; font-size: 18px; line-height: 1; color: #2f4d8e;
+}
+.calNavBtn:hover { background: #e9efff; }
+
+.calDayNames {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 6px 0 8px;
+}
+.calDayName { text-align: center; font-size: 12px; font-weight: 700; color: #7b88aa; letter-spacing: .02em; }
+
+.calGrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.calCell {
+  background: #fbfcff; border: 1px solid #e6ebf7; border-radius: 10px; min-height: 120px;
+  padding: 8px; display: flex; flex-direction: column;
+}
+.calCellMuted { opacity: .45; background: #f6f7fb; }
+.calCellHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.calDateNum { font-weight: 800; color: #233969; }
+.calBadgeOpen {
+  font-size: 11px; font-weight: 800; color: #2b6c2f; background: #e6f7ea; border: 1px solid #bfe8c6;
+  padding: 2px 6px; border-radius: 999px;
+}
+
+.sessionList { display: grid; grid-auto-rows: minmax(28px, auto); gap: 6px; margin-top: 4px; }
+.sessionListOff { margin-top: auto; font-size: 12px; color: #8b93b0; }
+
+.sessionBtn { width: 100%; border-radius: 8px; padding: 6px; font-weight: 700; font-size: 13px; cursor: pointer; border: 1px solid transparent; text-align: center; transition: opacity .12s; }
+.sessionAvail { background: #f2f7ff; border-color: #cddaf6; color: #20427f; }
+.sessionAvail:hover { background: #e6f0ff; }
+.sessionBooked { background: #f9e9ea; border-color: #f0c9cd; color: #9a2b2f; }
+.sessionAdmin  { background: #fff4e2; border-color: #f3d49d; color: #996626; } /* tidak dipakai, boleh dibiarkan */
+
+/* >>> State pending <<< */
+.sessionBtn[disabled] {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .mainContent { margin-left: 0; }
+  .cardContainer { width: 98vw; padding: 18px 4vw 14px 4vw; border-radius: 12px; }
+}
 @media (max-width: 600px) {
-  .paginateControls {
-    flex-direction: column;
-    gap: 10px;
-  }
+  .cardContainer { padding: 7vw 2vw 8vw 2vw; }
+  .dataTable th, .dataTable td { padding: 7px 5px; font-size: 12px; }
+  .modalContent { width: 96vw; min-width: unset; padding: 18px 8px 14px 8px; }
 }

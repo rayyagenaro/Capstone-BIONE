@@ -39,7 +39,6 @@ const SuccessPopup = ({ onClose }) => (
 );
 
 /* kalender util */
-const SESSIONS = ['12:00', '12:30', '13:00'];
 const ymd = (d) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -68,7 +67,7 @@ const getMonthMatrix = (year, monthIndex0) => {
   return weeks;
 };
 
-/* ===================== dropdown custom (styled) ===================== */
+/* ===================== dropdown custom ===================== */
 function CustomSelect({
   id,
   name,
@@ -126,8 +125,8 @@ function CustomSelect({
   );
 }
 
-/* ===================== kalender dokter ===================== */
-function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange }) {
+/* ===================== kalender dokter (DINAMIS dari aturan) ===================== */
+function DoctorCalendar({ slotMap, bookedMap, adminMap, onPick, minDate = new Date(), onMonthChange }) {
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -138,10 +137,6 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
 
   const isSameMonth = (d) => d.getMonth() === month && d.getFullYear() === year;
   const isBeforeMin = (d) => ymd(d) < ymd(minDate);
-  const isDoctorDay = (d) => {
-    const dow = d.getDay(); // 1=Sen, 5=Jum
-    return dow === 1 || dow === 5;
-  };
 
   const bookedSetByDate = useMemo(() => {
     const m = new Map();
@@ -151,7 +146,13 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
     return m;
   }, [bookedMap]);
 
-  const isBooked = (dateStr, time) => bookedSetByDate.get(dateStr)?.has(time) ?? false;
+  const adminSetByDate = useMemo(() => {
+    const m = new Map();
+    for (const [k, arr] of Object.entries(adminMap || {})) {
+      m.set(k, new Set((arr || []).map((t) => String(t).slice(0, 5))));
+    }
+    return m;
+  }, [adminMap]);
 
   const lastYmRef = useRef(null);
   useEffect(() => {
@@ -186,9 +187,7 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
 
       <div className={styles.calDayNames}>
         {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((d) => (
-          <div key={d} className={styles.calDayName}>
-            {d}
-          </div>
+          <div key={d} className={styles.calDayName}>{d}</div>
         ))}
       </div>
 
@@ -198,35 +197,39 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
             {week.map((d, di) => {
               const inMonth = isSameMonth(d);
               const dateStr = ymd(d);
-              const doctorOpen = inMonth && !isBeforeMin(d) && isDoctorDay(d);
+              const slotsToday = (slotMap?.[dateStr] || []).map((t) => String(t).slice(0, 5));
+              const hasSlot = inMonth && !isBeforeMin(d) && slotsToday.length > 0;
 
               return (
                 <div key={`${wi}-${di}`} className={`${styles.calCell} ${inMonth ? '' : styles.calCellMuted}`}>
                   <div className={styles.calCellHeader}>
                     <span className={styles.calDateNum}>{d.getDate()}</span>
-                    {inMonth && isDoctorDay(d) && <span className={styles.calBadgeOpen}>Buka</span>}
+                    {inMonth && slotsToday.length > 0 && <span className={styles.calBadgeOpen}>Buka</span>}
                   </div>
 
-                  {doctorOpen ? (
+                  {hasSlot ? (
                     <div className={styles.sessionList}>
-                      {SESSIONS.map((time) => {
-                        const booked = isBooked(dateStr, time);
+                      {slotsToday.map((time) => {
+                        const isBooked = bookedSetByDate.get(dateStr)?.has(time) ?? false;
+                        const isAdmin = adminSetByDate.get(dateStr)?.has(time) ?? false;
+                        const disabled = isBooked || isAdmin;
                         return (
                           <button
                             key={time}
                             type="button"
-                            className={`${styles.sessionBtn} ${booked ? styles.sessionBooked : styles.sessionAvail}`}
-                            disabled={booked}
+                            className={`${styles.sessionBtn} ${disabled ? styles.sessionBooked : styles.sessionAvail}`}
+                            disabled={disabled}
                             onClick={() => onPick(d, time)}
                             aria-label={`Sesi ${time} pada ${d.toLocaleDateString('id-ID')}`}
+                            title={isAdmin ? 'Ditutup Admin' : (isBooked ? 'Sudah Booked' : 'Available')}
                           >
-                            {time} {booked ? '• Booked' : '• Available'}
+                            {time} • {isAdmin ? 'Ditutup' : (isBooked ? 'Booked' : 'Available')}
                           </button>
                         );
                       })}
                     </div>
                   ) : (
-                    <div className={styles.sessionListOff}>{inMonth ? (isDoctorDay(d) ? '—' : 'Tutup') : ''}</div>
+                    <div className={styles.sessionListOff}>{inMonth ? 'Tutup' : ''}</div>
                   )}
                 </div>
               );
@@ -242,7 +245,11 @@ function DoctorCalendar({ bookedMap, onPick, minDate = new Date(), onMonthChange
 export default function FiturBICare() {
   const router = useRouter();
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // peta dari API rules+bookings
+  const [slotMap, setSlotMap] = useState({});
   const [bookedMap, setBookedMap] = useState({});
+  const [adminMap, setAdminMap] = useState({});
 
   const handleMonthChange = useCallback(async (ym) => {
     try {
@@ -250,18 +257,26 @@ export default function FiturBICare() {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' },
       });
-      if (!res.ok) throw new Error('Failed to fetch booked map');
+      if (!res.ok) throw new Error('Failed to fetch month data');
       const data = await res.json();
-      const map = data.bookedMap || {};
 
-      // normalisasi kunci & jam
-      const normalized = {};
-      for (const [rawKey, arr] of Object.entries(map)) {
-        const d = new Date(rawKey);
-        const key = Number.isNaN(d.getTime()) ? String(rawKey) : ymd(d);
-        normalized[key] = (arr || []).map((t) => String(t).slice(0, 5));
+      // Normalisasi
+      const normSlots = {};
+      for (const [k, arr] of Object.entries(data.slotMap || {})) {
+        normSlots[k] = (arr || []).map((t) => String(t).slice(0,5));
       }
-      setBookedMap(normalized);
+      const normBooked = {};
+      for (const [k, arr] of Object.entries(data.bookedMap || {})) {
+        normBooked[k] = (arr || []).map((t) => String(t).slice(0,5));
+      }
+      const normAdmin = {};
+      for (const [k, arr] of Object.entries(data.adminBlocks || {})) {
+        normAdmin[k] = (arr || []).map((t) => String(t).slice(0,5));
+      }
+
+      setSlotMap(normSlots);
+      setBookedMap(normBooked);
+      setAdminMap(normAdmin);
     } catch (e) {
       console.error(e);
     }
@@ -328,6 +343,7 @@ export default function FiturBICare() {
       gender: fields.jenisKelamin,
       birth_date: fields.tglLahir ? fields.tglLahir.toISOString().slice(0, 10) : null,
       complaint: fields.keluhan || null,
+      // NOTE: kalau API kamu tetap butuh userId, pastikan layer auth menambahkan userId di server.
     };
 
     const res = await fetch('/api/BIcare/book', {
@@ -362,7 +378,7 @@ export default function FiturBICare() {
       <SidebarUser />
       <main className={styles.mainContent}>
         <div className={styles.formBox}>
-          {/* Header (tanpa dropdown ketersediaan) */}
+          {/* Header */}
           <div className={styles.topRow}>
             <button className={styles.backBtn} onClick={() => router.back()} type="button">
               <FaArrowLeft /> Kembali
@@ -372,14 +388,16 @@ export default function FiturBICare() {
               <Image src="/assets/BI-CARE.svg" alt="BI.CARE" width={190} height={86} priority />
             </div>
 
-            <div /> {/* spacer kanan agar logo tetap center */}
+            <div />
           </div>
 
           {/* Kalender */}
           <div className={styles.calendarBlockLarge}>
-            <h3 className={styles.calendarTitle}>Pilih Tanggal & Sesi (Sen & Jum, 12.00–13.30)</h3>
+            <h3 className={styles.calendarTitle}>Pilih Tanggal & Sesi</h3>
             <DoctorCalendar
+              slotMap={slotMap}
               bookedMap={bookedMap}
+              adminMap={adminMap}
               onPick={handlePickSession}
               minDate={new Date()}
               onMonthChange={handleMonthChange}
