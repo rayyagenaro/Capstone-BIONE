@@ -34,7 +34,7 @@ export default function Login() {
         </div>
         <div className={styles.logoDoneWrapper}>
           <Image
-            src="/assets/Logo D'ONE.png"
+            src="/assets/BI.ONE.svg"
             alt="Logo D'ONE"
             width={220}
             height={110}
