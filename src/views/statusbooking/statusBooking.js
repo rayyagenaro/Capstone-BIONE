@@ -9,6 +9,9 @@ import Pagination from '@/components/Pagination/Pagination';
 import { FaArrowLeft, FaTimes } from 'react-icons/fa';
 import RejectionBox from '@/components/RejectionBox/RejectionBox';
 
+const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+const withNs = (url, ns) => (ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url);
+
 /* ===================== KONFIGURASI & HELPER (STATUS) ===================== */
 const STATUS_CONFIG = {
   '1': { text: 'Pending',  className: styles.statusProcess },
@@ -268,10 +271,9 @@ function normalizeBIMailRow(row) {
     tujuan: row.perihal || `Dokumen ${row.nomor_surat || ''}`.trim(),
     start_date: start,
     end_date: start,
-    status_id: 4, // tabel tidak punya status → anggap Pending
-    // field khusus untuk modal/kartu
+    status_id: 4,
     nomor_surat: row.nomor_surat,
-    tipe_dokumen: row.tipe_dokumen,   // 'B' | 'RHS'
+    tipe_dokumen: row.tipe_dokumen,  
     unit_code: row.unit_code,
     wilayah_code: row.wilayah_code,
     tanggal_dokumen: row.tanggal_dokumen,
@@ -702,7 +704,7 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
 /* ===================== KOMPONEN UTAMA ===================== */
 export default function StatusBooking() {
   const router = useRouter();
-  const ns = router.query?.ns; // untuk cookie namespaced bila ada
+  const ns = typeof router.query.ns === 'string' && NS_RE.test(router.query.ns) ? router.query.ns : '';
   const [userId, setUserId] = useState(null);
 
   const [allBookings, setAllBookings] = useState([]);
@@ -769,7 +771,7 @@ export default function StatusBooking() {
 
         // 1) Booking BI.Drive/umum
         let dataMain = [];
-        const resMain = await fetch(`/api/booking?userId=${uid}`, { cache: 'no-store' });
+        const resMain = await fetch(`/api/booking?userId=${uid}`, { cache: 'no-store', credentials: 'include'});
         if (resMain.ok) {
           const rows = await resMain.json();
           dataMain = Array.isArray(rows) ? rows.map(normalizeBIDriveRow) : [];
@@ -781,7 +783,7 @@ export default function StatusBooking() {
         // 2) BI.Care milik user
         let dataBICare = [];
         try {
-          const rCare = await fetch(`/api/BIcare/book?userId=${uid}`, { cache: 'no-store' });
+          const rCare = await fetch(`/api/BIcare/book?userId=${uid}`, { cache: 'no-store', credentials: 'include' });
           if (rCare.ok) {
             const rows = await rCare.json();
             dataBICare = Array.isArray(rows) ? rows.map(normalizeBICareRow) : [];
@@ -793,7 +795,7 @@ export default function StatusBooking() {
         // 3) BI.Docs (BImail) milik user
         let dataBIDocs = [];
         try {
-          const rDocs = await fetch(`/api/BImail?userId=${uid}`, { cache: 'no-store' });
+          const rDocs = await fetch(`/api/BImail?userId=${uid}`, { cache: 'no-store', credentials: 'include' });
           if (rDocs.ok) {
             const payload = await rDocs.json();
             const rows = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);
@@ -806,7 +808,7 @@ export default function StatusBooking() {
         // 4) BI.Meal
         let dataBIMeal = [];
         try {
-          const rMeal = await fetch(`/api/bimeal/book?userId=${uid}`, { cache: 'no-store' });
+          const rMeal = await fetch(`/api/bimeal/book?userId=${uid}`, { cache: 'no-store', credentials: 'include' });
           if (rMeal.ok) {
             const rows = await rMeal.json();
             dataBIMeal = Array.isArray(rows) ? rows.map(normalizeBIMealRow) : [];
@@ -818,7 +820,7 @@ export default function StatusBooking() {
         // 5) BI.Meet (meeting rooms)
         let dataBIMeet = [];
         try {
-          const rMeet = await fetch(`/api/bimeet/createbooking?userId=${uid}`, { cache: 'no-store' });
+          const rMeet = await fetch(`/api/bimeet/createbooking?userId=${uid}`, { cache: 'no-store', credentials: 'include'  });
           if (rMeet.ok) {
             const payload = await rMeet.json();
             const rows = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);

@@ -175,7 +175,7 @@ function normalizeBIMailRow(row) {
     tujuan: row.perihal || `Dokumen ${row.nomor_surat || ''}`.trim(),
     start_date: start,
     end_date: start,
-    status_id: 1,
+    status_id: 4,
     nomor_surat: row.nomor_surat,
     tipe_dokumen: row.tipe_dokumen,
     unit_code: row.unit_code,
@@ -231,7 +231,7 @@ function normalizeBIStayRow(row) {
     tujuan: row.asal_kpw ? `Menginap • ${row.asal_kpw}` : 'Menginap',
     start_date: row.check_in,
     end_date: row.check_out,
-    status_id: 1,
+    status_id: Number(row.status_id) || 1,
     _raw_bistay: {
       nama_pemesan: row.nama_pemesan, nip: row.nip, no_wa: row.no_wa,
       asal_kpw: row.asal_kpw, keterangan: row.keterangan,
@@ -429,7 +429,7 @@ export default function PersetujuanBooking() {
         // 1) BI.Drive (endpoint admin lama yang sudah ada)
         let dataDrive = [];
         {
-          const res = await fetch(withNs('/api/booking', ns), { cache: 'no-store' });
+          const res = await fetch(withNs('/api/booking', ns), { cache: 'no-store', credentials: 'include' });
           if (res.ok) {
             const rows = await res.json();
             dataDrive = Array.isArray(rows) ? rows.map(normalizeBIDriveRow) : [];
@@ -442,7 +442,7 @@ export default function PersetujuanBooking() {
         // 2) BI.Care (ADMIN)
         let dataCare = [];
         try {
-          const r = await fetch(withNs('/api/BIcare/book?scope=admin', ns), { cache: 'no-store' });
+          const r = await fetch(withNs('/api/BIcare/book?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
           if (r.ok) {
             const rows = await r.json();
             dataCare = Array.isArray(rows) ? rows.map(normalizeBICareRow) : [];
@@ -452,7 +452,7 @@ export default function PersetujuanBooking() {
         // 3) BI.Docs (BImail) (ADMIN)
         let dataDocs = [];
         try {
-          const r = await fetch(withNs('/api/BImail?scope=admin', ns), { cache: 'no-store' });
+          const r = await fetch(withNs('/api/BImail?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
           if (r.ok) {
             const payload = await r.json();
             const rows = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);
@@ -463,7 +463,7 @@ export default function PersetujuanBooking() {
         // 4) BI.Meal (ADMIN)
         let dataMeal = [];
         try {
-          const r = await fetch(withNs('/api/bimeal/book?scope=admin', ns), { cache: 'no-store' });
+          const r = await fetch(withNs('/api/bimeal/book?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
           if (r.ok) {
             const rows = await r.json();
             dataMeal = Array.isArray(rows) ? rows.map(normalizeBIMealRow) : [];
@@ -473,7 +473,7 @@ export default function PersetujuanBooking() {
         // 5) BI.Meet (ADMIN)
         let dataMeet = [];
         try {
-          const r = await fetch(withNs('/api/bimeet/createbooking?scope=admin', ns), { cache: 'no-store' });
+          const r = await fetch(withNs('/api/bimeet/createbooking?scope=admin', ns), { cache: 'no-store', credentials: 'include' });
           if (r.ok) {
             const payload = await r.json();
             const rows = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);
