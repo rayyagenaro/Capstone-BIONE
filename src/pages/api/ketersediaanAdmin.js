@@ -2,28 +2,24 @@
 import db from '@/lib/db';
 
 const fmtDate = (d) => {
-  // paksa ke YYYY-MM-DD
-  try {
-    return new Date(d).toISOString().slice(0, 10);
-  } catch {
-    // fallback jika sudah string YYYY-MM-DD
-    return String(d).slice(0, 10);
-  }
+  try { return new Date(d).toISOString().slice(0, 10); }
+  catch { return String(d).slice(0, 10); }
 };
-const fmtTime = (t) => String(t).slice(0, 5); // HH:MM dari TIME/HH:MM:SS
+const fmtTime = (t) => String(t).slice(0, 5); // "HH:MM" dari TIME/HH:MM:SS
 
 export default async function handler(req, res) {
   try {
+    /* ========================= GET ========================= */
     if (req.method === 'GET') {
       const { type } = req.query;
 
+      // ===== BI.DRIVE
       if (type === 'drivers') {
         const [rows] = await db.query(
           'SELECT id, nim, name, phone FROM bidrive_drivers ORDER BY id ASC'
         );
         return res.status(200).json({ success: true, data: rows });
       }
-
       if (type === 'vehicles') {
         const [rows] = await db.query(
           'SELECT id, plat_nomor, tahun, vehicle_type_id, vehicle_status_id FROM bidrive_vehicles ORDER BY id ASC'
@@ -31,23 +27,19 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, data: rows });
       }
 
-      // ===== BI.CARE – Dokter
+      // ===== BI.CARE
       if (type === 'bicare_doctors') {
         const [rows] = await db.query(
           'SELECT id, name, is_active FROM bicare_doctors ORDER BY id ASC'
         );
         return res.status(200).json({ success: true, data: rows });
       }
-
-      // ===== BI.CARE – Rules
       if (type === 'bicare_rules') {
         const [rows] = await db.query(
           'SELECT id, doctor_id, weekday, start_time, end_time, slot_minutes, is_active FROM bicare_availability_rules ORDER BY id ASC'
         );
         return res.status(200).json({ success: true, data: rows });
       }
-
-      // ===== BI.CARE – Kalender (admin & user sama)
       if (type === 'bicare_calendar') {
         const doctorId = Number(req.query.doctorId || 1);
         const monthStr = String(req.query.month || '').trim(); // "YYYY-MM"
@@ -60,7 +52,6 @@ export default async function handler(req, res) {
         const last = new Date(y, m, 0);
         const endDate = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
 
-        // Hanya status 'Booked' → termasuk blocking ADMIN
         const [rows] = await db.query(
           `SELECT booking_date, slot_time, booker_name
              FROM bicare_bookings
@@ -74,18 +65,17 @@ export default async function handler(req, res) {
         const bookedMap = {};
         const adminBlocks = {};
         for (const r of rows) {
-          const dateKey = fmtDate(r.booking_date); // <-- perbaikan penting
+          const dateKey = fmtDate(r.booking_date);
           const hhmm = fmtTime(r.slot_time);
           (bookedMap[dateKey] ||= []).push(hhmm);
           if (String(r.booker_name) === 'ADMIN_BLOCK') {
             (adminBlocks[dateKey] ||= []).push(hhmm);
           }
         }
-
         return res.status(200).json({ success: true, bookedMap, adminBlocks });
       }
 
-      // ===== BI.MEET – Rooms & Status
+      // ===== BI.MEET
       if (type === 'bimeet_rooms') {
         const [rows] = await db.query(
           'SELECT id, name, floor, capacity, status_id FROM bimeet_rooms ORDER BY id ASC'
@@ -99,18 +89,33 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, data: rows });
       }
 
+      // ===== BI.DOCS (baru)
+      if (type === 'bimail_units') {
+        const [rows] = await db.query(
+          'SELECT id, code, name FROM bimail_units ORDER BY id ASC'
+        );
+        return res.status(200).json({ success: true, data: rows });
+      }
+      if (type === 'bimail_jenis') {
+        const [rows] = await db.query(
+          'SELECT id, kode, nama FROM bimail_jenis ORDER BY id ASC'
+        );
+        return res.status(200).json({ success: true, data: rows });
+      }
+
       return res.status(400).json({ success: false, message: 'Type not valid' });
     }
 
+    /* ========================= POST ========================= */
     if (req.method === 'POST') {
       const { type, ...data } = req.body;
 
+      // ===== BI.DRIVE
       if (type === 'drivers') {
         const { nim, name, phone } = data;
         await db.query('INSERT INTO bidrive_drivers (nim, name, phone) VALUES (?, ?, ?)', [nim, name, phone]);
         return res.status(200).json({ success: true });
       }
-
       if (type === 'vehicles') {
         const { plat_nomor, tahun, vehicle_type_id, vehicle_status_id } = data;
         await db.query(
@@ -120,7 +125,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      // ===== BI.CARE – Tambah Dokter
+      // ===== BI.CARE
       if (type === 'bicare_doctors') {
         const { name, is_active = 1 } = data;
         await db.query(
@@ -129,8 +134,6 @@ export default async function handler(req, res) {
         );
         return res.status(200).json({ success: true });
       }
-
-      // ===== BI.CARE – Tambah Rule
       if (type === 'bicare_rules') {
         const { doctor_id, weekday, start_time, end_time, slot_minutes = 30, is_active = 1 } = data;
         await db.query(
@@ -141,8 +144,6 @@ export default async function handler(req, res) {
         );
         return res.status(200).json({ success: true });
       }
-
-      // ===== BI.CARE – Kalender: block/unblock
       if (type === 'bicare_calendar') {
         const { action, doctorId, bookingDate } = data;
         let { slotTime } = data;
@@ -150,7 +151,7 @@ export default async function handler(req, res) {
         if (!doctorId || !bookingDate || !slotTime) {
           return res.status(400).json({ success: false, message: 'Data tidak lengkap' });
         }
-        if (/^\d{2}:\d{2}$/.test(slotTime)) slotTime = `${slotTime}:00`; // normalisasi "HH:MM" → "HH:MM:SS"
+        if (/^\d{2}:\d{2}$/.test(slotTime)) slotTime = `${slotTime}:00`;
         if (action !== 'block' && action !== 'unblock') {
           return res.status(400).json({ success: false, message: 'Aksi kalender tidak valid' });
         }
@@ -169,7 +170,6 @@ export default async function handler(req, res) {
 
           if (action === 'block') {
             if (rows.length === 0) {
-              // catat sebagai 'Booked' oleh ADMIN (menutup slot)
               await conn.query(
                 `INSERT INTO bicare_bookings
                    (doctor_id, booking_date, slot_time, status, booker_name, nip, wa, patient_name, patient_status, gender, birth_date, complaint, created_at)
@@ -196,10 +196,7 @@ export default async function handler(req, res) {
             }
             const existing = rows[0];
             if (existing.booker_name === 'ADMIN_BLOCK') {
-              await conn.query(
-                `DELETE FROM bicare_bookings WHERE id = ? AND booker_name = 'ADMIN_BLOCK'`,
-                [existing.id]
-              );
+              await conn.query(`DELETE FROM bicare_bookings WHERE id = ? AND booker_name = 'ADMIN_BLOCK'`, [existing.id]);
               await conn.commit();
               return res.status(200).json({ success: true, message: 'Slot dibuka kembali.' });
             } else {
@@ -215,7 +212,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // ===== BI.MEET – Tambah Room
+      // ===== BI.MEET
       if (type === 'bimeet_rooms') {
         const { name, floor, capacity, status_id } = data;
         if (!name || floor === undefined || capacity === undefined || !status_id) {
@@ -228,18 +225,49 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
+      // ===== BI.DOCS (baru)
+      if (type === 'bimail_units') {
+        const code = String(data.code || '').trim();
+        const name = String(data.name || '').trim();
+        if (!code || !name) return res.status(400).json({ success:false, message:'Kode & Nama wajib diisi' });
+        try {
+          await db.query('INSERT INTO bimail_units (code, name) VALUES (?, ?)', [code, name]);
+          return res.status(200).json({ success:true });
+        } catch (e) {
+          if (e?.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ success:false, message:'Kode unit sudah ada' });
+          }
+          throw e;
+        }
+      }
+      if (type === 'bimail_jenis') {
+        const kode = String(data.kode || '').trim();
+        const nama = String(data.nama || '').trim();
+        if (!kode || !nama) return res.status(400).json({ success:false, message:'Kode & Nama wajib diisi' });
+        try {
+          await db.query('INSERT INTO bimail_jenis (kode, nama) VALUES (?, ?)', [kode, nama]);
+          return res.status(200).json({ success:true });
+        } catch (e) {
+          if (e?.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ success:false, message:'Kode jenis sudah ada' });
+          }
+          throw e;
+        }
+      }
+
       return res.status(400).json({ success: false, message: 'Type not valid' });
     }
 
+    /* ========================= PUT ========================= */
     if (req.method === 'PUT') {
       const { type, ...data } = req.body;
 
+      // ===== BI.DRIVE
       if (type === 'drivers') {
         const { id, nim, name, phone } = data;
         await db.query('UPDATE bidrive_drivers SET nim=?, name=?, phone=? WHERE id=?', [nim, name, phone, id]);
         return res.status(200).json({ success: true });
       }
-
       if (type === 'vehicles') {
         const { id, plat_nomor, tahun, vehicle_type_id, vehicle_status_id } = data;
         await db.query(
@@ -249,12 +277,12 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
+      // ===== BI.CARE
       if (type === 'bicare_doctors') {
         const { id, name, is_active = 1 } = data;
         await db.query('UPDATE bicare_doctors SET name=?, is_active=? WHERE id=?', [name, Number(is_active) ? 1 : 0, id]);
         return res.status(200).json({ success: true });
       }
-
       if (type === 'bicare_rules') {
         const { id, doctor_id, weekday, start_time, end_time, slot_minutes = 30, is_active = 1 } = data;
         await db.query(
@@ -264,7 +292,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      // ===== BI.MEET – Update Room
+      // ===== BI.MEET
       if (type === 'bimeet_rooms') {
         const { id, name, floor, capacity, status_id } = data;
         await db.query(
@@ -274,12 +302,46 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
+      // ===== BI.DOCS (baru)
+      if (type === 'bimail_units') {
+        const { id } = data;
+        const code = String(data.code || '').trim();
+        const name = String(data.name || '').trim();
+        if (!id || !code || !name) return res.status(400).json({ success:false, message:'Data tidak lengkap' });
+        try {
+          await db.query('UPDATE bimail_units SET code=?, name=? WHERE id=?', [code, name, id]);
+          return res.status(200).json({ success:true });
+        } catch (e) {
+          if (e?.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ success:false, message:'Kode unit sudah ada' });
+          }
+          throw e;
+        }
+      }
+      if (type === 'bimail_jenis') {
+        const { id } = data;
+        const kode = String(data.kode || '').trim();
+        const nama = String(data.nama || '').trim();
+        if (!id || !kode || !nama) return res.status(400).json({ success:false, message:'Data tidak lengkap' });
+        try {
+          await db.query('UPDATE bimail_jenis SET kode=?, nama=? WHERE id=?', [kode, nama, id]);
+          return res.status(200).json({ success:true });
+        } catch (e) {
+          if (e?.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ success:false, message:'Kode jenis sudah ada' });
+          }
+          throw e;
+        }
+      }
+
       return res.status(400).json({ success: false, message: 'Type not valid' });
     }
 
+    /* ========================= DELETE ========================= */
     if (req.method === 'DELETE') {
       const { type, id } = req.body;
 
+      // ===== BI.DRIVE
       if (type === 'drivers') {
         await db.query('DELETE FROM bidrive_drivers WHERE id=?', [id]);
         return res.status(200).json({ success: true });
@@ -297,9 +359,19 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      // ===== BI.MEET – Delete Room
+      // ===== BI.MEET
       if (type === 'bimeet_rooms') {
         await db.query('DELETE FROM bimeet_rooms WHERE id=?', [id]);
+        return res.status(200).json({ success: true });
+      }
+
+      // ===== BI.DOCS (baru)
+      if (type === 'bimail_units') {
+        await db.query('DELETE FROM bimail_units WHERE id=?', [id]);
+        return res.status(200).json({ success: true });
+      }
+      if (type === 'bimail_jenis') {
+        await db.query('DELETE FROM bimail_jenis WHERE id=?', [id]);
         return res.status(200).json({ success: true });
       }
 

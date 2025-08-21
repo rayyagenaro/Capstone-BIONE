@@ -87,26 +87,6 @@
 
 .subTabBtn {
   background: #eef3ff;
-  color: #2F4D8E;
-  border: 1.5px solid #c9d8fa;
-  padding: 9px 18px;
-  font-size: 15px;
-  font-weight: 800;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all .14s;
-  display: inline-flex;
-  align-items: center;
-}
-
-.subTabActive {
-  background: #2F4D8E;
-  color: #fff;
-  border-color: #2F4D8E;
-}
-
-.subTabBtn {
-  background: #eef3ff;
   color: #34a142;
   border: 1.5px solid #c9d8fa;
   padding: 9px 18px;

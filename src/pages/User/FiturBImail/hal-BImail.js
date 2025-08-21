@@ -52,8 +52,12 @@ export default function HalBIMail() {
     });
   }, []);
 
-  // ===== Jenis Dokumen (16 item) =====
-  const JENIS_DOKUMEN = [
+  /* =======================
+     Sumber data dinamis
+     ======================= */
+
+  // Fallback statis (dipakai kalau fetch gagal/kosong)
+  const FALLBACK_JENIS = [
     { label: 'Lembar Disposisi Pejabat', code: 'LDP' },
     { label: 'Memorandum 01', code: 'M.01' },
     { label: 'Memorandum Koordinasi Kerjasama', code: 'M.01-KK' },
@@ -72,14 +76,7 @@ export default function HalBIMail() {
     { label: 'Nota Dinas', code: 'ND' },
   ];
 
-  // ===== Tipe Dokumen =====
-  const TIPE_DOKUMEN = [
-    { label: 'Dokumen Biasa', value: 'B' },
-    { label: 'Dokumen Rahasia', value: 'RHS' },
-  ];
-
-  // ===== Unit Kerja (opsional) =====
-  const UNIT_KERJA = [
+  const FALLBACK_UNITS = [
     { label: '— Tanpa Unit —', code: '' },
     { label: 'KP',              code: 'KP' },
     { label: 'GPIK-KEKDAW',     code: 'GPIK-KEKDAW' },
@@ -93,6 +90,52 @@ export default function HalBIMail() {
     { label: 'PUR',             code: 'PUR' },
   ];
 
+  // Hasil fetch dari DB (raw)
+  const [jenisList, setJenisList] = useState([]); // [{id,kode,nama}]
+  const [unitList,  setUnitList]  = useState([]); // [{id,code,name}]
+
+  // Opsi final yang dipakai UI (map/merge fallback)
+  const jenisOptions = useMemo(() => {
+    if (jenisList?.length) {
+      return jenisList.map(j => ({ label: j.nama, code: j.kode }));
+    }
+    return FALLBACK_JENIS;
+  }, [jenisList]);
+
+  const unitOptions = useMemo(() => {
+    if (unitList?.length) {
+      const dbUnits = unitList.map(u => ({ label: u.name, code: u.code }));
+      return [{ label: '— Tanpa Unit —', code: '' }, ...dbUnits];
+    }
+    return FALLBACK_UNITS;
+  }, [unitList]);
+
+  // Fetch referensi dari API admin (read-only untuk user)
+  const fetchRefData = useCallback(async () => {
+    try {
+      const [jenisRes, unitRes] = await Promise.all([
+        fetch('/api/ketersediaanAdmin?type=bimail_jenis', { cache: 'no-store' }),
+        fetch('/api/ketersediaanAdmin?type=bimail_units', { cache: 'no-store' }),
+      ]);
+      const [jenisJson, unitJson] = await Promise.all([
+        jenisRes.json().catch(() => ({})),
+        unitRes.json().catch(() => ({})),
+      ]);
+      if (jenisJson?.success) setJenisList(jenisJson.data || []);
+      if (unitJson?.success)  setUnitList(unitJson.data || []);
+    } catch {
+      // diamkan, fallback akan dipakai
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRefData();
+  }, [fetchRefData]);
+
+  /* =======================
+     Form state & helpers
+     ======================= */
+
   const [fields, setFields] = useState({
     tanggalDokumen: new Date(),
     jenisDokumen: '',
@@ -104,21 +147,22 @@ export default function HalBIMail() {
     linkDokumen: '',
   });
 
-  // === Estimasi nomor dengan auto-refresh ===
+  // Estimasi nomor
   const [nextNumber, setNextNumber] = useState(null);
   const [loadingNext, setLoadingNext] = useState(false);
   const isFetchingRef = useRef(false);
   const intervalRef = useRef(null);
 
+  // Ambil code dari label yang dipilih
   const getJenisCode = useCallback(() => {
-    const f = JENIS_DOKUMEN.find(x => x.label === fields.jenisDokumen);
+    const f = jenisOptions.find(x => x.label === fields.jenisDokumen);
     return f?.code || '';
-  }, [fields.jenisDokumen]);
+  }, [fields.jenisDokumen, jenisOptions]);
 
   const getUnitCode = useCallback(() => {
-    const u = UNIT_KERJA.find(x => x.label === fields.unitKerja);
+    const u = unitOptions.find(x => x.label === fields.unitKerja);
     return (u?.code || '').trim();
-  }, [fields.unitKerja]);
+  }, [fields.unitKerja, unitOptions]);
 
   useEffect(() => {
     return () => {
@@ -213,7 +257,6 @@ export default function HalBIMail() {
     setErrors((prev) => ({ ...prev, [name]: msg }));
   }, []);
 
-  // Untuk mengaktifkan / menonaktifkan tombol submit
   const requiredOk = useMemo(() => {
     const p = fields.perihal?.trim();
     const d = fields.dari?.trim();
@@ -222,7 +265,6 @@ export default function HalBIMail() {
     return Boolean(p && d && k && l);
   }, [fields.perihal, fields.dari, fields.kepada, fields.linkDokumen]);
 
-  // VALIDASI saat submit (unit kerja opsional, link bebas format)
   const validate = () => {
     const err = {};
     if (!fields.tanggalDokumen) err.tanggalDokumen = 'Tanggal Dokumen wajib diisi';
@@ -346,7 +388,7 @@ export default function HalBIMail() {
                   className={errors.jenisDokumen ? styles.errorInput : ''}
                 >
                   <option value="">-- Pilih Jenis Dokumen --</option>
-                  {JENIS_DOKUMEN.map(j => (
+                  {jenisOptions.map(j => (
                     <option key={j.code} value={j.label}>{j.label} ({j.code})</option>
                   ))}
                 </select>
@@ -366,9 +408,8 @@ export default function HalBIMail() {
                   className={errors.tipeDokumen ? styles.errorInput : ''}
                 >
                   <option value="">-- Pilih Tipe Dokumen --</option>
-                  {TIPE_DOKUMEN.map(t => (
-                    <option key={t.value} value={t.value}>{t.label} ({t.value})</option>
-                  ))}
+                  <option value="B">Dokumen Biasa (B)</option>
+                  <option value="RHS">Dokumen Rahasia (RHS)</option>
                 </select>
                 {errors.tipeDokumen && <span className={styles.errorMsg}>{errors.tipeDokumen}</span>}
               </div>
@@ -382,7 +423,7 @@ export default function HalBIMail() {
                   onChange={handleChange}
                   className={errors.unitKerja ? styles.errorInput : ''}
                 >
-                  {UNIT_KERJA.map(u => (
+                  {unitOptions.map(u => (
                     <option key={u.code || 'none'} value={u.label}>{u.label}</option>
                   ))}
                 </select>
@@ -417,7 +458,6 @@ export default function HalBIMail() {
                 </button>
               </div>
 
-              {/* ikon kanan */}
               <div
                 className={`${styles.refreshIconWrap} ${spinning ? styles.spinOnce : ''}`}
                 role="img"
@@ -443,14 +483,7 @@ export default function HalBIMail() {
 
             {/* Info kecil */}
             <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#4b5563', marginTop: -30 }}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                style={{ width: 14, height: 14 }}
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: 14, height: 14 }}>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

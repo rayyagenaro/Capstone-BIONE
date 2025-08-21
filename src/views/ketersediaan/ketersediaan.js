@@ -1,10 +1,14 @@
+// src/views/ketersediaan/ketersediaan.js
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import styles from './ketersediaan.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
-import { FaUsers, FaCar, FaEdit, FaTrash, FaPlus, FaUserMd, FaCogs, FaCalendarAlt, FaBuilding } from 'react-icons/fa';
+import {
+  FaUsers, FaCar, FaUserMd, FaCogs, FaCalendarAlt, FaBuilding,
+  FaFileAlt
+} from 'react-icons/fa';
 
 // SECTION COMPONENTS
 import DriversSection from '@/components/ketersediaan/drive/DriversSection';
@@ -13,6 +17,8 @@ import DoctorsSection from '@/components/ketersediaan/care/DoctorsSection';
 import RulesSection from '@/components/ketersediaan/care/RulesSection';
 import CalendarAdmin from '@/components/ketersediaan/care/CalendarAdmin';
 import RoomsSection from '@/components/ketersediaan/meet/RoomsSection';
+import DocsUnitsSection from '@/components/ketersediaan/docs/DocsUnitsSection';
+import DocsJenisSection from '@/components/ketersediaan/docs/DocsJenisSection';
 
 /* ====== util ====== */
 const meetStatusToMap = (arr) => {
@@ -20,6 +26,30 @@ const meetStatusToMap = (arr) => {
   for (const s of arr) m[s.id] = s.name;
   return m;
 };
+
+// --- SORTER BARU: numeric-aware & hoisted ---
+function sortArray(arr, field, dir = 'asc') {
+  const mul = dir === 'asc' ? 1 : -1;
+  return [...arr].sort((a, b) => {
+    const va = a?.[field];
+    const vb = b?.[field];
+
+    // kalau dua-duanya angka / string angka → urut angka
+    const na = Number(va);
+    const nb = Number(vb);
+    if (!Number.isNaN(na) && !Number.isNaN(nb)) {
+      return (na - nb) * mul;
+    }
+
+    // fallback teks (kode/nama), tetap “numeric: true” biar 2 < 10
+    return String(va ?? '').localeCompare(
+      String(vb ?? ''),
+      undefined,
+      { numeric: true, sensitivity: 'base' }
+    ) * mul;
+  });
+}
+
 
 const initialDriver = { id: null, nim: '', name: '', phone: '' };
 const initialVehicle = { id: null, plat_nomor: '', tahun: '', vehicle_type_id: '', vehicle_status_id: '' };
@@ -29,10 +59,11 @@ export default function KetersediaanPage() {
   const router = useRouter();
 
   // Tabs
-  const [mainTab, setMainTab]   = useState('drive');  // 'drive' | 'care' | 'meet'
+  const [mainTab, setMainTab]   = useState('drive');  // 'drive' | 'care' | 'meet' | 'docs'
   const [subDrive, setSubDrive] = useState('drivers'); // 'drivers'|'vehicles'
   const [subCare, setSubCare]   = useState('doctors'); // 'doctors'|'rules'|'calendar'
-  const [subMeet, setSubMeet]   = useState('rooms');
+  const [subMeet, setSubMeet]   = useState('rooms');   // 'rooms'
+  const [subDocs, setSubDocs]   = useState('units');   // 'units'|'jenis'
 
   // Data
   const [loading, setLoading] = useState(true);
@@ -42,11 +73,19 @@ export default function KetersediaanPage() {
   const [careRules, setCareRules] = useState([]);
   const [meetRooms, setMeetRooms] = useState([]);
   const [meetStatus, setMeetStatus] = useState([]);
+  const [docsUnits, setDocsUnits] = useState([]); // {id, code, name}
+  const [docsJenis, setDocsJenis] = useState([]); // {id, kode, nama}
+
+  // DOCS search & sort
+  const [docsUnitsSearch, setDocsUnitsSearch] = useState('');
+  const [docsUnitsSort,   setDocsUnitsSort]   = useState({ field: 'id',   dir: 'asc' }); // 'id'|'code'|'name'
+  const [docsJenisSearch, setDocsJenisSearch] = useState('');
+  const [docsJenisSort,   setDocsJenisSort]   = useState({ field: 'id',   dir: 'asc' }); // 'id'|'kode'|'nama'
 
   // Modal CRUD (1 modal serbaguna, logika di halaman)
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode]   = useState(false);
-  const [modalType, setModalType] = useState('drivers'); // drivers|vehicles|bicare_doctors|bicare_rules|bimeet_rooms
+  const [modalType, setModalType] = useState('drivers'); // drivers|vehicles|bicare_doctors|bicare_rules|bimeet_rooms|bimail_units|bimail_jenis
   const [formData, setFormData]   = useState(initialDriver);
   const [currentDoctorId, setCurrentDoctorId] = useState(null);
 
@@ -64,9 +103,32 @@ export default function KetersediaanPage() {
     router.replace('/Signin/hal-signAdmin');
   };
 
-  // Pagination (disimpan per-sub tabel)
-  const [page, setPage] = useState({ drivers: 1, vehicles: 1, care_doctors: 1, care_rules: 1, meet_rooms: 1 });
-  const [perPage, setPerPage] = useState({ drivers: 10, vehicles: 10, care_doctors: 10, care_rules: 10, meet_rooms: 10 });
+  /* ===== View data (filter + sort) ===== */
+  const docsUnitsPrepared = useMemo(() => {
+    const q = docsUnitsSearch.toLowerCase().trim();
+    const filtered = (docsUnits || []).filter(u =>
+      !q || u.code?.toLowerCase().includes(q) || u.name?.toLowerCase().includes(q)
+    );
+    return sortArray(filtered, docsUnitsSort.field, docsUnitsSort.dir);
+  }, [docsUnits, docsUnitsSearch, docsUnitsSort]);
+
+  const docsJenisPrepared = useMemo(() => {
+    const q = docsJenisSearch.toLowerCase().trim();
+    const filtered = (docsJenis || []).filter(j =>
+      !q || j.kode?.toLowerCase().includes(q) || j.nama?.toLowerCase().includes(q)
+    );
+    return sortArray(filtered, docsJenisSort.field, docsJenisSort.dir);
+  }, [docsJenis, docsJenisSearch, docsJenisSort]);
+
+  /* -------- Pagination (disimpan per-sub tabel) -------- */
+  const [page, setPage] = useState({
+    drivers: 1, vehicles: 1, care_doctors: 1, care_rules: 1, meet_rooms: 1,
+    docs_units: 1, docs_jenis: 1
+  });
+  const [perPage, setPerPage] = useState({
+    drivers: 10, vehicles: 10, care_doctors: 10, care_rules: 10, meet_rooms: 10,
+    docs_units: 10, docs_jenis: 10
+  });
   const tableTopRef = useRef(null);
 
   /* -------- Fetch awal -------- */
@@ -78,7 +140,8 @@ export default function KetersediaanPage() {
       const [
         driversRes, vehiclesRes,
         careDocRes, careRulesRes,
-        roomsRes, statusRes
+        roomsRes, statusRes,
+        docsUnitsRes, docsJenisRes
       ] = await Promise.all([
         fetch('/api/ketersediaanAdmin?type=drivers'),
         fetch('/api/ketersediaanAdmin?type=vehicles'),
@@ -86,36 +149,51 @@ export default function KetersediaanPage() {
         fetch('/api/ketersediaanAdmin?type=bicare_rules'),
         fetch('/api/ketersediaanAdmin?type=bimeet_rooms'),
         fetch('/api/ketersediaanAdmin?type=bimeet_room_status'),
+        fetch('/api/ketersediaanAdmin?type=bimail_units'),
+        fetch('/api/ketersediaanAdmin?type=bimail_jenis'),
       ]);
 
       const [
         driversJson, vehiclesJson,
         careDocJson, careRulesJson,
-        roomsJson, statusJson
+        roomsJson, statusJson,
+        docsUnitsJson, docsJenisJson
       ] = await Promise.all([
         driversRes.json(), vehiclesRes.json(),
         careDocRes.json(), careRulesRes.json(),
-        roomsRes.json(), statusRes.json()
+        roomsRes.json(), statusRes.json(),
+        docsUnitsRes.json(), docsJenisRes.json()
       ]);
 
       setDrivers(driversJson.data || []);
       setVehicles(vehiclesJson.data || []);
 
-      // === penting: set dokter + pilih dokter aktif yang valid ===
+      // dokter & calendar default
       const docs = careDocJson.data || [];
       setCareDoctors(docs);
       setCurrentDoctorId(prev => {
-        if (prev && docs.some(d => d.id === prev)) return prev;  // pertahankan pilihan lama jika masih ada
-        return docs[0]?.id ?? null;                              // kalau belum ada, pakai dokter pertama
+        if (prev && docs.some(d => d.id === prev)) return prev;
+        return docs[0]?.id ?? null;
       });
 
       setCareRules(careRulesJson.data || []);
       setMeetRooms(roomsJson.data || []);
       setMeetStatus(statusJson.data || []);
+
+      setDocsUnits(docsUnitsJson.data || []); // {id, code, name}
+      setDocsJenis(docsJenisJson.data || []); // {id, kode, nama}
     } catch {
       alert('Gagal load data!');
     }
     setLoading(false);
+  };
+
+  /* -------- Sort togglers (BI.DOCS) -------- */
+  const toggleSortUnits = (field) => {
+    setDocsUnitsSort(s => s.field === field ? { field, dir: (s.dir === 'asc' ? 'desc':'asc') } : { field, dir:'asc' });
+  };
+  const toggleSortJenis = (field) => {
+    setDocsJenisSort(s => s.field === field ? { field, dir: (s.dir === 'asc' ? 'desc':'asc') } : { field, dir:'asc' });
   };
 
   /* -------- Modal helpers -------- */
@@ -136,10 +214,17 @@ export default function KetersediaanPage() {
     } else if (type === 'bimeet_rooms') {
       const statusOptions = meetStatus;
       setFormData(data ? { ...data, statusOptions } : { ...initialRoom, statusOptions });
+    } else if (type === 'bimail_units') {
+      // BI.DOCS → Unit Kerja
+      setFormData(data ? { ...data } : { id: null, code: '', name: '' });
+    } else if (type === 'bimail_jenis') {
+      // BI.DOCS → Jenis Dokumen
+      setFormData(data ? { ...data } : { id: null, kode: '', nama: '' });
     }
 
     setModalOpen(true);
   };
+
   const handleCloseModal = () => { setModalOpen(false); setEditMode(false); };
   const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -187,13 +272,17 @@ export default function KetersediaanPage() {
     if (mainTab === 'drive') return subDrive === 'drivers' ? drivers : vehicles;
     if (mainTab === 'care')  return subCare === 'doctors' ? careDoctors : (subCare === 'rules' ? careRules : []);
     if (mainTab === 'meet')  return subMeet === 'rooms' ? meetRooms : [];
+    if (mainTab === 'docs')  return subDocs === 'units' ? docsUnitsPrepared : docsJenisPrepared;
     return [];
-  }, [mainTab, subDrive, subCare, subMeet, drivers, vehicles, careDoctors, careRules, meetRooms]);
+  }, [mainTab, subDrive, subCare, subMeet, subDocs,
+      drivers, vehicles, careDoctors, careRules, meetRooms,
+      docsUnitsPrepared, docsJenisPrepared]);
 
   const key =
     mainTab === 'drive' ? (subDrive === 'drivers' ? 'drivers' : 'vehicles')
     : mainTab === 'care' ? (subCare === 'doctors' ? 'care_doctors' : 'care_rules')
-    : 'meet_rooms';
+    : mainTab === 'meet' ? 'meet_rooms'
+    : /* docs */ (subDocs === 'units' ? 'docs_units' : 'docs_jenis');
 
   const currentPage  = page[key] || 1;
   const itemsPerPage = perPage[key] || 10;
@@ -235,16 +324,19 @@ export default function KetersediaanPage() {
             <button className={`${styles.mainTabBtn} ${mainTab === 'meet' ? styles.mainTabActive : ''}`} onClick={() => setMainTab('meet')}>
               <FaCalendarAlt style={{ marginRight: 8 }} /> BI.MEET
             </button>
+            <button className={`${styles.mainTabBtn} ${mainTab === 'docs' ? styles.mainTabActive : ''}`} onClick={() => setMainTab('docs')}>
+              <FaFileAlt style={{ marginRight: 8 }} /> BI.DOCS
+            </button>
           </div>
 
           {/* SubTabs */}
           {mainTab === 'drive' && (
             <div className={styles.subTabs}>
               <button className={`${styles.subTabBtn} ${subDrive === 'drivers' ? styles.subTabActive : ''}`} onClick={() => setSubDrive('drivers')}>
-                <FaUsers style={{ marginRight: 6 }} /> Driver
+                Driver
               </button>
               <button className={`${styles.subTabBtn} ${subDrive === 'vehicles' ? styles.subTabActive : ''}`} onClick={() => setSubDrive('vehicles')}>
-                <FaCar style={{ marginRight: 6 }} /> Vehicle
+                Vehicle
               </button>
             </div>
           )}
@@ -252,13 +344,13 @@ export default function KetersediaanPage() {
           {mainTab === 'care' && (
             <div className={styles.subTabs}>
               <button className={`${styles.subTabBtn} ${subCare === 'doctors' ? styles.subTabActive : ''}`} onClick={() => setSubCare('doctors')}>
-                <FaUserMd style={{ marginRight: 6 }} /> Dokter
+                Dokter
               </button>
               <button className={`${styles.subTabBtn} ${subCare === 'rules' ? styles.subTabActive : ''}`} onClick={() => setSubCare('rules')}>
-                <FaCogs style={{ marginRight: 6 }} /> Aturan
+                Aturan
               </button>
               <button className={`${styles.subTabBtn} ${subCare === 'calendar' ? styles.subTabActive : ''}`} onClick={() => setSubCare('calendar')}>
-                <FaCalendarAlt style={{ marginRight: 6 }} /> Kalender
+                Kalender
               </button>
             </div>
           )}
@@ -266,7 +358,18 @@ export default function KetersediaanPage() {
           {mainTab === 'meet' && (
             <div className={styles.subTabs}>
               <button className={`${styles.subTabBtn} ${subMeet === 'rooms' ? styles.subTabActive : ''}`} onClick={() => setSubMeet('rooms')}>
-                <FaBuilding style={{ marginRight: 6 }} /> Rooms
+                Rooms
+              </button>
+            </div>
+          )}
+
+          {mainTab === 'docs' && (
+            <div className={styles.subTabs}>
+              <button className={`${styles.subTabBtn} ${subDocs === 'units' ? styles.subTabActive : ''}`} onClick={() => setSubDocs('units')}>
+                Unit Kerja
+              </button>
+              <button className={`${styles.subTabBtn} ${subDocs === 'jenis' ? styles.subTabActive : ''}`} onClick={() => setSubDocs('jenis')}>
+                Jenis Dokumen
               </button>
             </div>
           )}
@@ -274,33 +377,23 @@ export default function KetersediaanPage() {
           <div className={styles.tableWrapper}>
             <div ref={tableTopRef} />
 
-            {/* CARE → Kalender (komponen penuh sendiri) */}
+            {/* CARE → Kalender */}
             {mainTab === 'care' && subCare === 'calendar' && (
               <div className={styles.calendarBlock}>
-
-                {/* Picker Dokter */}
-                <div className={styles.selectRow}>
-                  <label htmlFor="pickDoctor" className={styles.selectLabel}>Pilih Dokter</label>
-
-                  <div className={styles.selectNativeWrap}>
-                    <select
-                      id="pickDoctor"
-                      value={currentDoctorId ?? ''}
-                      onChange={(e) => setCurrentDoctorId(Number(e.target.value) || null)}
-                      className={styles.selectNative}
-                    >
-                      {(careDoctors || []).map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-
-                    <svg className={styles.selectNativeCaret} width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M7 10l5 5 5-5z" fill="currentColor" />
-                    </svg>
-                  </div>
+                <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:12, gap:8 }}>
+                  <label htmlFor="pickDoctor" style={{ fontWeight:600 }}>Pilih Dokter:</label>
+                  <select
+                    id="pickDoctor"
+                    value={currentDoctorId ?? ''}
+                    onChange={(e) => setCurrentDoctorId(Number(e.target.value) || null)}
+                    className={styles.input}
+                  >
+                    {(careDoctors || []).map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Kalender hanya dirender kalau ada dokter terpilih */}
                 <CalendarAdmin
                   doctorId={currentDoctorId || (careDoctors[0]?.id ?? 1)}
                   styles={styles}
@@ -375,8 +468,42 @@ export default function KetersediaanPage() {
               />
             )}
 
+            {/* DOCS: Units */}
+            {mainTab === 'docs' && subDocs === 'units' && (
+              <DocsUnitsSection
+                styles={styles}
+                loading={loading}
+                rows={pageRows}
+                onAdd={() => handleOpenModal('bimail_units')}
+                onEdit={(row) => handleOpenModal('bimail_units', row)}
+                onDelete={(type, id) => handleDelete(type, id)}
+                searchValue={docsUnitsSearch}
+                onSearchChange={setDocsUnitsSearch}
+                sortField={docsUnitsSort.field}
+                sortDir={docsUnitsSort.dir}
+                onSort={toggleSortUnits}
+              />
+            )}
+
+            {/* DOCS: Jenis */}
+            {mainTab === 'docs' && subDocs === 'jenis' && (
+              <DocsJenisSection
+                styles={styles}
+                loading={loading}
+                rows={pageRows}
+                onAdd={() => handleOpenModal('bimail_jenis')}
+                onEdit={(row) => handleOpenModal('bimail_jenis', row)}
+                onDelete={(type, id) => handleDelete(type, id)}
+                searchValue={docsJenisSearch}
+                onSearchChange={setDocsJenisSearch}
+                sortField={docsJenisSort.field}
+                sortDir={docsJenisSort.dir}
+                onSort={toggleSortJenis}
+              />
+            )}
+
             {/* Pagination (untuk tabel saja) */}
-            {(mainTab !== 'care' || subCare !== 'calendar') && activeList.length > 0 && (
+            {!(mainTab === 'care' && subCare === 'calendar') && activeList.length > 0 && (
               <div className={styles.paginateArea}>
                 <div className={styles.paginateControls}>
                   <div className={styles.resultsText}>
@@ -421,7 +548,7 @@ export default function KetersediaanPage() {
   );
 }
 
-/* ====== Modal serbaguna (copy dari versi lama, tetap di file ini) ====== */
+/* ====== Modal serbaguna ====== */
 function Modal({ editMode, modalType, formData, handleChange, handleCloseModal, handleSubmit, styles }) {
   const VEHICLE_TYPE_OPTIONS = [
     { id: 1, name: 'Mobil SUV' }, { id: 2, name: 'Mobil MPV' }, { id: 3, name: 'Minibus' },
@@ -431,7 +558,15 @@ function Modal({ editMode, modalType, formData, handleChange, handleCloseModal, 
     { id: 1, name: 'Available' }, { id: 2, name: 'Unavailable' }, { id: 3, name: 'Maintenance' }
   ];
 
-  const titleMap = { drivers: 'Driver', vehicles: 'Vehicle', bicare_doctors: 'Dokter', bicare_rules: 'Aturan', bimeet_rooms: 'Room' };
+  const titleMap = {
+    drivers: 'Driver',
+    vehicles: 'Vehicle',
+    bicare_doctors: 'Dokter',
+    bicare_rules: 'Aturan',
+    bimeet_rooms: 'Room',
+    bimail_units: 'Unit Kerja',
+    bimail_jenis: 'Jenis Dokumen'
+  };
 
   return (
     <div className={styles.modalBackdrop}>
@@ -526,6 +661,22 @@ function Modal({ editMode, modalType, formData, handleChange, handleCloseModal, 
                   {(formData.statusOptions || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
+            </>
+          )}
+
+          {/* DOCS: Unit Kerja */}
+          {modalType === 'bimail_units' && (
+            <>
+              <div className={styles.formGroup}><label>Kode Unit</label><input name="code" value={formData.code || ''} onChange={handleChange} required maxLength={50} className={styles.input} /></div>
+              <div className={styles.formGroup}><label>Nama Unit</label><input name="name" value={formData.name || ''} onChange={handleChange} required maxLength={120} className={styles.input} /></div>
+            </>
+          )}
+
+          {/* DOCS: Jenis Dokumen */}
+          {modalType === 'bimail_jenis' && (
+            <>
+              <div className={styles.formGroup}><label>Kode</label><input name="kode" value={formData.kode || ''} onChange={handleChange} required maxLength={50} className={styles.input} /></div>
+              <div className={styles.formGroup}><label>Nama Jenis</label><input name="nama" value={formData.nama || ''} onChange={handleChange} required maxLength={150} className={styles.input} /></div>
             </>
           )}
 
