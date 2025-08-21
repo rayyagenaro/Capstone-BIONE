@@ -1,40 +1,26 @@
-import { useEffect } from "react";
+import React from 'react';
+import styles from './PopupAdmin.module.css'; // bikin file css module terpisah
 
-export default function PopupAdmin({ message, type = "success", onClose }) {
-  // Auto-close dalam 3 detik (optional)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose?.();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
+export default function PopupAdmin({ message = "Berhasil" }) {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 relative w-[350px] text-center">
-        {/* Tombol close */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-        >
-          ✕
-        </button>
-
-        {/* Icon status */}
-        <div className="flex justify-center mb-4">
-          {type === "success" ? (
-            <div className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100">
-              <span className="text-green-500 text-3xl">✔</span>
-            </div>
-          ) : (
-            <div className="w-16 h-16 flex items-center justify-center rounded-full bg-red-100">
-              <span className="text-red-500 text-3xl">✖</span>
-            </div>
-          )}
+    <div className={styles.popupOverlay}>
+      <div className={styles.popupBox}>
+        <div className={styles.popupIcon}>
+          <svg width="70" height="70" viewBox="0 0 70 70">
+            <circle cx="35" cy="35" r="35" fill="#7EDC89" />
+            <polyline 
+              points="23,36 33,46 48,29" 
+              fill="none" 
+              stroke="#fff" 
+              strokeWidth="4" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
         </div>
-
-        {/* Pesan */}
-        <p className="text-lg font-semibold text-gray-800">{message}</p>
+        <div className={styles.popupMsg}>
+          <b>{message}</b>
+        </div>
       </div>
     </div>
   );

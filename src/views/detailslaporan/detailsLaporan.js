@@ -13,6 +13,11 @@ import PopupAdmin from '@/components/PopupAdmin/PopupAdmin';
 
 const ALLOWED_SLUGS = ['dmove', 'bicare', 'bimeet', 'bimail', 'bistay', 'bimeal'];
 
+// ===== NS helpers =====
+const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+const withNs = (url, ns) => (ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url);
+
+
 // ===== Helpers (formatting) =====
 const formatDateTime = (dateString) => {
   if (!dateString) return '-';
@@ -140,7 +145,6 @@ const buildRejectPreview = (slug, person, reason, id) => {
   return `Halo ${person?.name || ''},
 
 Pengajuan ${service} Anda *DITOLAK* ❌
-• ID Pengajuan: ${id}
 
 Alasan:
 ${reason}
@@ -152,6 +156,15 @@ Silakan lakukan perbaikan/pengajuan ulang. Terima kasih.`;
 export default function DetailsLaporan() {
   const router = useRouter();
   const { id, slug: qslug } = router.query || {};
+  const nsFromQuery = typeof router.query?.ns === 'string' ? router.query.ns : '';
+  const nsFromAsPath = (() => {
+    const q = (router.asPath || '').split('?')[1];
+    if (!q) return '';
+    const p = new URLSearchParams(q);
+    const v = p.get('ns') || '';
+    return NS_RE.test(v) ? v : '';
+  })();
+  const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
   const raw = (typeof qslug === 'string' ? qslug : '').toLowerCase();
   const slug = ALLOWED_SLUGS.includes(raw) ? raw : 'dmove';
 
@@ -277,7 +290,10 @@ export default function DetailsLaporan() {
         })
       );
       openNotif('Persetujuan berhasil diproses.', 'success');
-      router.push('/Admin/Persetujuan/hal-persetujuan');
+      setTimeout(() => {
+        router.push(`/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`);
+      }, 1200);
+
     } catch (err) {
       openNotif(`Error: ${err.message || err}`, 'error');
     } finally {
@@ -323,6 +339,9 @@ export default function DetailsLaporan() {
       }
 
       openNotif('Permohonan berhasil ditolak.', 'success');
+      setTimeout(() => {
+        router.push(`/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`);
+      }, 1200);
       setShowRejectSend(false);
       setPendingRejectReason('');
     } catch (e) {
@@ -347,6 +366,9 @@ export default function DetailsLaporan() {
       const svc = META[slug]?.title || slug.toUpperCase();
       // ✅ format pesan sesuai desain: "Pengajuan {SERVICE} Berhasil!"
       openNotif(`Pengajuan ${svc} Berhasil!`, 'success');
+      setTimeout(() => {
+        router.push(`/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`);
+      }, 1200);
 
       const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
       const d = await r.json();

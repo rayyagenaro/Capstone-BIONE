@@ -50,7 +50,7 @@ export default function RejectReasonPopup({
 
           <div className={styles.actions}>
             <button type="button" className={styles.cancelBtn} onClick={onClose}>
-              Tolak
+              Batal
             </button>
             <button type="submit" className={styles.nextBtn}>
               Lanjut

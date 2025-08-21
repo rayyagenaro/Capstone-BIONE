@@ -175,9 +175,9 @@ export default async function handler(req, res) {
 
       const [result] = await conn.query(
         `INSERT INTO bimeal_bookings
-           (user_id, ns, nama_pic, nip_pic, no_wa_pic, unit_kerja, waktu_pesanan, status_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [userId, ns, nama, nip, wa, uker, waktu_pesanan, PENDING_STATUS_ID]
+           (user_id, nama_pic, nip_pic, no_wa_pic, unit_kerja, waktu_pesanan, status_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [userId, nama, nip, wa, uker, waktu_pesanan, PENDING_STATUS_ID]
       );
       const bookingId = result.insertId;
 
