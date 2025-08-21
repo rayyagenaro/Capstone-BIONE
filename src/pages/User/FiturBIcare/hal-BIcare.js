@@ -267,7 +267,8 @@ export default function FiturBICare() {
     })();
   }, []);
 
-  const handleMonthChange = useCallback(async (ym, id = doctorId) => {
+  const handleMonthChange = useCallback(async (ym, idParam) => {
+    const id = idParam ?? doctorId; // selalu pakai doctorId TERKINI bila idParam undefined
     try {
       const res = await fetch(`/api/BIcare/booked?doctorId=${id}&month=${ym}&t=${Date.now()}`, {
         cache: 'no-store',
@@ -276,7 +277,6 @@ export default function FiturBICare() {
       if (!res.ok) throw new Error('Failed to fetch month data');
       const data = await res.json();
 
-      // Normalisasi
       const normSlots = {};
       for (const [k, arr] of Object.entries(data.slotMap || {})) {
         normSlots[k] = (arr || []).map((t) => String(t).slice(0,5));
@@ -296,7 +296,7 @@ export default function FiturBICare() {
     } catch (e) {
       console.error(e);
     }
-  }, []);
+  }, [doctorId]); // <<— penting
 
   useEffect(() => {
     const now = new Date();
@@ -456,7 +456,7 @@ export default function FiturBICare() {
               adminMap={adminMap}
               onPick={handlePickSession}
               minDate={new Date()}
-              onMonthChange={handleMonthChange}
+              onMonthChange={(ym) => handleMonthChange(ym, doctorId)} // kirim dokter aktif setiap kali
             />
             <p className={styles.calendarHint}>Tanggal & jam hanya dapat diubah dari kalender ini.</p>
           </div>
