@@ -64,6 +64,11 @@ const numericIdOf = (id) => {
   return m ? Number(m[1]) : NaN;
 };
 
+function getEmailDomain(email = '') {
+  const at = String(email).toLowerCase().trim().split('@');
+  return at.length === 2 ? at[1] : '';
+}
+
 // helper: cocokkan alias
 const isAlias = (k, v) =>
   k === v ||

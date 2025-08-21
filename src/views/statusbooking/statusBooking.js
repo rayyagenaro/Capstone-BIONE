@@ -180,15 +180,15 @@ async function updateServiceStatus(featureKey, bookingId, newStatusId = 4, ns) {
 
   if (!endpoint) throw new Error(`Finish tidak didukung untuk layanan ${featureKey}.`);
 
-  // DB BI.Care enum: 'Booked' | 'FInished'
-  const idToBICareStatus = (id) => (id === 4 ? 'FInished' : 'Booked');
+  // ⬇️ BI.Care wajib ns di QUERY agar verifyUser lolos
+  const url = featureKey === 'bicare' ? withNs(endpoint, ns) : endpoint;
 
   const payload =
     featureKey === 'bicare'
-      ? { bookingId: idNum, status: idToBICareStatus(newStatusId), ...(ns ? { ns } : {}) }
+      ? { bookingId: idNum, status: 'Finished' }
       : { bookingId: idNum, newStatusId, ...(ns ? { ns } : {}) };
 
-  const res = await fetch(endpoint, {
+  const res = await fetch(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -207,7 +207,6 @@ async function updateServiceStatus(featureKey, bookingId, newStatusId = 4, ns) {
   try { return await res.json(); } catch { return { ok: true }; }
 }
 
-
 /* ===================== Normalisasi BI.Care → kartu generik ===================== */
 const mapBICareStatusToId = (status) => {
   const s = String(status ?? '').trim().toLowerCase();
@@ -215,7 +214,6 @@ const mapBICareStatusToId = (status) => {
   if (s === 'finished') return 4;  // Finished
   return 1;                        // fallback → Pending
 };
-
 
 /* ===================== Normalisasi BI.Drive → kartu generik ===================== */
 function normalizeBIDriveRow(row) {
@@ -287,7 +285,6 @@ function normalizeBIMailRow(row) {
 /* ===================== Normalisasi BI.Meal ===================== */
 function normalizeBIMealRow(row) {
   const startISO = row.waktu_pesanan || row.created_at || new Date().toISOString();
-  // ringkasan pesanan
   const items = Array.isArray(row.items) ? row.items : [];
   const totalQty = items.reduce((a, x) => a + (Number(x?.qty) || 0), 0);
 
@@ -298,7 +295,6 @@ function normalizeBIMealRow(row) {
     start_date: startISO,
     end_date: startISO,
     status_id: row.status_id || 1,
-    // field khusus untuk kartu/modal:
     _raw_bimeal: {
       nama_pic: row.nama_pic,
       nip_pic: row.nip_pic,
@@ -313,15 +309,13 @@ function normalizeBIMealRow(row) {
  
 /* ===================== Normalisasi BI.Meet ===================== */
 function normalizeBIMeetRow(row) {
-  // status_id backend sudah 1..4, langsung dipakai
   return {
     id: `bimeet-${row.id}`,
     feature_key: 'bimeet',
     tujuan: row.title || (row.room_name ? `Meeting @ ${row.room_name}` : 'Meeting'),
-    start_date: row.start_datetime,      // ISO/string dari DB; Date() di UI akan handle
+    start_date: row.start_datetime,
     end_date: row.end_datetime,
     status_id: Number(row.status_id) || 1,
-    // field khusus untuk kartu & modal:
     room_name: row.room_name || null,
     room_capacity: row.capacity ?? null,
     unit_kerja: row.unit_kerja || null,
@@ -332,10 +326,9 @@ function normalizeBIMeetRow(row) {
     _raw_bimeet: row,
   };
 }
+
 /* ===================== Normalisasi BI.Stay ===================== */
 function normalizeBIStayRow(row) {
-  // API GET mengembalikan: id, nama_pemesan, nip, no_wa, asal_kpw, check_in, check_out, keterangan, status_pegawai (info jenis pegawai, bukan approval)
-  // status approval belum ada di tabel → tampilkan sebagai Pending (1) agar konsisten dengan tampilan
   return {
     id: `bistay-${row.id}`,
     feature_key: 'bistay',
@@ -355,7 +348,6 @@ function normalizeBIStayRow(row) {
   };
 }
 
-
 /* ===================== SUB-KOMPONEN ===================== */
 const BookingCard = React.memo(({ booking, onClick }) => {
   const statusInfo =
@@ -364,7 +356,6 @@ const BookingCard = React.memo(({ booking, onClick }) => {
   const featureLabel = featureLabelOf(booking);
   const featureKey = resolveFeatureKey(booking);
 
-  // Baris info ringkas per layanan
   const renderServiceLine = () => {
     switch (featureKey) {
       case 'bicare': {
@@ -414,7 +405,6 @@ const BookingCard = React.memo(({ booking, onClick }) => {
         ].filter(Boolean);
         return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
       }
-
       default: {
         if (featureKey === 'bidrive' && booking.vehicle_types?.length > 0) {
           return <div className={styles.cardVehicles}>{booking.vehicle_types.map((vt) => vt.name).join(', ')}</div>;
@@ -432,7 +422,6 @@ const BookingCard = React.memo(({ booking, onClick }) => {
       role="button"
       tabIndex={0}
     >
-      {/* Logo dinamis per layanan */}
       <Image
         src={logoSrcOf(booking)}
         alt={featureLabel || 'logo'}
@@ -532,7 +521,6 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
   const featureKey = resolveFeatureKey(booking);
   const featureLabel = featureLabelOf(booking);
 
-  // hanya tampilkan assignment driver/kendaraan utk BI.Drive
   const shouldShowAssignments =
     featureKey === 'bidrive' &&
     (Array.isArray(booking.assigned_drivers) || Array.isArray(booking.assigned_vehicles));
@@ -563,7 +551,6 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
           <hr className={styles.modalDivider} />
           <p><strong>Fitur/Layanan:</strong> {featureLabel || 'Tidak diketahui'}</p>
 
-          {/* BI.Docs detail */}
           {featureKey === 'bidocs' && (
             <>
               <p><strong>Nomor Surat:</strong> {booking.nomor_surat || '-'}</p>
@@ -583,7 +570,6 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
             </>
           )}
 
-          {/* BI.Care detail */}
           {featureKey === 'bicare' && booking._raw_bicare && (
             <>
               <p><strong>Nama Pemesan:</strong> {booking._raw_bicare.booker_name}</p>
@@ -595,7 +581,7 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
               <p><strong>Slot Waktu:</strong> {String(booking._raw_bicare.slot_time || '').slice(0,5)}</p>
             </>
           )}
-          {/* BI.Meal detail */}
+
           {featureKey === 'bimeal' && booking._raw_bimeal && (
             <>
               <p><strong>Nama PIC:</strong> {booking._raw_bimeal.nama_pic}</p>
@@ -616,7 +602,6 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
             </>
           )}
 
-          {/* BI.Meet detail */}
           {featureKey === 'bimeet' && (
             <>
               <p><strong>Ruangan:</strong> {booking.room_name || '-'}</p>
@@ -634,7 +619,7 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
               )}
             </>
           )}
-          {/* BI.Stay detail */}
+
           {featureKey === 'bistay' && booking._raw_bistay && (
             <>
               <p><strong>Nama Pemesan:</strong> {booking._raw_bistay.nama_pemesan || '-'}</p>
@@ -648,7 +633,6 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
             </>
           )}
 
-          {/* Hanya BI.Drive yang menampilkan assignment */}
           {shouldShowAssignments && isApprovedOrFinished && (
             <>
               <hr className={styles.modalDivider} />
@@ -680,7 +664,6 @@ const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
             </>
           )}
 
-          {/* Tombol Finish: untuk semua layanan KECUALI BI.Care & BI.Docs, ketika status Approved */}
           {featureKey !== 'bicare' && featureKey !== 'bidocs' && Number(booking.status_id) === 2 && (
             <div className={styles.modalActions}>
               <button
@@ -710,26 +693,21 @@ export default function StatusBooking() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // filter status
   const [activeTab, setActiveTab] = useState('All');
-
-  // filter fitur/layanan (dropdown)
   const [featureValue, setFeatureValue] = useState('all'); // 'all' | 'bidrive' | 'bicare' | ...
-
   const [selectedBooking, setSelectedBooking] = useState(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
-  // Logout
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
-
-  // proses “Finished”
   const [finishing, setFinishing] = useState(false);
+
   // Tandai booking bicare yang sudah dicoba auto-finish supaya tidak diulang terus
   const autoFinishTried = useRef(new Set());
 
+  // Auto-finish BI.Care di sisi klien (fallback)
   useEffect(() => {
     if (!allBookings.length) return;
 
@@ -739,15 +717,12 @@ export default function StatusBooking() {
       const now = Date.now();
 
       for (const b of allBookings) {
-        // Hanya BI.Care yang statusnya Booked (2)
         if (resolveFeatureKey(b) !== 'bicare') continue;
         if (Number(b.status_id) !== 2) continue;
 
-        // end_date dari normalizeBICareRow sudah 30 menit setelah slot
         const endMs = new Date(b.end_date).getTime();
         if (!Number.isFinite(endMs)) continue;
 
-        // Sudah lewat waktu & belum dicoba auto-finish
         if (now > endMs && !autoFinishTried.current.has(b.id)) {
           autoFinishTried.current.add(b.id);
 
@@ -755,17 +730,14 @@ export default function StatusBooking() {
             await updateServiceStatus('bicare', numericIdOf(b.id), 4, ns);
             if (cancelled) return;
 
-            // Update list
             setAllBookings((prev) =>
               prev.map((x) => (x.id === b.id ? { ...x, status_id: 4 } : x))
             );
 
-            // Kalau modal sedang buka booking ini, sinkronkan juga
             setSelectedBooking((prev) =>
               prev && prev.id === b.id ? { ...prev, status_id: 4 } : prev
             );
           } catch (e) {
-            // gagal → hapus dari tried supaya bisa dicoba lagi di siklus berikutnya
             autoFinishTried.current.delete(b.id);
             console.warn('Auto-finish BI.Care gagal:', e);
           }
@@ -773,17 +745,10 @@ export default function StatusBooking() {
       }
     };
 
-    // jalan sekarang...
     runCheck();
-    // ...dan ulang tiap 60 detik
     const timer = setInterval(runCheck, 60_000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
+    return () => { cancelled = true; clearInterval(timer); };
   }, [allBookings, ns, setAllBookings, setSelectedBooking]);
-
 
   // ====== LAST SEEN COUNTS (localStorage) ======
   const [seenCounts, setSeenCounts] = useState(DEFAULT_SEEN);
@@ -819,13 +784,12 @@ export default function StatusBooking() {
         const uid = Number(meData.payload.sub);
         setUserId(uid);
 
-        // load last-seen untuk user ini
         try {
           const raw = localStorage.getItem(seenStorageKey(uid));
           setSeenCounts(raw ? { ...DEFAULT_SEEN, ...JSON.parse(raw) } : DEFAULT_SEEN);
         } catch { setSeenCounts(DEFAULT_SEEN); }
 
-        // 1) Booking BI.Drive/umum
+        // 1) BI.Drive/umum
         let dataMain = [];
         const resMain = await fetch(`/api/booking?userId=${uid}`, { cache: 'no-store', credentials: 'include'});
         if (resMain.ok) {
@@ -856,8 +820,7 @@ export default function StatusBooking() {
           console.warn('Gagal load BI.Care:', e);
         }
 
-
-        // 3) BI.Docs (BImail) milik user
+        // 3) BI.Docs (BImail)
         let dataBIDocs = [];
         try {
           const rDocs = await fetch(`/api/BImail?userId=${uid}`, { cache: 'no-store', credentials: 'include' });
@@ -882,7 +845,7 @@ export default function StatusBooking() {
           console.warn('Gagal load BI.Meal:', e);
         }
 
-        // 5) BI.Meet (meeting rooms)
+        // 5) BI.Meet
         let dataBIMeet = [];
         try {
           const rMeet = await fetch(`/api/bimeet/createbooking?userId=${uid}`, { cache: 'no-store', credentials: 'include'  });
@@ -908,7 +871,6 @@ export default function StatusBooking() {
           console.warn('Gagal load BI.Stay:', e);
         }
 
-        // Gabungkan
         const merged = [
           ...(Array.isArray(dataMain) ? dataMain : []),
           ...dataBICare,
@@ -935,7 +897,6 @@ export default function StatusBooking() {
 
       const featureKey = resolveFeatureKey(booking);
 
-      // Hanya fetch detail kendaraan/driver untuk BI.Drive
       if (featureKey === 'bidrive') {
         const bid = numericIdOf(booking.id);
         if (!Number.isFinite(bid)) throw new Error('ID booking tidak valid');
@@ -944,7 +905,6 @@ export default function StatusBooking() {
         const full = await res.json();
         setSelectedBooking({ ...full, feature_key: 'bidrive' });
       }
-      // BI.Care & BI.Docs: data yang ada sudah cukup
     } catch (e) {
       console.error('fetch detail error:', e);
     }
@@ -952,7 +912,7 @@ export default function StatusBooking() {
 
   const closeModal = useCallback(() => setSelectedBooking(null), []);
 
-  // Finish Booking → untuk semua layanan kecuali BI.Care & BI.Docs
+  // Finish Booking → semua layanan kecuali BI.Care & BI.Docs
   const markAsFinished = useCallback(async (booking) => {
     const featureKey = resolveFeatureKey(booking);
     if (featureKey === 'bicare' || featureKey === 'bidocs') {
@@ -970,7 +930,6 @@ export default function StatusBooking() {
       setFinishing(true);
 
       if (featureKey === 'bidrive') {
-        // pastikan sudah punya data assignment
         let fullBooking =
           selectedBooking && numericIdOf(selectedBooking.id) === bid ? selectedBooking : null;
 
@@ -984,23 +943,17 @@ export default function StatusBooking() {
         const driverIds = (fullBooking?.assigned_drivers || []).map(d => d.id);
         const vehicleIds = (fullBooking?.assigned_vehicles || []).map(v => v.id);
 
-        // 1) Update status ke Finished (4) — kirim ns bila ada
         await updateServiceStatus('bidrive', bid, 4, ns);
-
-        // 2) Set available
         await setDriversAvailable(driverIds, 1);
         await setVehiclesAvailable(vehicleIds, 1);
       } else {
-        // layanan lain: cukup update status saja (tidak ada assignment driver/vehicle)
         await updateServiceStatus(featureKey, bid, 4, ns);
       }
 
-      // 3) Refresh state lokal
       setAllBookings(prev =>
         prev.map(b => (numericIdOf(b.id) === bid ? { ...b, status_id: 4 } : b))
       );
 
-      // Perbarui selectedBooking (khusus bidrive coba ambil ulang detail)
       if (featureKey === 'bidrive') {
         try {
           const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
@@ -1044,7 +997,6 @@ export default function StatusBooking() {
     finished: Math.max(0, tabCounts.finished - (seenCounts.finished || 0)),
   }), [tabCounts, seenCounts]);
 
-  // tandai tab sebagai sudah dilihat
   const markTabSeen = useCallback((tabName) => {
     if (!userId || tabName === 'All') return;
     const key = SEEN_KEYS[tabName];
@@ -1060,7 +1012,7 @@ export default function StatusBooking() {
   }, [markTabSeen]);
 
   const handleFeatureChange = useCallback((value) => {
-    setFeatureValue(value); // 'all' | 'bidrive' | ...
+    setFeatureValue(value);
     setCurrentPage(1);
   }, []);
 

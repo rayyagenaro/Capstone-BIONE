@@ -58,9 +58,10 @@ function getBearerToken(req) {
   return m ? m[1] : null;
 }
 function findToken(req, ns, scopeHint) {
-  const prefOrder = scopeHint === 'admin'
-    ? [`admin_session__${ns}`, `user_session__${ns}`]
-    : [`user_session__${ns}`, `admin_session__${ns}`];
+  const prefOrder =
+    scopeHint === 'admin'
+      ? [`admin_session__${ns}`, `user_session__${ns}`]
+      : [`user_session__${ns}`, `admin_session__${ns}`];
   for (const name of prefOrder) {
     const val = req.cookies?.[name];
     if (val) return { token: val, source: `cookie:${name}` };
@@ -85,9 +86,12 @@ async function verifyUser(req) {
     if (payload?.ns && String(payload.ns) !== ns) return { ok: false, reason: 'NS_MISMATCH' };
 
     const roleRaw = payload?.role ?? payload?.role_name ?? (payload?.roleId ?? payload?.role_id);
-    let isAdmin = false; let role = 'user';
+    let isAdmin = false;
+    let role = 'user';
     if (typeof roleRaw === 'string') {
-      if (/^super\s*admin$/i.test(roleRaw) || /^admin$/i.test(roleRaw) || /admin/i.test(roleRaw)) { isAdmin = true; role = 'admin'; }
+      if (/^super\s*admin$/i.test(roleRaw) || /^admin$/i.test(roleRaw) || /admin/i.test(roleRaw)) {
+        isAdmin = true; role = 'admin';
+      }
     } else if (typeof roleRaw === 'number') {
       if ([1, 2].includes(Number(roleRaw))) { isAdmin = true; role = 'admin'; }
     }
@@ -102,48 +106,85 @@ async function verifyUser(req) {
 
 /* ===================== Handler ===================== */
 export default async function handler(req, res) {
-  /* ---------- PUT: auto-finish bila slot sudah lewat ---------- */
+  /* ---------- PUT: finish booking bila slot (30m) sudah lewat ---------- */
   if (req.method === 'PUT') {
     try {
-      const id = Number(req.body?.bookingId);
-      let status = String(req.body?.status || '').trim();
-      if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'bookingId tidak valid' });
+      const id = Number(req.body?.bookingId ?? req.body?.id);
+      if (!Number.isFinite(id) || id <= 0) {
+        return res.status(400).json({ error: 'bookingId tidak valid' });
+      }
 
-      // terima 'Finished' (case-insensitive); tulis ke DB sesuai enum
-      if (/^finished$/i.test(status)) status = 'Finished';
-      if (status !== 'Finished') return res.status(400).json({ error: "Status wajib 'Finished'." });
+      // Back-compat: kalau client kirim "status", hanya terima "Finished"
+      const bodyStatus = (req.body?.status ?? '').toString().trim();
+      if (bodyStatus && !/^finished$/i.test(bodyStatus)) {
+        return res.status(400).json({ error: "Status wajib 'Finished'." });
+      }
 
       const auth = await verifyUser(req);
-      if (!auth.ok) { res.setHeader('Allow', 'GET, PUT'); return res.status(401).json({ error: 'Unauthorized', reason: auth.reason }); }
+      if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
 
       const scope = String(req.query?.scope || 'user').toLowerCase();
 
-      const where = [];
-      const params = [];
-      where.push('id = ?');                   params.push(id);
-      where.push("status = 'Booked'");
-      where.push('slot_time IS NOT NULL');
-      if (scope !== 'admin') { where.push('user_id = ?'); params.push(auth.userId); }
-      const whereSql = where.join(' AND ');
+      // 1) Ambil row (hanya kolom yang memang ada di tabel)
+      const [rows] = await db.query(
+        `SELECT id, user_id, doctor_id, booking_date, slot_time, status
+           FROM bicare_bookings
+          WHERE id = ?`,
+        [id]
+      );
+      if (rows.length === 0) return res.status(404).json({ error: 'NOT_FOUND' });
 
-      const [result] = await db.query(
+      const b = rows[0];
+
+      // 2) Otorisasi pemilik (kecuali admin). user_id bisa NULL (admin block) => bukan milik user.
+      if (scope !== 'admin' && b.user_id !== auth.userId) {
+        return res.status(403).json({ error: 'NOT_YOURS' });
+      }
+
+      // 3) Idempotensi & validasi status enum('Booked','Finished')
+      const curStatus = String(b.status || '');
+      if (/^finished$/i.test(curStatus)) {
+        return res.status(200).json({ ok: true, id, status: 'Finished', already: true });
+      }
+      if (!/^booked$/i.test(curStatus)) {
+        return res.status(409).json({ error: 'ILLEGAL_STATE', from: b.status, want: 'Finished' });
+      }
+
+      // 4) Hitung waktu akhir slot = booking_date + slot_time + 30 menit (fixed)
+      const [[nowRow]] = await db.query(
+        `SELECT CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+07:00') AS now_jkt`
+      );
+      const [[endRow]] = await db.query(
+        `SELECT TIMESTAMP(?, TIME(?)) + INTERVAL 30 MINUTE AS slot_end`,
+        [b.booking_date, b.slot_time]
+      );
+      const nowJkt = new Date(nowRow.now_jkt);
+      const slotEnd = new Date(endRow.slot_end);
+
+      if (Number.isFinite(slotEnd.valueOf()) && nowJkt < slotEnd) {
+        return res.status(409).json({ error: 'NOT_YET', end_time: endRow.slot_end });
+      }
+
+      // 5) Update (idempotent safeguard)
+      const [upd] = await db.query(
         `UPDATE bicare_bookings
-            SET status = ?
-          WHERE ${whereSql}
-            AND (
-              TIMESTAMP(booking_date, TIME(slot_time)) + INTERVAL 30 MINUTE
-            ) <= NOW()`,
-        [status, ...params]
+            SET status = 'Finished'
+          WHERE id = ? AND UPPER(status) = 'BOOKED'`,
+        [id]
       );
 
-      if (result.affectedRows === 0) {
-        res.setHeader('Allow', 'GET, PUT');
-        return res.status(409).json({ error: 'Belum melewati waktu, tidak ditemukan, atau bukan milik Anda.' });
+      if (upd.affectedRows === 0) {
+        // mungkin sudah di-auto-finish oleh GET
+        const [[chk]] = await db.query(`SELECT status FROM bicare_bookings WHERE id = ?`, [id]);
+        if (chk && /^finished$/i.test(chk.status)) {
+          return res.status(200).json({ ok: true, id, status: 'Finished', already: true });
+        }
+        return res.status(409).json({ error: 'CONFLICT_UNKNOWN' });
       }
-      return res.json({ ok: true, id, status });
+
+      return res.status(200).json({ ok: true, id, status: 'Finished' });
     } catch (e) {
       console.error('PUT /api/BIcare/booked error:', e);
-      res.setHeader('Allow', 'GET, PUT');
       return res.status(500).json({ error: 'INTERNAL_ERROR', details: e?.message });
     }
   }
@@ -155,17 +196,24 @@ export default async function handler(req, res) {
   }
 
   const auth = await verifyUser(req);
-  if (!auth.ok) { res.setHeader('Allow', 'GET, PUT'); return res.status(401).json({ error: 'Unauthorized', reason: auth.reason }); }
+  if (!auth.ok) {
+    res.setHeader('Allow', 'GET, PUT');
+    return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+  }
 
   const scope = String(req.query.scope || 'user').toLowerCase();
-  if (scope === 'admin' && !auth.isAdmin) return res.status(403).json({ error: 'FORBIDDEN', reason: 'ADMIN_SCOPE_ONLY' });
+  if (scope === 'admin' && !auth.isAdmin) {
+    return res.status(403).json({ error: 'FORBIDDEN', reason: 'ADMIN_SCOPE_ONLY' });
+  }
 
   // ===== Branch A: Kalender =====
   const monthStr = String(req.query.month || '').trim();
   const isCalendar = /^\d{4}-\d{2}$/.test(monthStr);
   if (isCalendar) {
     const doctorId = Number(req.query.doctorId || req.query.doctor_id || 0);
-    if (!Number.isFinite(doctorId) || doctorId <= 0) return res.status(400).json({ error: 'Param doctorId tidak valid' });
+    if (!Number.isFinite(doctorId) || doctorId <= 0) {
+      return res.status(400).json({ error: 'Param doctorId tidak valid' });
+    }
 
     try {
       const [y, m] = monthStr.split('-').map(Number);
@@ -175,6 +223,7 @@ export default async function handler(req, res) {
 
       const conn = await db.getConnection();
       try {
+        // rules masih bisa memiliki slot_minutes; tabel rules terpisah dari bookings
         const [rules] = await conn.query(
           `SELECT id, weekday, start_time, end_time, slot_minutes
              FROM bicare_availability_rules
@@ -216,19 +265,26 @@ export default async function handler(req, res) {
           [doctorId, startDate, endDate]
         );
 
-        const bookedMap = {}; const adminBlocks = {};
+        const bookedMap = {};
+        const adminBlocks = {};
         for (const r of rows) {
           const dateKey = toYmd(r.booking_date);
           const hhmm = String(r.slot_time).slice(0, 5);
           (bookedMap[dateKey] ||= []);
           if (!bookedMap[dateKey].includes(hhmm)) bookedMap[dateKey].push(hhmm);
-          if (String(r.booker_name).toUpperCase() === 'ADMIN_BLOCK') (adminBlocks[dateKey] ||= []).push(hhmm);
+          if (String(r.booker_name).toUpperCase() === 'ADMIN_BLOCK') {
+            (adminBlocks[dateKey] ||= []).push(hhmm);
+          }
         }
         for (const k of Object.keys(bookedMap)) bookedMap[k].sort();
         for (const k of Object.keys(adminBlocks)) adminBlocks[k].sort();
 
-        return res.status(200).json({ ok: true, ns: auth.ns, scope, type: 'calendar', doctorId, month: monthStr, slotMap, bookedMap, adminBlocks });
-      } finally { conn.release(); }
+        return res.status(200).json({
+          ok: true, ns: auth.ns, scope, type: 'calendar', doctorId, month: monthStr, slotMap, bookedMap, adminBlocks
+        });
+      } finally {
+        conn.release();
+      }
     } catch (e) {
       console.error('GET /api/BIcare/booked calendar error:', e);
       return res.status(500).json({ error: 'INTERNAL_ERROR', details: e?.message });
@@ -236,11 +292,11 @@ export default async function handler(req, res) {
   }
 
   // ===== Branch B: Listing =====
-  // map status query ke enum DB
   const statusRaw = (req.query.status || '').toString().trim();
-  const status = /^finished$/i.test(statusRaw) ? 'Finished'
-               : /^booked$/i.test(statusRaw)   ? 'Booked'
-               : statusRaw;
+  const status =
+    /^finished$/i.test(statusRaw) ? 'Finished' :
+    /^booked$/i.test(statusRaw)   ? 'Booked'   :
+    statusRaw;
 
   const fromDate = (req.query.from || '').toString().trim();
   const toDate   = (req.query.to   || '').toString().trim();
@@ -256,23 +312,21 @@ export default async function handler(req, res) {
   const offset = Math.max(Number(req.query.offset) || 0, 0);
 
   try {
-    /* --- AUTO-FINISH on read (sebelum SELECT) --- */
-    const autofinishParams = [];
+    /* --- AUTO-FINISH on read (30 menit, sebelum SELECT) --- */
     const userScopeClause  = scope === 'admin' ? '' : 'AND user_id = ?';
-    if (scope !== 'admin') autofinishParams.push(auth.userId);
+    const autofinishParams = scope === 'admin' ? [] : [auth.userId];
     await db.query(
       `UPDATE bicare_bookings
           SET status = 'Finished'
-        WHERE status = 'Booked'
+        WHERE UPPER(status) = 'BOOKED'
           AND slot_time IS NOT NULL
           ${userScopeClause}
-          AND (
-            TIMESTAMP(booking_date, TIME(slot_time)) + INTERVAL 30 MINUTE
-          ) <= NOW()`,
+          AND TIMESTAMP(booking_date, TIME(slot_time)) + INTERVAL 30 MINUTE
+              <= CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+07:00')`,
       autofinishParams
     );
 
-    /* --- Build WHERE untuk SELECT --- */
+    /* --- WHERE untuk SELECT --- */
     const where = [];
     const params = [];
     if (scope === 'admin') {
