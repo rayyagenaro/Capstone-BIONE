@@ -6,8 +6,7 @@ import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import {
-  FaUsers, FaCar, FaUserMd, FaCogs, FaCalendarAlt, FaBuilding,
-  FaFileAlt
+  FaUsers, FaCar, FaUserMd, FaCalendarAlt, FaFileAlt
 } from 'react-icons/fa';
 
 // SECTION COMPONENTS
@@ -34,14 +33,12 @@ function sortArray(arr, field, dir = 'asc') {
     const va = a?.[field];
     const vb = b?.[field];
 
-    // kalau dua-duanya angka / string angka → urut angka
     const na = Number(va);
     const nb = Number(vb);
     if (!Number.isNaN(na) && !Number.isNaN(nb)) {
       return (na - nb) * mul;
     }
 
-    // fallback teks (kode/nama), tetap “numeric: true” biar 2 < 10
     return String(va ?? '').localeCompare(
       String(vb ?? ''),
       undefined,
@@ -49,7 +46,6 @@ function sortArray(arr, field, dir = 'asc') {
     ) * mul;
   });
 }
-
 
 const initialDriver = { id: null, nim: '', name: '', phone: '' };
 const initialVehicle = { id: null, plat_nomor: '', tahun: '', vehicle_type_id: '', vehicle_status_id: '' };
@@ -82,12 +78,31 @@ export default function KetersediaanPage() {
   const [docsJenisSearch, setDocsJenisSearch] = useState('');
   const [docsJenisSort,   setDocsJenisSort]   = useState({ field: 'id',   dir: 'asc' }); // 'id'|'kode'|'nama'
 
-  // Modal CRUD (1 modal serbaguna, logika di halaman)
+  // Modal CRUD (1 modal serbaguna)
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode]   = useState(false);
-  const [modalType, setModalType] = useState('drivers'); // drivers|vehicles|bicare_doctors|bicare_rules|bimeet_rooms|bimail_units|bimail_jenis
+  const [modalType, setModalType] = useState('drivers');
   const [formData, setFormData]   = useState(initialDriver);
+
   const [currentDoctorId, setCurrentDoctorId] = useState(null);
+
+  // === UI dropdown kustom (Pilih Dokter) ===
+  const [isDocOpen, setIsDocOpen] = useState(false);
+  const docSelRef = useRef(null);
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (docSelRef.current && !docSelRef.current.contains(e.target)) {
+        setIsDocOpen(false);
+      }
+    };
+    const handleEsc = (e) => { if (e.key === 'Escape') setIsDocOpen(false); };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, []);
 
   // Logout
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
@@ -215,10 +230,8 @@ export default function KetersediaanPage() {
       const statusOptions = meetStatus;
       setFormData(data ? { ...data, statusOptions } : { ...initialRoom, statusOptions });
     } else if (type === 'bimail_units') {
-      // BI.DOCS → Unit Kerja
       setFormData(data ? { ...data } : { id: null, code: '', name: '' });
     } else if (type === 'bimail_jenis') {
-      // BI.DOCS → Jenis Dokumen
       setFormData(data ? { ...data } : { id: null, kode: '', nama: '' });
     }
 
@@ -291,7 +304,7 @@ export default function KetersediaanPage() {
   const endIdx       = startIdx + itemsPerPage;
   const pageRows     = useMemo(() => activeList.slice(startIdx, endIdx), [activeList, startIdx, endIdx]);
 
-  useEffect(() => { if (currentPage > totalPages) setPage(p => ({ ...p, [key]: 1 })); }, [totalPages]); // koreksi page
+  useEffect(() => { if (currentPage > totalPages) setPage(p => ({ ...p, [key]: 1 })); }, [totalPages]);
   const onPageChange = useCallback((p) => {
     if (p < 1 || p > totalPages) return;
     setPage((prev) => ({ ...prev, [key]: p }));
@@ -380,18 +393,43 @@ export default function KetersediaanPage() {
             {/* CARE → Kalender */}
             {mainTab === 'care' && subCare === 'calendar' && (
               <div className={styles.calendarBlock}>
-                <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:12, gap:8 }}>
-                  <label htmlFor="pickDoctor" style={{ fontWeight:600 }}>Pilih Dokter:</label>
-                  <select
-                    id="pickDoctor"
-                    value={currentDoctorId ?? ''}
-                    onChange={(e) => setCurrentDoctorId(Number(e.target.value) || null)}
-                    className={styles.input}
-                  >
-                    {(careDoctors || []).map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
+
+                {/* Dropdown kustom: Pilih Dokter */}
+                <div className={styles.selectRow} style={{ justifyContent:'flex-end' }}>
+                  <span className={styles.selectLabel}>Pilih Dokter:</span>
+
+                  <div className={styles.selectWrap} ref={docSelRef}>
+                    <button
+                      type="button"
+                      className={styles.selectBtn}
+                      aria-haspopup="listbox"
+                      aria-expanded={isDocOpen}
+                      onClick={() => setIsDocOpen(o => !o)}
+                    >
+                      <span className={styles.selectText}>
+                        {careDoctors.find(d => d.id === currentDoctorId)?.name || 'Pilih dokter'}
+                      </span>
+                      <svg className={styles.selectCaret} viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                        <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+
+                    {isDocOpen && (
+                      <ul className={styles.selectPopover} role="listbox">
+                        {(careDoctors || []).map((d) => (
+                          <li
+                            key={d.id}
+                            role="option"
+                            aria-selected={d.id === currentDoctorId}
+                            className={`${styles.selectOption} ${d.id === currentDoctorId ? styles.selectOptionActive : ''}`}
+                            onClick={() => { setCurrentDoctorId(d.id); setIsDocOpen(false); }}
+                          >
+                            {d.name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
 
                 <CalendarAdmin
