@@ -84,6 +84,7 @@
   gap: 10px;
   margin: 8px 0 14px 0;
 }
+
 .subTabBtn {
   background: #eef3ff;
   color: #2F4D8E;
@@ -97,10 +98,31 @@
   display: inline-flex;
   align-items: center;
 }
+
 .subTabActive {
   background: #2F4D8E;
   color: #fff;
   border-color: #2F4D8E;
+}
+
+.subTabBtn {
+  background: #eef3ff;
+  color: #34a142;
+  border: 1.5px solid #c9d8fa;
+  padding: 9px 18px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .14s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.subTabActive {
+  background: #34a142;
+  color: #fff;
+  border-color: #34a142;
 }
 
 /* --- Table Wrapper --- */
@@ -294,6 +316,65 @@
   cursor: wait;
 }
 
+/* === Dropdown kustom seperti di user === */
+.selectBtn {
+  width: 240px;                     /* ubah sesuai kebutuhan */
+  border: 1.5px solid #cfd4dc;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px 12px;
+  font-size: 16px;
+  color: #23263b;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: border-color .18s, box-shadow .18s;
+}
+.selectBtn:focus {
+  outline: none;
+  border-color: #2f4d8e;
+  box-shadow: 0 2px 10px rgba(47,77,142,.08);
+}
+.selectPlaceholder { color: #9aa3b5; }
+.selectText { color: #23263b; }
+
+.selectCaret {
+  margin-left: 10px;
+  width: 16px;
+  height: 16px;
+  color: #7a7da8;
+}
+
+.selectOption {
+  padding: 10px 12px;
+  font-size: 16px;
+  color: #23263b;
+  cursor: pointer;
+  transition: background .12s;
+}
+.selectOption:hover { background: #f3f6ff; }
+.selectOptionActive { background: #e9f0ff; font-weight: 700; }
+
+.selectWrap {
+  position: relative;
+}
+
+.selectPopover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  background: #fff;
+  border: 1.2px solid #cfd4dc;
+  border-radius: 8px;
+  box-shadow: 0 5px 18px rgba(47,77,142,.12);
+  z-index: 30;
+  overflow: hidden;
+  animation: fadein .14s ease-out;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .mainContent { margin-left: 0; }
@@ -315,4 +396,55 @@
 .sessionBtn[data-state="admin"],
 .sessionBtn[data-state="open"] {
   cursor: pointer;
+}
+
+/* ===== Dropdown dokter (native select, gaya seperti user) ===== */
+.selectRow{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  justify-content:flex-start;
+  margin:4px 0 12px;
+}
+.selectLabel{
+  font-weight:700;
+  color:#233969;
+}
+
+.selectNativeWrap{
+  position:relative;
+  width:320px;               /* ubah ke 100% kalau mau full */
+}
+
+.selectNative{
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  width:100%;
+  border:1.5px solid #cfd4dc;
+  border-radius:8px;
+  background:#fff;
+  padding:11px 36px 11px 12px; /* ruang untuk caret di kanan */
+  font-size:16px;
+  color:#23263b;
+  font-family:inherit;
+  outline:none;
+  transition:border-color .18s, box-shadow .18s;
+}
+.selectNative:focus{
+  border-color:#2f4d8e;
+  box-shadow:0 2px 10px rgba(47,77,142,.08);
+}
+
+.selectNativeCaret{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  color:#7a7da8;
+  pointer-events:none;
+}
+
+@media (max-width: 600px){
+  .selectNativeWrap{ width:100%; }
 }

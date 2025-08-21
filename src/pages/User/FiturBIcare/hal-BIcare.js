@@ -252,10 +252,24 @@ export default function FiturBICare() {
   const [bookedMap, setBookedMap] = useState({});
   const [adminMap, setAdminMap] = useState({});
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+  const [doctorId, setDoctorId] = useState(1);
+  const [doctors, setDoctors] = useState([]);
 
-  const handleMonthChange = useCallback(async (ym) => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/ketersediaanAdmin?type=bicare_doctors', { cache: 'no-store' });
+        const j = await res.json().catch(() => ({}));
+        const list = j?.data || [];
+        setDoctors(list);
+        if (list.length) setDoctorId(list[0].id);
+      } catch {}
+    })();
+  }, []);
+
+  const handleMonthChange = useCallback(async (ym, id = doctorId) => {
     try {
-      const res = await fetch(`/api/BIcare/booked?doctorId=1&month=${ym}&t=${Date.now()}`, {
+      const res = await fetch(`/api/BIcare/booked?doctorId=${id}&month=${ym}&t=${Date.now()}`, {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' },
       });
@@ -334,7 +348,7 @@ export default function FiturBICare() {
     setErrors({});
 
     const payload = {
-      doctorId: 1,
+      doctorId,
       bookingDate: ymd(fields.tglPengobatan),
       slotTime: fields.pukulPengobatan,
       booker_name: fields.namaPemesan,
@@ -413,6 +427,24 @@ export default function FiturBICare() {
             </div>
 
             <div />
+          </div>
+
+          <div className={styles.formGroup} style={{ maxWidth: 360 }}>
+            <label htmlFor="doctorId">Pilih Dokter</label>
+            <CustomSelect
+              id="doctorId"
+              name="doctorId"
+              placeholder={doctors.length ? 'Pilih Dokter' : 'Memuat...'}
+              value={doctorId ? String(doctorId) : ''}                 // <— value terisi → bukan placeholder style
+              onChange={(e) => {
+                const id = Number(e.target.value) || null;
+                setDoctorId(id);
+                const now = new Date();
+                const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+                handleMonthChange(ym, id);                             // refresh slot sesuai dokter
+              }}
+              options={doctors.map(d => ({ value: String(d.id), label: d.name }))}
+            />
           </div>
 
           {/* Kalender */}

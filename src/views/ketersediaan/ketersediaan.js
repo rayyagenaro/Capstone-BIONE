@@ -48,6 +48,7 @@ export default function KetersediaanPage() {
   const [editMode, setEditMode]   = useState(false);
   const [modalType, setModalType] = useState('drivers'); // drivers|vehicles|bicare_doctors|bicare_rules|bimeet_rooms
   const [formData, setFormData]   = useState(initialDriver);
+  const [currentDoctorId, setCurrentDoctorId] = useState(null);
 
   // Logout
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
@@ -70,10 +71,15 @@ export default function KetersediaanPage() {
 
   /* -------- Fetch awal -------- */
   useEffect(() => { fetchAll(); }, []);
+
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [driversRes, vehiclesRes, careDocRes, careRulesRes, roomsRes, statusRes] = await Promise.all([
+      const [
+        driversRes, vehiclesRes,
+        careDocRes, careRulesRes,
+        roomsRes, statusRes
+      ] = await Promise.all([
         fetch('/api/ketersediaanAdmin?type=drivers'),
         fetch('/api/ketersediaanAdmin?type=vehicles'),
         fetch('/api/ketersediaanAdmin?type=bicare_doctors'),
@@ -81,13 +87,28 @@ export default function KetersediaanPage() {
         fetch('/api/ketersediaanAdmin?type=bimeet_rooms'),
         fetch('/api/ketersediaanAdmin?type=bimeet_room_status'),
       ]);
-      const [driversJson, vehiclesJson, careDocJson, careRulesJson, roomsJson, statusJson] = await Promise.all([
-        driversRes.json(), vehiclesRes.json(), careDocRes.json(), careRulesRes.json(), roomsRes.json(), statusRes.json()
+
+      const [
+        driversJson, vehiclesJson,
+        careDocJson, careRulesJson,
+        roomsJson, statusJson
+      ] = await Promise.all([
+        driversRes.json(), vehiclesRes.json(),
+        careDocRes.json(), careRulesRes.json(),
+        roomsRes.json(), statusRes.json()
       ]);
 
       setDrivers(driversJson.data || []);
       setVehicles(vehiclesJson.data || []);
-      setCareDoctors(careDocJson.data || []);
+
+      // === penting: set dokter + pilih dokter aktif yang valid ===
+      const docs = careDocJson.data || [];
+      setCareDoctors(docs);
+      setCurrentDoctorId(prev => {
+        if (prev && docs.some(d => d.id === prev)) return prev;  // pertahankan pilihan lama jika masih ada
+        return docs[0]?.id ?? null;                              // kalau belum ada, pakai dokter pertama
+      });
+
       setCareRules(careRulesJson.data || []);
       setMeetRooms(roomsJson.data || []);
       setMeetStatus(statusJson.data || []);
@@ -256,7 +277,35 @@ export default function KetersediaanPage() {
             {/* CARE → Kalender (komponen penuh sendiri) */}
             {mainTab === 'care' && subCare === 'calendar' && (
               <div className={styles.calendarBlock}>
-                <CalendarAdmin doctorId={1} styles={styles} />
+
+                {/* Picker Dokter */}
+                <div className={styles.selectRow}>
+                  <label htmlFor="pickDoctor" className={styles.selectLabel}>Pilih Dokter</label>
+
+                  <div className={styles.selectNativeWrap}>
+                    <select
+                      id="pickDoctor"
+                      value={currentDoctorId ?? ''}
+                      onChange={(e) => setCurrentDoctorId(Number(e.target.value) || null)}
+                      className={styles.selectNative}
+                    >
+                      {(careDoctors || []).map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+
+                    <svg className={styles.selectNativeCaret} width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M7 10l5 5 5-5z" fill="currentColor" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Kalender hanya dirender kalau ada dokter terpilih */}
+                <CalendarAdmin
+                  doctorId={currentDoctorId || (careDoctors[0]?.id ?? 1)}
+                  styles={styles}
+                />
+
                 <p className={styles.calendarHintAdmin}>
                   Klik slot untuk menutup (membuat booking sistem) atau membuka (menghapus booking sistem).
                   Slot yang sudah dibooking pengguna tidak dapat dibuka dari sini.
