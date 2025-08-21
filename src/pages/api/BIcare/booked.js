@@ -12,7 +12,6 @@ function toHHMM(mins) {
   const m = (mins || 0) % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
-// ekspansi slot: start <= t < end (end eksklusif)
 function expandSlots(start_time, end_time, stepMinutes = 30) {
   const start = toMinutes(start_time);
   const end = toMinutes(end_time);
@@ -21,8 +20,6 @@ function expandSlots(start_time, end_time, stepMinutes = 30) {
   return out;
 }
 const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-
-// Normalisasi tanggal ke 'YYYY-MM-DD' (stabil TZ)
 function toYmd(val) {
   if (val instanceof Date) {
     const d = new Date(val.getTime() - val.getTimezoneOffset() * 60000);
@@ -40,17 +37,13 @@ function toYmd(val) {
 
 /* ===================== NS + Auth ===================== */
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-
 function getNsFromReq(req) {
   const q = req.query?.ns;
   if (typeof q === 'string' && NS_RE.test(q)) return q;
-
   const stickyUser = req.cookies?.current_user_ns;
   if (typeof stickyUser === 'string' && NS_RE.test(stickyUser)) return stickyUser;
-
   const stickyAdmin = req.cookies?.current_admin_ns;
   if (typeof stickyAdmin === 'string' && NS_RE.test(stickyAdmin)) return stickyAdmin;
-
   const keys = Object.keys(req.cookies || {});
   for (const pref of ['user_session__', 'admin_session__']) {
     const found = keys.find((k) => k.startsWith(pref));
@@ -58,118 +51,130 @@ function getNsFromReq(req) {
   }
   return '';
 }
-
 function getBearerToken(req) {
   const h = req.headers?.authorization || req.headers?.Authorization;
   if (!h || typeof h !== 'string') return null;
   const m = /^Bearer\s+(.+)$/.exec(h);
   return m ? m[1] : null;
 }
-
 function findToken(req, ns, scopeHint) {
-  const prefOrder =
-    scopeHint === 'admin'
-      ? [`admin_session__${ns}`, `user_session__${ns}`]
-      : [`user_session__${ns}`, `admin_session__${ns}`];
-
+  const prefOrder = scopeHint === 'admin'
+    ? [`admin_session__${ns}`, `user_session__${ns}`]
+    : [`user_session__${ns}`, `admin_session__${ns}`];
   for (const name of prefOrder) {
     const val = req.cookies?.[name];
     if (val) return { token: val, source: `cookie:${name}` };
   }
-
   const bearer = getBearerToken(req);
   if (bearer) return { token: bearer, source: 'bearer' };
-
   return { token: null, source: null };
 }
-
 async function verifyUser(req) {
   try {
     const ns = getNsFromReq(req);
     if (!ns) return { ok: false, reason: 'NO_NS' };
-
-    const scope = String(req.query?.scope || 'user').toLowerCase(); // 'user' | 'admin'
+    const scope = String(req.query?.scope || 'user').toLowerCase();
     const { token, source } = findToken(req, ns, scope);
     if (!token) return { ok: false, reason: `NO_TOKEN_${scope.toUpperCase()}` };
-
     const secret = process.env.JWT_SECRET;
     if (!secret) return { ok: false, reason: 'NO_SECRET' };
-
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
       algorithms: ['HS256'],
       clockTolerance: 10,
     });
+    if (payload?.ns && String(payload.ns) !== ns) return { ok: false, reason: 'NS_MISMATCH' };
 
-    // Optional strict ns check jika ada claim ns
-    if (payload?.ns && String(payload.ns) !== ns) {
-      return { ok: false, reason: 'NS_MISMATCH' };
-    }
-
-    // ---- role detection fleksibel ----
-    const roleRaw =
-      payload?.role ??
-      payload?.role_name ??
-      (payload?.roleId ?? payload?.role_id);
-
-    let isAdmin = false;
-    let role = 'user';
-
+    const roleRaw = payload?.role ?? payload?.role_name ?? (payload?.roleId ?? payload?.role_id);
+    let isAdmin = false; let role = 'user';
     if (typeof roleRaw === 'string') {
-      if (/^super\s*admin$/i.test(roleRaw) || /^admin$/i.test(roleRaw) || /admin/i.test(roleRaw)) {
-        isAdmin = true; role = 'admin';
-      }
+      if (/^super\s*admin$/i.test(roleRaw) || /^admin$/i.test(roleRaw) || /admin/i.test(roleRaw)) { isAdmin = true; role = 'admin'; }
     } else if (typeof roleRaw === 'number') {
-      if ([1, 2].includes(Number(roleRaw))) { // 1: Super Admin, 2: Admin Fitur
-        isAdmin = true; role = 'admin';
-      }
+      if ([1, 2].includes(Number(roleRaw))) { isAdmin = true; role = 'admin'; }
     }
-
     const userId = Number(payload?.sub ?? payload?.user_id ?? payload?.id ?? payload?.uid);
     if (!userId) return { ok: false, reason: 'NO_USERID' };
-
     return { ok: true, ns, userId, role, isAdmin, payload, tokenSource: source };
   } catch (e) {
-    console.error('verifyUser BIcare GET fail:', e);
+    console.error('verifyUser BIcare fail:', e);
     return { ok: false, reason: e?.name || 'VERIFY_FAIL' };
   }
 }
 
 /* ===================== Handler ===================== */
 export default async function handler(req, res) {
+  /* ---------- PUT: auto-finish bila slot sudah lewat ---------- */
+  if (req.method === 'PUT') {
+    try {
+      const id = Number(req.body?.bookingId);
+      let status = String(req.body?.status || '').trim();
+      if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'bookingId tidak valid' });
+
+      // terima 'Finished' (case-insensitive); tulis ke DB sesuai enum
+      if (/^finished$/i.test(status)) status = 'Finished';
+      if (status !== 'Finished') return res.status(400).json({ error: "Status wajib 'Finished'." });
+
+      const auth = await verifyUser(req);
+      if (!auth.ok) { res.setHeader('Allow', 'GET, PUT'); return res.status(401).json({ error: 'Unauthorized', reason: auth.reason }); }
+
+      const scope = String(req.query?.scope || 'user').toLowerCase();
+
+      const where = [];
+      const params = [];
+      where.push('id = ?');                   params.push(id);
+      where.push("status = 'Booked'");
+      where.push('slot_time IS NOT NULL');
+      if (scope !== 'admin') { where.push('user_id = ?'); params.push(auth.userId); }
+      const whereSql = where.join(' AND ');
+
+      const [result] = await db.query(
+        `UPDATE bicare_bookings
+            SET status = ?
+          WHERE ${whereSql}
+            AND (
+              TIMESTAMP(booking_date, TIME(slot_time)) + INTERVAL 30 MINUTE
+            ) <= NOW()`,
+        [status, ...params]
+      );
+
+      if (result.affectedRows === 0) {
+        res.setHeader('Allow', 'GET, PUT');
+        return res.status(409).json({ error: 'Belum melewati waktu, tidak ditemukan, atau bukan milik Anda.' });
+      }
+      return res.json({ ok: true, id, status });
+    } catch (e) {
+      console.error('PUT /api/BIcare/booked error:', e);
+      res.setHeader('Allow', 'GET, PUT');
+      return res.status(500).json({ error: 'INTERNAL_ERROR', details: e?.message });
+    }
+  }
+
+  /* ---------- GET: Mode Kalender & Listing ---------- */
   if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET');
+    res.setHeader('Allow', 'GET, PUT');
     return res.status(405).json({ error: `Method ${req.method} not allowed` });
   }
 
   const auth = await verifyUser(req);
-  if (!auth.ok) {
-    return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
-  }
+  if (!auth.ok) { res.setHeader('Allow', 'GET, PUT'); return res.status(401).json({ error: 'Unauthorized', reason: auth.reason }); }
 
-  const scope = String(req.query.scope || 'user').toLowerCase(); // 'user' | 'admin'
-  if (scope === 'admin' && !auth.isAdmin) {
-    return res.status(403).json({ error: 'FORBIDDEN', reason: 'ADMIN_SCOPE_ONLY' });
-  }
+  const scope = String(req.query.scope || 'user').toLowerCase();
+  if (scope === 'admin' && !auth.isAdmin) return res.status(403).json({ error: 'FORBIDDEN', reason: 'ADMIN_SCOPE_ONLY' });
 
-  // ===== Branch A: Mode Kalender (ketersediaan slot dokter) =====
-  const monthStr = String(req.query.month || '').trim(); // "YYYY-MM"
+  // ===== Branch A: Kalender =====
+  const monthStr = String(req.query.month || '').trim();
   const isCalendar = /^\d{4}-\d{2}$/.test(monthStr);
   if (isCalendar) {
     const doctorId = Number(req.query.doctorId || req.query.doctor_id || 0);
-    if (!Number.isFinite(doctorId) || doctorId <= 0) {
-      return res.status(400).json({ error: 'Param doctorId tidak valid' });
-    }
+    if (!Number.isFinite(doctorId) || doctorId <= 0) return res.status(400).json({ error: 'Param doctorId tidak valid' });
 
     try {
-      // Rentang tanggal bulan tsb
       const [y, m] = monthStr.split('-').map(Number);
       const startDate = `${y}-${String(m).padStart(2, '0')}-01`;
-      const endDateObj = new Date(y, m, 0); // last day of month m
+      const endDateObj = new Date(y, m, 0);
       const endDate = `${endDateObj.getFullYear()}-${String(endDateObj.getMonth() + 1).padStart(2, '0')}-${String(endDateObj.getDate()).padStart(2, '0')}`;
 
       const conn = await db.getConnection();
       try {
-        // 1) Aturan ketersediaan dokter
         const [rules] = await conn.query(
           `SELECT id, weekday, start_time, end_time, slot_minutes
              FROM bicare_availability_rules
@@ -177,19 +182,18 @@ export default async function handler(req, res) {
           [doctorId]
         );
 
-        const rulesByDOW = new Map(); // 'MON' -> [rule, ...]
+        const rulesByDOW = new Map();
         for (const r of rules) {
           const key = String(r.weekday || '').toUpperCase();
           if (!rulesByDOW.has(key)) rulesByDOW.set(key, []);
           rulesByDOW.get(key).push({
-            start: String(r.start_time).slice(0, 5), // HH:MM
+            start: String(r.start_time).slice(0, 5),
             end: String(r.end_time).slice(0, 5),
             step: Number(r.slot_minutes || 30),
           });
         }
 
-        // 2) Ekspansi ke slotMap per tanggal
-        const slotMap = {}; // 'YYYY-MM-DD' -> ['HH:MM', ...]
+        const slotMap = {};
         const cur = new Date(startDate + 'T00:00:00');
         const stop = new Date(endDate + 'T00:00:00');
         while (cur <= stop) {
@@ -202,7 +206,6 @@ export default async function handler(req, res) {
           cur.setDate(cur.getDate() + 1);
         }
 
-        // 3) Booking yang sudah terisi (status 'Booked')
         const [rows] = await conn.query(
           `SELECT booking_date, slot_time, booker_name
              FROM bicare_bookings
@@ -213,66 +216,70 @@ export default async function handler(req, res) {
           [doctorId, startDate, endDate]
         );
 
-        const bookedMap = {};
-        const adminBlocks = {};
+        const bookedMap = {}; const adminBlocks = {};
         for (const r of rows) {
           const dateKey = toYmd(r.booking_date);
-          const hhmm = String(r.slot_time).slice(0, 5); // "HH:MM"
-          if (!bookedMap[dateKey]) bookedMap[dateKey] = [];
+          const hhmm = String(r.slot_time).slice(0, 5);
+          (bookedMap[dateKey] ||= []);
           if (!bookedMap[dateKey].includes(hhmm)) bookedMap[dateKey].push(hhmm);
-          if (String(r.booker_name).toUpperCase() === 'ADMIN_BLOCK') {
-            (adminBlocks[dateKey] ||= []).push(hhmm);
-          }
+          if (String(r.booker_name).toUpperCase() === 'ADMIN_BLOCK') (adminBlocks[dateKey] ||= []).push(hhmm);
         }
         for (const k of Object.keys(bookedMap)) bookedMap[k].sort();
         for (const k of Object.keys(adminBlocks)) adminBlocks[k].sort();
 
-        return res.status(200).json({
-          ok: true,
-          ns: auth.ns,
-          scope,
-          type: 'calendar',
-          doctorId,
-          month: monthStr,
-          slotMap,
-          bookedMap,
-          adminBlocks,
-        });
-      } finally {
-        conn.release();
-      }
+        return res.status(200).json({ ok: true, ns: auth.ns, scope, type: 'calendar', doctorId, month: monthStr, slotMap, bookedMap, adminBlocks });
+      } finally { conn.release(); }
     } catch (e) {
       console.error('GET /api/BIcare/booked calendar error:', e);
       return res.status(500).json({ error: 'INTERNAL_ERROR', details: e?.message });
     }
   }
 
-  // ===== Branch B: Mode Listing (daftar booking) =====
-  const status = (req.query.status || '').toString().trim();     // 'Booked' | 'Finished' | ...
-  const fromDate = (req.query.from || '').toString().trim();     // YYYY-MM-DD
-  const toDate = (req.query.to || '').toString().trim();         // YYYY-MM-DD
+  // ===== Branch B: Listing =====
+  // map status query ke enum DB
+  const statusRaw = (req.query.status || '').toString().trim();
+  const status = /^finished$/i.test(statusRaw) ? 'Finished'
+               : /^booked$/i.test(statusRaw)   ? 'Booked'
+               : statusRaw;
+
+  const fromDate = (req.query.from || '').toString().trim();
+  const toDate   = (req.query.to   || '').toString().trim();
   const doctorId = req.query.doctorId ? Number(req.query.doctorId) : null;
-  const qUserId = req.query.userId ? Number(req.query.userId) : null;
+  const qUserId  = req.query.userId ? Number(req.query.userId) : null;
 
   if (fromDate && !/^\d{4}-\d{2}-\d{2}$/.test(fromDate)) return res.status(400).json({ error: 'from harus YYYY-MM-DD' });
-  if (toDate && !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) return res.status(400).json({ error: 'to harus YYYY-MM-DD' });
+  if (toDate   && !/^\d{4}-\d{2}-\d{2}$/.test(toDate))   return res.status(400).json({ error: 'to harus YYYY-MM-DD' });
   if (doctorId !== null && (!Number.isFinite(doctorId) || doctorId <= 0)) return res.status(400).json({ error: 'doctorId tidak valid' });
-  if (qUserId !== null && (!Number.isFinite(qUserId) || qUserId <= 0)) return res.status(400).json({ error: 'userId tidak valid' });
+  if (qUserId  !== null && (!Number.isFinite(qUserId)  || qUserId  <= 0)) return res.status(400).json({ error: 'userId tidak valid' });
 
-  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+  const limit  = Math.min(Math.max(Number(req.query.limit)  || 50, 1), 200);
   const offset = Math.max(Number(req.query.offset) || 0, 0);
 
   try {
-    // ==== build WHERE ====
+    /* --- AUTO-FINISH on read (sebelum SELECT) --- */
+    const autofinishParams = [];
+    const userScopeClause  = scope === 'admin' ? '' : 'AND user_id = ?';
+    if (scope !== 'admin') autofinishParams.push(auth.userId);
+    await db.query(
+      `UPDATE bicare_bookings
+          SET status = 'Finished'
+        WHERE status = 'Booked'
+          AND slot_time IS NOT NULL
+          ${userScopeClause}
+          AND (
+            TIMESTAMP(booking_date, TIME(slot_time)) + INTERVAL 30 MINUTE
+          ) <= NOW()`,
+      autofinishParams
+    );
+
+    /* --- Build WHERE untuk SELECT --- */
     const where = [];
     const params = [];
-
     if (scope === 'admin') {
       if (qUserId) { where.push('user_id = ?'); params.push(qUserId); }
     } else {
       where.push('user_id = ?'); params.push(auth.userId);
     }
-
     if (status)   { where.push('status = ?');        params.push(status); }
     if (fromDate) { where.push('booking_date >= ?'); params.push(fromDate); }
     if (toDate)   { where.push('booking_date <= ?'); params.push(toDate); }
@@ -280,7 +287,6 @@ export default async function handler(req, res) {
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-    // ==== query data ====
     const sql = `
       SELECT id, user_id, doctor_id, booking_date, slot_time, status,
              booker_name, nip, wa, patient_name, patient_status, gender,
@@ -291,15 +297,9 @@ export default async function handler(req, res) {
       LIMIT ? OFFSET ?
     `;
     const dataParams = params.concat([limit, offset]);
-
     const [rows] = await db.query(sql, dataParams);
 
-    // ==== count ====
-    const countSql = `
-      SELECT COUNT(*) AS total
-        FROM bicare_bookings
-      ${whereSql}
-    `;
+    const countSql = `SELECT COUNT(*) AS total FROM bicare_bookings ${whereSql}`;
     const [countRows] = await db.query(countSql, params);
     const total = Number(countRows?.[0]?.total || 0);
 
