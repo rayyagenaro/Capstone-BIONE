@@ -1,5 +1,5 @@
 // pages/Admin/Pengaturan/pengaturan.js
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styles from './pengaturan.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
@@ -12,14 +12,17 @@ import VerifyVerificationPopup from '@/components/verifyVerification/VerifyVerif
 // Popup minta alasan singkat
 import ReasonPopup from '@/components/rejectReason/ReasonPopup';
 
+/* ============================================================
+   TABS: urutan baru -> Pending -> Verified -> Rejected
+   ============================================================ */
 const TABS = [
+  { key: 'pending',  label: 'Pending',  statusId: 1 },
   { key: 'verified', label: 'Verified', statusId: 2 },
-  { key: 'pending', label: 'Pending', statusId: 1 },
   { key: 'rejected', label: 'Rejected', statusId: 3 },
 ];
 
 const STATUS_PILL = {
-  1: { text: 'Pending', className: styles.pillPending },
+  1: { text: 'Pending',  className: styles.pillPending  },
   2: { text: 'Verified', className: styles.pillVerified },
   3: { text: 'Rejected', className: styles.pillRejected },
 };
@@ -83,7 +86,7 @@ ${reason}
 
 Silakan perbaiki data/ajukan ulang. Terima kasih.`;
 
-// ADMIN (verify) — format DISESUAIKAN dengan reject (tanpa NIP)
+// ADMIN (verify)
 const adminVerifyTemplate = (a) => `Halo ${a?.name || a?.nama || ''},
 
 Pengajuan akun *Admin BI-ONE* Anda telah *TERVERIFIKASI* ✅
@@ -102,7 +105,7 @@ export default function Pengaturan() {
 
   // users | admins
   const [entityType, setEntityType] = useState('users');
-  const [activeTab, setActiveTab] = useState('verified');
+  const [activeTab, setActiveTab] = useState('pending');
 
   // data & paging
   const [rows, setRows] = useState([]);
@@ -196,7 +199,7 @@ export default function Pengaturan() {
     setPagination((p) => ({ ...p, currentPage: 1 }));
   };
 
-  const afterRowRemoved = useCallback(() => {
+  const afterRowRemoved = React.useCallback(() => {
     setPagination((p) => {
       const next = { ...p };
       if (rows.length <= 1 && p.currentPage > 1) next.currentPage = 1;
@@ -281,75 +284,6 @@ export default function Pengaturan() {
       setTimeout(() => setShowSuccess(false), 1400);
     } catch (e) {
       setEditPasswordErrors((errs) => ({ ...errs, adminPassword: e.message || 'Update gagal' }));
-    }
-  }
-
-  /* ===== USER: verify/reject ===== */
-  function openVerifyUser(u) { setSelectedRow(u); setShowVerifyPopup(true); }
-
-  function openRejectUser(u) {
-    setSelectedRow(u);
-    setPendingReason('');
-    setAskReasonUser(true);
-  }
-
-  function proceedRejectUser(reason) {
-    setPendingReason(reason);
-    const msg = userRejectTemplate(selectedRow || {}, reason);
-    setPreviewMessage(msg);
-    setAskReasonUser(false);
-    setShowRejectPreviewUser(true);
-  }
-
-  async function submitVerifyUser(messageText, shouldOpenWA) {
-    if (!selectedRow) return;
-    try {
-      setVerifyLoading(true);
-      const wa = shouldOpenWA && selectedRow.phone ? waLink(selectedRow.phone, messageText || '') : '';
-
-      const res = await fetch('/api/user-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedRow.id, action: 'verify' }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || 'Gagal verifikasi user');
-
-      if (wa) openWhatsAppSafely(wa);
-      setRows((prev) => prev.filter((u) => u.id !== selectedRow.id));
-      setSelectedRow(null);
-      setShowVerifyPopup(false);
-      afterRowRemoved();
-    } catch (e) {
-      alert(e.message || 'Gagal verifikasi user');
-    } finally {
-      setVerifyLoading(false);
-    }
-  }
-
-  async function submitRejectUser(messageText, shouldOpenWA) {
-    if (!selectedRow) return;
-    const reason = (pendingReason || '').trim();
-    if (!reason) return alert('Alasan penolakan kosong.');
-
-    try {
-      const wa = shouldOpenWA && selectedRow.phone ? waLink(selectedRow.phone, messageText || '') : '';
-
-      const res = await fetch('/api/user-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedRow.id, action: 'reject', reason }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || 'Gagal menolak user');
-
-      if (wa) openWhatsAppSafely(wa);
-      setRows((prev) => prev.filter((u) => u.id !== selectedRow.id));
-      setSelectedRow(null);
-      setShowRejectPreviewUser(false);
-      afterRowRemoved();
-    } catch (e) {
-      alert(e.message || 'Gagal menolak user');
     }
   }
 
@@ -479,7 +413,6 @@ export default function Pengaturan() {
       }
       // tambahkan hanya jika belum mencapai MAX
       if (prev.length >= MAX_SERVICES) {
-        // opsional: beri info kecil
         alert(`Maksimal ${MAX_SERVICES} layanan untuk Admin Fitur.`);
         return prev;
       }
@@ -653,7 +586,6 @@ export default function Pengaturan() {
       const isSuper = Number(a.role_id) === 1;
       const isRejected = Number(a.verification_id) === 3;
 
-
       return (
         <tr key={a.id}>
           <td>{a.id}</td>
@@ -690,7 +622,6 @@ export default function Pengaturan() {
                   </button>
                 )}
 
-
                 {a.verification_id === 3 && a.rejection_reason && (
                   <button
                     type="button"
@@ -716,6 +647,15 @@ export default function Pengaturan() {
     return `Results: ${start} - ${end} of ${pagination.totalItems}`;
   }, [pagination, itemsPerPage]);
 
+  /* ========= helper kelas tombol status berwarna ========= */
+  const tabClass = (key, isActive) => {
+    const base = styles.tabBtn;
+    if (key === 'pending')  return `${base} ${isActive ? styles.tabPendingActive  : styles.tabPending}`;
+    if (key === 'verified') return `${base} ${isActive ? styles.tabVerifiedActive : styles.tabVerified}`;
+    if (key === 'rejected') return `${base} ${isActive ? styles.tabRejectedActive : styles.tabRejected}`;
+    return base;
+  };
+
   return (
     <div className={styles.background}>
       <SidebarAdmin onLogout={() => setShowLogoutPopup(true)} />
@@ -727,22 +667,28 @@ export default function Pengaturan() {
 
           {/* Switch Users vs Admins */}
           <div className={styles.tabsRow} style={{ marginTop:6, marginBottom:8 }}>
-            <button className={`${styles.tabBtn} ${entityType === 'users' ? styles.tabActive : ''}`}
-              onClick={() => { setEntityType('users'); setPagination((p) => ({ ...p, currentPage: 1 })); }}>
+            <button
+              className={`${styles.tabBtn} ${entityType === 'users' ? styles.tabActive : ''}`}
+              onClick={() => { setEntityType('users'); setPagination((p) => ({ ...p, currentPage: 1 })); }}
+            >
               Users
             </button>
-            <button className={`${styles.tabBtn} ${entityType === 'admins' ? styles.tabActive : ''}`}
-              onClick={() => { setEntityType('admins'); setPagination((p) => ({ ...p, currentPage: 1 })); }}>
+            <button
+              className={`${styles.tabBtn} ${entityType === 'admins' ? styles.tabActive : ''}`}
+              onClick={() => { setEntityType('admins'); setPagination((p) => ({ ...p, currentPage: 1 })); }}
+            >
               Admins
             </button>
           </div>
 
-          {/* Tabs status */}
+          {/* Tabs status (warna sesuai permintaan) */}
           <div className={styles.tabsRow}>
             {TABS.map((t) => (
-              <button key={t.key}
-                className={`${styles.tabBtn} ${activeTab === t.key ? styles.tabActive : ''}`}
-                onClick={() => { setActiveTab(t.key); setPagination((p) => ({ ...p, currentPage: 1 })); }}>
+              <button
+                key={t.key}
+                className={tabClass(t.key, activeTab === t.key)}
+                onClick={() => { setActiveTab(t.key); setPagination((p) => ({ ...p, currentPage: 1 })); }}
+              >
                 {t.label}
               </button>
             ))}
@@ -763,8 +709,13 @@ export default function Pengaturan() {
                 <span className={styles.resultsText}>{resultsRangeText}</span>
                 <div>
                   <label htmlFor="itemsPerPage" className={styles.label}>Items per page:</label>
-                  <select id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange}
-                    className={styles.itemsPerPageDropdown} aria-label="Items per page">
+                  <select
+                    id="itemsPerPage"
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    className={styles.itemsPerPageDropdown}
+                    aria-label="Items per page"
+                  >
                     <option value="10">10</option>
                     <option value="25">25</option>
                     <option value="50">50</option>
@@ -772,9 +723,11 @@ export default function Pengaturan() {
                 </div>
               </div>
 
-              <Pagination currentPage={pagination.currentPage}
+              <Pagination
+                currentPage={pagination.currentPage}
                 totalPages={pagination.totalPages}
-                onPageChange={handlePageChange} />
+                onPageChange={handlePageChange}
+              />
             </>
           )}
         </div>
@@ -837,13 +790,25 @@ export default function Pengaturan() {
         show={entityType === 'users' && askReasonUser}
         title="Tolak Verifikasi User - Alasan"
         onClose={() => setAskReasonUser(false)}
-        onSubmit={proceedRejectUser}
+        onSubmit={(reason) => {
+          setPendingReason(reason);
+          const msg = userRejectTemplate(selectedRow || {}, reason);
+          setPreviewMessage(msg);
+          setAskReasonUser(false);
+          setShowRejectPreviewUser(true);
+        }}
       />
       <ReasonPopup
         show={entityType === 'admins' && askReasonAdmin}
         title="Tolak Verifikasi Admin - Alasan"
         onClose={() => setAskReasonAdmin(false)}
-        onSubmit={proceedRejectAdmin}
+        onSubmit={(reason) => {
+          setPendingReason(reason);
+          const msg = adminRejectTemplate(selectedRow || {}, reason);
+          setPreviewMessage(msg);
+          setAskReasonAdmin(false);
+          setShowRejectPreviewAdmin(true);
+        }}
       />
 
       {/* ====== VERIFY / REJECT PREVIEW (WA) ====== */}
@@ -851,7 +816,29 @@ export default function Pengaturan() {
       <VerifyVerificationPopup
         show={showVerifyPopup}
         onClose={() => setShowVerifyPopup(false)}
-        onSubmit={entityType === 'users' ? submitVerifyUser : submitVerifyAdmin}
+        onSubmit={entityType === 'users' ? async (msg, open) => {
+          if (!selectedRow) return;
+          try {
+            setVerifyLoading(true);
+            const wa = open && selectedRow.phone ? waLink(selectedRow.phone, msg || '') : '';
+            const res = await fetch('/api/user-verification', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: selectedRow.id, action: 'verify' }),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json?.error || 'Gagal verifikasi user');
+            if (wa) openWhatsAppSafely(wa);
+            setRows((prev) => prev.filter((u) => u.id !== selectedRow.id));
+            setSelectedRow(null);
+            setShowVerifyPopup(false);
+            afterRowRemoved();
+          } catch (e) {
+            alert(e.message || 'Gagal verifikasi user');
+          } finally {
+            setVerifyLoading(false);
+          }
+        } : submitVerifyAdmin}
         loading={verifyLoading}
         user={{
           name: selectedRow?.name,
@@ -873,7 +860,31 @@ export default function Pengaturan() {
       <VerifyVerificationPopup
         show={entityType === 'users' && showRejectPreviewUser}
         onClose={() => setShowRejectPreviewUser(false)}
-        onSubmit={submitRejectUser}
+        onSubmit={async (messageText, shouldOpenWA) => {
+          if (!selectedRow) return;
+          const reason = (pendingReason || '').trim();
+          if (!reason) return alert('Alasan penolakan kosong.');
+
+          try {
+            const wa = shouldOpenWA && selectedRow.phone ? waLink(selectedRow.phone, messageText || '') : '';
+
+            const res = await fetch('/api/user-verification', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: selectedRow.id, action: 'reject', reason }),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json?.error || 'Gagal menolak user');
+
+            if (wa) openWhatsAppSafely(wa);
+            setRows((prev) => prev.filter((u) => u.id !== selectedRow.id));
+            setSelectedRow(null);
+            setShowRejectPreviewUser(false);
+            afterRowRemoved();
+          } catch (e) {
+            alert(e.message || 'Gagal menolak user');
+          }
+        }}
         loading={false}
         defaultMessage={previewMessage}
         user={{ name: selectedRow?.name, email: selectedRow?.email, phone: selectedRow?.phone, nip: selectedRow?.nip }}
@@ -933,7 +944,7 @@ export default function Pengaturan() {
             <div style={{ marginBottom: 10, color: '#41507a', fontSize: 14 }}>
               <div><strong>Admin:</strong> {selectedRow?.name || '-'}</div>
               <div><strong>Email:</strong> {selectedRow?.email || '-'}</div>
-              <div style={{marginTop:6, fontSize:12, color:'#6a7bb8'}}>Maksimal {MAX_SERVICES} layanan.</div>
+              <div style={{marginTop:6, fontSize:12, color:'#6a7bb8'}}>Maksimal 2 layanan.</div>
             </div>
 
             {/* Daftar layanan dengan checkbox */}
@@ -944,7 +955,7 @@ export default function Pengaturan() {
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
                   {allServices.map((s) => {
                     const checked = pickedServiceIds.includes(s.id);
-                    const disable = !checked && pickedServiceIds.length >= MAX_SERVICES;
+                    const disable = !checked && pickedServiceIds.length >= 2;
                     return (
                       <label key={s.id} style={{ display:'flex', alignItems:'center', gap:8, opacity: disable ? 0.6 : 1 }}>
                         <input

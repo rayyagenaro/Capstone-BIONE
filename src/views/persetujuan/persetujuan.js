@@ -40,8 +40,7 @@ const FEATURE_LOGOS = {
   "bicare":  "/assets/BI-CARE.svg",
   "bimeal":  "/assets/D'MEAL.svg",
   "bimeet":  "/assets/D'ROOM.svg",
-  "bimail":  "/assets/BI-MAIL.svg",     // <= BI.Docs (kanonik)
-  "bidocs":  "/assets/BI-MAIL.svg",     // <= alias lama tetap didukung
+  "bimail":  "/assets/D'TRACK.svg",     // <= BI.Docs (kanonik    // <= alias lama tetap didukung
   "bistay":  "/assets/D'REST.svg",
 };
 const logoSrcOf = (booking) => FEATURE_LOGOS[resolveFeatureKey(booking)] || '/assets/BI-One-Blue.png';

@@ -971,3 +971,68 @@
   line-height: 1.45;
   white-space: pre-wrap;
 }
+/* === Tabs row === */
+.tabsRow {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0 16px 0;
+}
+
+/* bentuk dasar tombol tab */
+.tabBtn {
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 1.5px 8px rgba(47,77,142,0.07);
+  transition: filter .15s ease, transform .05s ease;
+}
+
+/* ====== VARIAN WARNA ====== */
+/* Pending = kuning */
+.tabPending {
+  background: #FFF4CC;
+  color: #8A6D00;
+  border-color: #FFE08A;
+}
+.tabPendingActive {
+  background: #F2C94C;   /* kuning aktif */
+  color: #3B2D00;
+  border-color: #EAB308;
+}
+
+/* Verified = hijau (#4CB782) */
+.tabVerified {
+  background: #EAF7F1;
+  color: #2E7D60;
+  border-color: #BFE9D5;
+}
+.tabVerifiedActive {
+  background: #4CB782;
+  color: #FFFFFF;
+  border-color: #4CB782;
+}
+
+/* Rejected = merah */
+.tabRejected {
+  background: #FFE8E8;
+  color: #B42525;
+  border-color: #FFC7C7;
+}
+.tabRejectedActive {
+  background: #E04F4F;
+  color: #FFFFFF;
+  border-color: #E04F4F;
+}
+
+/* efek hover kecil */
+.tabPending:hover,
+.tabVerified:hover,
+.tabRejected:hover,
+.tabPendingActive:hover,
+.tabVerifiedActive:hover,
+.tabRejectedActive:hover {
+  filter: brightness(1.04);
+}
