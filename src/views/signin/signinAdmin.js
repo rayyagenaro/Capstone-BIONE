@@ -3,11 +3,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import styles from './signinAdmin.module.css';
 import SuccessPopup from '@/components/SuccessPopup/SuccessPopup';
-
-function makeNs() {
-  const rnd = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
-  return rnd.replace(/-/g, '').slice(0, 8);
-}
+import { makeNs } from '@/lib/ns';
 
 export default function SignInAdmin() {
   const router = useRouter();
@@ -18,55 +14,75 @@ export default function SignInAdmin() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+async function handleSubmit(e) {
+  e.preventDefault();
 
-    if (!email.trim() || !password) {
-      setError('Email dan password wajib diisi.');
+  if (!email.trim() || !password) {
+    setError('Email dan password wajib diisi.');
+    return;
+  }
+
+  setError('');
+  setLoading(true);
+
+  try {
+    const ns = makeNs();
+    console.log('[DEBUG] Submitting loginAdmin', { email, ns });
+
+    if (!/^[A-Za-z0-9_-]{3,32}$/.test(ns)) {
+      setError('Namespace (ns) tidak valid.');
+      setLoading(false);
       return;
     }
 
-    setError('');
-    setLoading(true);
+    const res = await fetch('/api/loginAdmin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, ns }),
+    });
 
+    console.log('[DEBUG] Response status', res.status);
+
+    let data = {};
     try {
-      // tetap buat ns agar server bisa set cookie namespaced (user_session__{ns})
-      const ns = makeNs();
-
-      const res = await fetch('/api/loginAdmin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, ns }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data?.error || 'Login gagal.');
-        setLoading(false);
-        return;
-      }
-
-      setShowSuccess(true);
-
-      // gunakan redirect dari server jika ada, kalau tidak pakai path final yang kamu mau
-      const target =
-        typeof data?.redirect === 'string'
-          ? data.redirect
-          : `/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`;
-
-      // opsi: beri sedikit delay agar popup sukses sempat terlihat
-      setTimeout(() => {
-        router.replace(target);
-      }, 600);
-    } catch (err) {
-      setError('Terjadi kesalahan saat login.');
-      setLoading(false);
+      data = await res.json();
+    } catch (jsonErr) {
+      console.warn('[DEBUG] Gagal parse JSON:', jsonErr);
     }
+
+    console.log('[DEBUG] Response JSON:', data);
+
+    if (!res.ok) {
+      setError(data?.error || `Login gagal (${res.status}).`);
+      setLoading(false);
+      return;
+    }
+
+    setShowSuccess(true);
+
+    const target =
+      typeof data?.redirect === 'string'
+        ? data.redirect
+        : `/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`;
+
+    console.log('[DEBUG] Redirect target:', target);
+
+    setTimeout(() => {
+      router.replace(target);
+    }, 1200);
+  } catch (err) {
+    console.error('[DEBUG] Login Admin Error:', err);
+    setError('Terjadi kesalahan saat login.');
+  } finally {
+    setLoading(false);
   }
+}
+
 
   function handleBack() {
-    router.push('/Login/hal-login');
+    // sertakan ns kalau ada
+    const ns = makeNs();
+    router.push(`/Login/hal-login?ns=${encodeURIComponent(ns)}`);
   }
 
   return (
@@ -110,6 +126,7 @@ export default function SignInAdmin() {
             </div>
             <div className={styles.backBtnSpacer} />
           </div>
+
           <div className={styles.subGreeting}>
             Selamat Datang
             <div className={styles.adminText}>Admin!</div>
@@ -138,7 +155,6 @@ export default function SignInAdmin() {
                 autoComplete="current-password"
                 required
               />
-              {/* Tombol mata – sama dengan halaman user (tanpa box) */}
               <button
                 type="button"
                 className={styles.eyeIcon}
@@ -191,6 +207,7 @@ export default function SignInAdmin() {
               {loading ? 'Memproses...' : 'Masuk'}
             </button>
           </form>
+
           {showSuccess && <SuccessPopup message="Login berhasil!" />}
         </div>
       </div>

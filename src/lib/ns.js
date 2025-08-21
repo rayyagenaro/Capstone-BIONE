@@ -7,20 +7,26 @@ export const makeNs = () =>
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
 // Ambil ns dari router (prioritas: query ?ns=, fallback: legacy /u/:ns atau /admin/:ns)
-export const getNs = (router) => {
-  // 1) query
-  const qns = router?.query?.ns ? String(router.query.ns) : null;
-  if (qns && NS_RE.test(qns)) return qns;
+export function getNs(router) {
+  if (!router) return '';
 
-  // 2) fallback: coba parse dari asPath (legacy path-based)
-  const pathOnly = String(router?.asPath || '').split('?')[0];
-  const seg = pathOnly.split('/').filter(Boolean);
-  if ((seg[0] === 'u' || seg[0] === 'admin') && seg[1] && NS_RE.test(seg[1])) {
-    return seg[1];
+  // ambil dari query
+  const queryNs = router.query?.ns;
+  if (queryNs) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('current_ns', queryNs);
+    }
+    return queryNs;
   }
 
-  return null;
-};
+  // fallback ke localStorage
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('current_ns') || '';
+  }
+
+  return '';
+}
+
 
 // Sisipkan ?ns= ke URL internal (kalau belum ada)
 export const withNs = (to, ns) => {

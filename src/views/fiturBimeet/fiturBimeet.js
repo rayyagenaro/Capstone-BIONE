@@ -1,18 +1,18 @@
-// fiturbimeet.js
+// /pages/User/fiturbimeet.js
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import { FaArrowLeft } from "react-icons/fa";
 import DatePicker from "react-datepicker";
 import idLocale from "date-fns/locale/id";
 import "react-datepicker/dist/react-datepicker.css";
 
+import { getNs, withNs, replaceNs } from "@/lib/ns";
 import styles from "./fiturBimeet.module.css";
 import SidebarUser from "@/components/SidebarUser/SidebarUser";
 import LogoutPopup from "@/components/LogoutPopup/LogoutPopup";
 
-/* ====== FALLBACK ROOMS (kalau API availability belum siap) ====== */
+/* ====== FALLBACK ROOMS ====== */
 const FALLBACK_ROOMS = [
   { id: 1, name: "Ruang Rapat SP", floor: 2, capacity: 15 },
   { id: 2, name: "Ruang Rapat MI", floor: 3, capacity: 15 },
@@ -24,7 +24,7 @@ const FALLBACK_ROOMS = [
   { id: 8, name: "Ruangan Singosari", floor: 5, capacity: 300 },
 ];
 
-/* ====== DIVISI (ringkas) ====== */
+/* ====== DIVISI ====== */
 const UNIT_KERJA_BI = [
   "Hubungan Masyarakat",
   "Sistem Pembayaran",
@@ -63,13 +63,15 @@ const SuccessPopup = ({ onClose }) => (
 
 export default function FiturBimeet() {
   const router = useRouter();
+  const ns = getNs(router);
+
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [showAvail, setShowAvail] = useState(false);
 
-  // ====== FORM STATE (tanggal sebagai Date)
+  // ====== FORM STATE ======
   const [fields, setFields] = useState({
     roomId: "",
     unitKerja: "",
@@ -84,12 +86,11 @@ export default function FiturBimeet() {
 
   const [errors, setErrors] = useState({});
 
-  // ====== AVAILABILITY STATE (dari API baru)
+  // ====== AVAILABILITY ======
   const [availLoading, setAvailLoading] = useState(false);
   const [availError, setAvailError] = useState("");
-  const [availRooms, setAvailRooms] = useState([]); // {id,name,floor,capacity,status_name,available}
+  const [availRooms, setAvailRooms] = useState([]);
 
-  // Ambil data availability tiap kali tanggal berubah ATAU dropdown dibuka
   useEffect(() => {
     const fetchAvail = async () => {
       setAvailError("");
@@ -99,7 +100,8 @@ export default function FiturBimeet() {
           start: fields.startDate.toISOString(),
           end: fields.endDate.toISOString(),
         });
-        const r = await fetch(`/api/bimeet/availability?${qs.toString()}`, {
+        const r = await fetch(withNs(`/api/bimeet/availability?${qs}`, ns), {
+          credentials: "include",
           cache: "no-store",
         });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -127,22 +129,16 @@ export default function FiturBimeet() {
         setAvailLoading(false);
       }
     };
-
     if (showAvail) fetchAvail();
-  }, [fields.startDate, fields.endDate, showAvail]);
+  }, [fields.startDate, fields.endDate, showAvail, ns]);
 
-  // Gunakan availRooms untuk select options (kalau kosong, pakai fallback)
+  // ====== OPTIONS ======
   const roomOptions = useMemo(() => {
     const base = availRooms.length ? availRooms : FALLBACK_ROOMS;
     return [...base].sort((a, b) =>
       a.floor === b.floor ? a.name.localeCompare(b.name) : a.floor - b.floor
     );
   }, [availRooms]);
-
-  const selectedRoom = useMemo(
-    () => roomOptions.find((r) => String(r.id) === String(fields.roomId)),
-    [fields.roomId, roomOptions]
-  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -166,7 +162,7 @@ export default function FiturBimeet() {
     return `${m} menit`;
   }, [fields.startDate, fields.endDate]);
 
-  // ====== VALIDASI
+  // ====== VALIDASI ======
   const validate = () => {
     const er = {};
     if (!fields.roomId) er.roomId = "Pilih ruangan terlebih dahulu";
@@ -181,7 +177,6 @@ export default function FiturBimeet() {
     if (!fields.participants || Number(fields.participants) <= 0)
       er.participants = "Jumlah peserta wajib diisi";
 
-    // jika di availability statusnya tidak available → blokir
     if (fields.roomId) {
       const r = availRooms.find((x) => String(x.id) === String(fields.roomId));
       if (r && r.available === false) {
@@ -193,7 +188,7 @@ export default function FiturBimeet() {
     return er;
   };
 
-  // ====== SUBMIT
+  // ====== SUBMIT ======
   const submit = async (e) => {
     e.preventDefault();
     setSubmitError("");
@@ -206,7 +201,10 @@ export default function FiturBimeet() {
 
     setIsSubmitting(true);
     try {
-      const meRes = await fetch("/api/me?scope=user", { cache: "no-store" });
+      const meRes = await fetch(withNs("/api/me?scope=user", ns), {
+        cache: "no-store",
+        credentials: "include",
+      });
       const me = await meRes.json();
       if (!me?.hasToken || !me?.payload?.sub) {
         setIsSubmitting(false);
@@ -227,9 +225,10 @@ export default function FiturBimeet() {
         pic_name: fields.picName,
       };
 
-      const res = await fetch("/api/bimeet/createbooking", {
+      const res = await fetch(withNs("/api/bimeet/createbooking", ns), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
 
@@ -252,17 +251,18 @@ export default function FiturBimeet() {
 
   const closeSuccess = () => {
     setShowSuccess(false);
-    router.push("/User/StatusBooking/hal-statusBooking");
+    replaceNs(router, "/User/StatusBooking/hal-statusBooking");
   };
+
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" });
+      await fetch(withNs("/api/logout", ns), { method: "POST" });
     } finally {
-      router.replace("/Signin/hal-sign");
+      replaceNs(router, "/Signin/hal-sign");
     }
   };
 
-  /* ====== BADGE Ketersediaan (kolom tunggal) ====== */
+  /* ====== BADGE ====== */
   const StatusBadge = ({ status, available }) => {
     const s = String(status || "").toLowerCase();
     let color = "#1f8f4e";
@@ -286,11 +286,9 @@ export default function FiturBimeet() {
         <div className={styles.formBox}>
           {/* TOP ROW */}
           <div className={styles.topRow}>
-
-              <button className={styles.backBtn} onClick={() => router.back()} type="button">
+            <button className={styles.backBtn} onClick={() => router.back()} type="button">
               <FaArrowLeft /> Kembali
-              </button>
-            
+            </button>
 
             <div className={styles.logoWrapper}>
               <Image src="/assets/D'ROOM.svg" alt="BI.MEET" width={180} height={85} priority />
@@ -311,9 +309,7 @@ export default function FiturBimeet() {
                   <div className={styles.availabilityDropdown}>
                     {availLoading && <div>Memuat...</div>}
                     {availError && (
-                      <div style={{ color: "red", paddingBottom: 8 }}>
-                        {availError}
-                      </div>
+                      <div style={{ color: "red", paddingBottom: 8 }}>{availError}</div>
                     )}
                     {!availLoading && (
                       <table>
@@ -322,7 +318,6 @@ export default function FiturBimeet() {
                             <th>Ruangan</th>
                             <th>Lantai</th>
                             <th>Kapasitas</th>
-                            {/* Kolom Status DIHAPUS */}
                             <th>Ketersediaan</th>
                           </tr>
                         </thead>
@@ -332,7 +327,6 @@ export default function FiturBimeet() {
                               <td>{r.name}</td>
                               <td>{r.floor}</td>
                               <td>{r.capacity} Orang</td>
-                              {/* Sel Status DIHAPUS */}
                               <td>
                                 <StatusBadge
                                   status={r.status_name}

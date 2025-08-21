@@ -4,11 +4,8 @@ import Link from 'next/link';
 import styles from './signin.module.css';
 import { useRouter } from 'next/router';
 import SuccessPopup from '@/components/SuccessPopup/SuccessPopup';
+import { makeNs } from '@/lib/ns';
 
-function makeNs() {
-  const rnd = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
-  return rnd.replace(/-/g, '').slice(0, 8);
-}
 
 export default function SignIn() {
   const router = useRouter();
@@ -19,6 +16,8 @@ export default function SignIn() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showForgotPopup, setShowForgotPopup] = useState(false);
   const [loading, setLoading] = useState(false);
+
+
 
   async function handleSubmit(e) {
     e.preventDefault();

@@ -43,11 +43,11 @@ export default async function handler(req, res) {
             v.plat_nomor,
             v.vehicle_type_id,
             vt.name AS type_name
-         FROM booking_booking_assignments ba
-         JOIN vehicles v ON v.id = ba.vehicle_id
-         LEFT JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
-         WHERE ba.booking_id = ? AND ba.vehicle_id IS NOT NULL
-         ORDER BY v.id ASC`,
+        FROM bidrive_booking_assignments ba
+        JOIN bidrive_vehicles v ON v.id = ba.vehicle_id
+        LEFT JOIN bidrive_vehicle_types vt ON vt.id = v.vehicle_type_id
+        WHERE ba.booking_id = ? AND ba.vehicle_id IS NOT NULL
+        ORDER BY v.id ASC`,
         [bookingId]
       );
       vehicles = rows || [];
@@ -59,6 +59,7 @@ export default async function handler(req, res) {
         throw e;
       }
     }
+
 
     return res.status(200).json({ bookingId, drivers, vehicles });
   } catch (error) {

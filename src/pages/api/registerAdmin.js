@@ -1,6 +1,7 @@
 // /src/pages/api/registerAdmin.js
 import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { getNsFromReq } from '@/lib/ns-server';
 
 function isValidPhone(raw) {
   if (!raw) return false;
@@ -16,7 +17,13 @@ function getEmailDomain(email = '') {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Metode tidak diizinkan' });
+  }
+
+  const ns = getNsFromReq(req);
+  if (!ns) {
+    return res.status(400).json({ error: 'ns wajib diisi (3–32 alnum _-)' });
   }
 
   // role_id DIHARDCODE = 2 (admin fitur)
@@ -50,14 +57,14 @@ export default async function handler(req, res) {
   try {
     if (conn.beginTransaction) await conn.beginTransaction();
 
-    // Email unik
+    // Email unik per-namespace
     const [existing] = await conn.query(
-      'SELECT id FROM admins WHERE email = ? LIMIT 1',
-      [email]
+      'SELECT id FROM admins WHERE email = ? AND ns = ? LIMIT 1',
+      [email, ns]
     );
     if (existing.length > 0) {
       if (conn.rollback) await conn.rollback();
-      return res.status(409).json({ error: 'Email sudah digunakan' });
+      return res.status(409).json({ error: 'Email sudah digunakan di namespace ini' });
     }
 
     // Pastikan role admin fitur ada
@@ -70,7 +77,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Role Admin Fitur belum tersedia di database' });
     }
 
-    // Validasi service id terhadap tabel services
+    // Validasi service id terhadap tabel services (harus namespace aware juga kalau tabel punya ns)
     const placeholders = uniqueServiceIds.map(() => '?').join(',');
     const [validSvcs] = await conn.query(
       `SELECT id FROM services WHERE id IN (${placeholders})`,
@@ -84,9 +91,9 @@ export default async function handler(req, res) {
     // Hash & insert admin
     const hashed = await bcrypt.hash(password, 10);
     const [ins] = await conn.query(
-      `INSERT INTO admins (nama, email, phone, password, role_id, verification_id)
-       VALUES (?, ?, ?, ?, ?, 1)`,
-      [nama, email, phone || null, hashed, ROLE_ADMIN_FITUR]
+      `INSERT INTO admins (nama, email, phone, password, role_id, verification_id, ns)
+       VALUES (?, ?, ?, ?, ?, 1, ?)`,
+      [nama, email, phone || null, hashed, ROLE_ADMIN_FITUR, ns]
     );
     const adminId = ins.insertId;
 
@@ -101,10 +108,12 @@ export default async function handler(req, res) {
 
     if (conn.commit) await conn.commit();
     return res.status(201).json({
+      ok: true,
       message: `Pendaftaran admin berhasil. Kuota domain: ${maxAllowed}.`,
       admin_id: adminId,
       service_ids: uniqueServiceIds,
       maxAllowed,
+      ns,
     });
   } catch (err) {
     if (conn.rollback) await conn.rollback();

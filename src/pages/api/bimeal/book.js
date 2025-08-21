@@ -1,50 +1,9 @@
 // /pages/api/bimeal/book.js
 import db from '@/lib/db';
+import { verifyAuth } from '@/lib/auth';
 
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+
 const PENDING_STATUS_ID = 1;
-
-/* ===== auth helpers (user/admin + namespaced) ===== */
-function getNsFromReq(req) {
-  const v = req.query?.ns ?? req.body?.ns ?? req.cookies?.current_user_ns;
-  return (typeof v === 'string' && NS_RE.test(v)) ? v : '';
-}
-function pickAnySessionToken(cookies = {}) {
-  const key = Object.keys(cookies).find((k) =>
-    /^user_session__|^admin_session__|^user_session$|^admin_session$/.test(k)
-  );
-  return key ? cookies[key] : null;
-}
-async function verifyAuth(req, roles = ['user']) {
-  try {
-    const ns = getNsFromReq(req);
-    const token =
-      (ns && (req.cookies?.[`user_session__${ns}`] || req.cookies?.[`admin_session__${ns}`])) ||
-      req.cookies?.user_session ||
-      req.cookies?.admin_session ||
-      pickAnySessionToken(req.cookies);
-
-    if (!token) return { ok: false, reason: 'NO_TOKEN' };
-
-    const { jwtVerify } = await import('jose');
-    const secret = process.env.JWT_SECRET;
-    if (!secret) return { ok: false, reason: 'NO_SECRET' };
-
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
-      algorithms: ['HS256'],
-      clockTolerance: 10,
-    });
-
-    const role = payload?.role || '';
-    if (!roles.includes(role)) return { ok: false, reason: 'ROLE' };
-
-    const userId = Number(payload?.sub ?? payload?.user_id ?? payload?.id);
-    return { ok: true, payload, userId, role, ns };
-  } catch (e) {
-    console.error('verifyAuth fail', e);
-    return { ok: false, reason: 'VERIFY_FAIL' };
-  }
-}
 
 /* ===== utils ===== */
 function normalizeItems(items) {
@@ -72,14 +31,19 @@ export default async function handler(req, res) {
     const auth = await verifyAuth(req, isAdminScope ? ['user', 'admin'] : ['user']);
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
-      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+      console.warn('Unauthorized GET /bimeal/book:', auth.reason);
+      return res
+        .status(401)
+        .json({ error: 'Unauthorized', reason: auth.reason, detail: auth.error });
     }
 
     const requestedUserId = req.query.userId ? Number(req.query.userId) : null;
     const listForUserId =
       isAdminScope && Number.isFinite(requestedUserId) && requestedUserId > 0
         ? requestedUserId
-        : (!isAdminScope ? auth.userId : null); // admin tanpa userId => semua
+        : !isAdminScope
+        ? auth.userId
+        : null; // admin tanpa userId => semua
 
     let conn;
     try {
@@ -122,8 +86,8 @@ export default async function handler(req, res) {
       const ids = bookings.map((r) => r.id);
       const [items] = await conn.query(
         `SELECT booking_id, nama_pesanan, jumlah
-           FROM bimeal_booking_items
-          WHERE booking_id IN (?)`,
+         FROM bimeal_booking_items
+         WHERE booking_id IN (?)`,
         [ids]
       );
 
@@ -147,13 +111,19 @@ export default async function handler(req, res) {
     const auth = await verifyAuth(req, ['user']);
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
-      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+      console.warn('Unauthorized POST /bimeal/book:', auth.reason);
+      return res
+        .status(401)
+        .json({ error: 'Unauthorized', reason: auth.reason, detail: auth.error });
     }
     const userId = Number(auth.userId);
 
     let body = {};
-    try { body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; }
-    catch { return res.status(400).json({ error: 'Body harus JSON' }); }
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch {
+      return res.status(400).json({ error: 'Body harus JSON' });
+    }
 
     const nama = String(body?.nama || '').trim();
     const nip = String(body?.nip || '').trim();
@@ -193,7 +163,9 @@ export default async function handler(req, res) {
       }
 
       await conn.commit();
-      return res.status(201).json({ ok: true, booking_id: bookingId, status_id: PENDING_STATUS_ID });
+      return res
+        .status(201)
+        .json({ ok: true, booking_id: bookingId, status_id: PENDING_STATUS_ID });
     } catch (e) {
       if (conn) await conn.rollback();
       console.error('POST /api/bimeal/book error:', e?.message, e);
@@ -208,12 +180,18 @@ export default async function handler(req, res) {
     const auth = await verifyAuth(req, ['user', 'admin']);
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
-      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+      console.warn('Unauthorized PUT /bimeal/book:', auth.reason);
+      return res
+        .status(401)
+        .json({ error: 'Unauthorized', reason: auth.reason, detail: auth.error });
     }
 
     let body = {};
-    try { body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; }
-    catch { return res.status(400).json({ error: 'Body harus JSON' }); }
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch {
+      return res.status(400).json({ error: 'Body harus JSON' });
+    }
 
     const bookingId = Number(body?.bookingId);
     const newStatusId = Number(body?.newStatusId);
@@ -241,14 +219,6 @@ export default async function handler(req, res) {
         conn?.release();
         return res.status(403).json({ error: 'Booking bukan milik Anda' });
       }
-
-      // jika punya kolom rejection_reason, aktifkan versi berikut
-      // const [upd] = await conn.query(
-      //   `UPDATE bimeal_bookings
-      //      SET status_id = ?, rejection_reason = ?, updated_at = NOW()
-      //    WHERE id = ?`,
-      //   [newStatusId, newStatusId === 3 ? (reason || null) : null, bookingId]
-      // );
 
       const [upd] = await conn.query(
         `UPDATE bimeal_bookings

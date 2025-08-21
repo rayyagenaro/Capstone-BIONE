@@ -1,49 +1,6 @@
 // /pages/api/BIcare/book.js
 import db from '@/lib/db';
-import { jwtVerify } from 'jose';
-
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-
-function getNsFromReq(req) {
-  const q = req.query?.ns;
-  if (typeof q === 'string' && NS_RE.test(q)) return q;
-  const sticky = req.cookies?.current_user_ns;
-  if (typeof sticky === 'string' && NS_RE.test(sticky)) return sticky;
-  const keys = Object.keys(req.cookies || {});
-  const pref = 'user_session__';
-  const found = keys.find((k) => k.startsWith(pref));
-  if (found) return found.slice(pref.length);
-  return '';
-}
-
-async function verifyUser(req) {
-  try {
-    const ns = getNsFromReq(req);
-    if (!ns) return { ok: false, reason: 'NO_NS' };
-    const token = req.cookies?.[`user_session__${ns}`];
-    if (!token) return { ok: false, reason: 'NO_TOKEN' };
-
-    const secret = process.env.JWT_SECRET;
-    if (!secret) return { ok: false, reason: 'NO_SECRET' };
-
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
-      algorithms: ['HS256'],
-      clockTolerance: 10,
-    });
-    // payload harus milik role user
-    if (!payload || (payload.role && String(payload.role) !== 'user')) {
-      return { ok: false, reason: 'ROLE' };
-    }
-    // user id bisa ada di sub / user_id / id (amankan semua kemungkinan)
-    const userId = Number(payload.sub ?? payload.user_id ?? payload.id);
-    if (!userId) return { ok: false, reason: 'NO_USERID' };
-
-    return { ok: true, userId, payload, ns };
-  } catch (e) {
-    console.error('verifyUser BIcare fail:', e);
-    return { ok: false, reason: 'VERIFY_FAIL' };
-  }
-}
+import { verifyAuth } from '@/lib/auth';
 
 /* ===== utils ===== */
 const to62 = (val) => {
@@ -71,7 +28,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: `Method ${req.method} not allowed` });
   }
 
-  const auth = await verifyUser(req);
+  // pakai verifyAuth reusable
+  const auth = await verifyAuth(req, ['user']);
   if (!auth.ok) {
     return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
   }
@@ -84,18 +42,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Body harus JSON' });
   }
 
-  // Support camelCase (dari form kamu) dan snake_case
-  const doctor_id    = body.doctor_id ?? body.doctorId;
-  const booking_date = body.booking_date ?? body.bookingDate;        // "YYYY-MM-DD"
-  const slot_time_in = body.slot_time ?? body.slotTime;              // "HH:mm" / "HH:mm:ss"
-  const booker_name  = body.booker_name ?? body.booker_name ?? body.bookerName;
-  const nip          = body.nip;
-  const wa_in        = body.wa;
-  const patient_name = body.patient_name ?? body.patientName;
+  // Support camelCase (dari form) dan snake_case
+  const doctor_id      = body.doctor_id ?? body.doctorId;
+  const booking_date   = body.booking_date ?? body.bookingDate;        // "YYYY-MM-DD"
+  const slot_time_in   = body.slot_time ?? body.slotTime;              // "HH:mm" / "HH:mm:ss"
+  const booker_name    = body.booker_name ?? body.bookerName;
+  const nip            = body.nip;
+  const wa_in          = body.wa;
+  const patient_name   = body.patient_name ?? body.patientName;
   const patient_status = body.patient_status ?? body.patientStatus;
-  const gender       = body.gender;
-  const birth_date   = body.birth_date ?? body.birthDate ?? null;    // "YYYY-MM-DD"
-  const complaint    = body.complaint ?? null;
+  const gender         = body.gender;
+  const birth_date     = body.birth_date ?? body.birthDate ?? null;    // "YYYY-MM-DD"
+  const complaint      = body.complaint ?? null;
 
   const slot_time = hhmmToHms(slot_time_in);
   const wa = to62(wa_in);

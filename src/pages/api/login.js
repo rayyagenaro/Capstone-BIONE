@@ -2,6 +2,7 @@
 import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
+import { getNsFromReq } from '@/lib/ns-server';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -9,18 +10,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const ns = (req.body?.ns || '').trim();
+  const ns = getNsFromReq(req);
   const email = (req.body?.email || '').trim().toLowerCase();
   const password = req.body?.password || '';
 
-  const nsOk = /^[a-zA-Z0-9_-]{3,32}$/.test(ns);
-  if (!email || !password || !nsOk) {
+  if (!ns || !email || !password) {
     return res.status(400).json({
       error: 'Email, password, dan ns wajib diisi (ns 3-32 char: a-zA-Z0-9_-).'
     });
   }
 
   try {
+    // 🔹 Cari user di DB
     const [rows] = await db.query(
       `SELECT u.id, u.email, u.name, u.phone, u.password, u.verification_status_id, u.rejection_reason,
               vs.name AS verification_status_name
@@ -36,6 +37,7 @@ export default async function handler(req, res) {
 
     const user = rows[0];
 
+    // 🔹 Cek status verifikasi
     if (user.verification_status_id === 1) {
       return res.status(403).json({ error: 'Akun Anda masih menunggu verifikasi admin (Pending).' });
     }
@@ -45,9 +47,11 @@ export default async function handler(req, res) {
       });
     }
 
+    // 🔹 Cek password
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: 'Email atau password salah' });
 
+    // 🔹 Generate JWT
     const secret = process.env.JWT_SECRET;
     if (!secret) return res.status(500).json({ error: 'JWT_SECRET belum diset.' });
 
@@ -67,7 +71,7 @@ export default async function handler(req, res) {
 
     const isProd = process.env.NODE_ENV === 'production';
 
-    // HttpOnly session cookie (per-namespace)
+    // 🔹 Session cookie per namespace (HttpOnly)
     const cookieName = `user_session__${ns}`;
     const sessionAttrs = [
       'Path=/',
@@ -77,31 +81,31 @@ export default async function handler(req, res) {
       `Max-Age=${maxAge}`,
     ].filter(Boolean).join('; ');
 
-    // 🔹 Sticky cookie non-HttpOnly (agar middleware bisa memulihkan ?ns= saat hilang)
-    //    Simpan agak lama (30 hari) & batasi ke area /User
+    // 🔹 Sticky cookie (non-HttpOnly) → supaya frontend / router bisa restore ns
     const stickyMaxAge = 60 * 60 * 24 * 30; // 30 hari
-    const stickyParts = [
+    const sticky = [
       `current_user_ns=${encodeURIComponent(ns)}`,
       'Path=/User',
       'SameSite=Lax',
       isProd ? 'Secure' : '',
       `Max-Age=${stickyMaxAge}`,
-      // Expires tambahan untuk kompat Safari lama
       `Expires=${new Date(Date.now() + stickyMaxAge * 1000).toUTCString()}`,
-    ].filter(Boolean);
-    const sticky = stickyParts.join('; ');
+    ].filter(Boolean).join('; ');
 
+    // 🔹 Set semua cookie
     res.setHeader('Set-Cookie', [
       `${cookieName}=${token}; ${sessionAttrs}`,
-      sticky, // ⬅️ penting: masukkan sticky ke header cookie
-      // Bersihkan legacy/global supaya tidak bentrok (opsional tapi disarankan)
+      sticky,
+      // Bersihkan legacy supaya tidak bentrok
       `user_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
       `user_token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
       `token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
     ]);
 
+    // 🔹 Balikan JSON
     return res.status(200).json({
       ok: true,
+      ns,
       redirect: `/User/HalamanUtama/hal-utamauser?ns=${encodeURIComponent(ns)}`,
       whoami: { id: user.id, email: user.email, name: user.name, ns },
     });

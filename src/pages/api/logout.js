@@ -1,4 +1,4 @@
-// pages/api/logout.js
+// /pages/api/logout.js
 export default async function handler(req, res) {
   if (!['GET', 'POST', 'DELETE'].includes(req.method)) {
     res.setHeader('Allow', 'GET, POST, DELETE');
@@ -22,7 +22,9 @@ export default async function handler(req, res) {
       const u = new URL(String(req.headers.referer || ''));
       const ns = u.searchParams.get('ns');
       return ns && /^[A-Za-z0-9_-]{3,32}$/.test(ns) ? ns : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   };
 
   // --- Ambil param dari body/query/header ---
@@ -51,11 +53,18 @@ export default async function handler(req, res) {
     .map(([name]) => name)
     .filter((n) => n.startsWith(prefix));
 
-  // --- Daftar legacy untuk GLOBAL only ---
-  const legacyHttpOnly = ['user_session', 'admin_session', 'token', 'user_token', 'admin_token'];
-  const legacyClient   = ['role', 'displayName'];
+  // --- Daftar legacy + sticky ---
+  const legacyHttpOnly = [
+    'user_session', 'admin_session',
+    'token', 'user_token', 'admin_token',
+    'admin_token', 'user_token'
+  ];
+  const legacyClient   = [
+    'role', 'displayName',
+    'current_user_ns', 'current_admin_ns'   // 🔹 tambahin sticky ns
+  ];
 
-  // ==== MODE 1: GLOBAL LOGOUT (hanya jika diminta eksplisit) ====
+  // ==== MODE 1: GLOBAL LOGOUT ====
   if (wantGlobal) {
     let setCookies = [];
     setCookies = setCookies.concat(legacyHttpOnly.map(n => kill(n, true)));
@@ -67,13 +76,15 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, scope: 'global', cleared: setCookies.length });
   }
 
-  // ==== MODE 2: PER-NAMESPACE (AMAN DEFAULT) ====
-  // Syarat minimal: area ditentukan ('user'|'admin').
+  // ==== MODE 2: PER-NAMESPACE ====
   if (!normArea) {
-    return res.status(400).json({ ok: false, error: 'area_required', hint: 'Kirim { area: "user"|"admin", ns } atau set all=true untuk global logout.' });
+    return res.status(400).json({
+      ok: false,
+      error: 'area_required',
+      hint: 'Kirim { area: "user"|"admin", ns } atau set all=true untuk global logout.'
+    });
   }
 
-  // Jika ns kosong: coba infer dari cookie. Kalau ambigu → 400 (no-op).
   let finalNs = ns;
   if (!finalNs) {
     const prefix = normArea === 'admin' ? 'admin_session__' : 'user_session__';
@@ -94,7 +105,7 @@ export default async function handler(req, res) {
   const cookieName = `${normArea === 'admin' ? 'admin' : 'user'}_session__${finalNs}`;
   const setCookies = Array.from(new Set([
     kill(cookieName, true),
-    // optional: bersihkan UI cookies global (kalau kamu pakai)
+    kill(normArea === 'admin' ? 'current_admin_ns' : 'current_user_ns', false), // 🔹 hapus sticky
     kill('role', false),
     kill('displayName', false),
   ]));

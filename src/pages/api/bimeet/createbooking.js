@@ -1,172 +1,118 @@
 // /pages/api/bimeet/createbooking.js
-import { jwtVerify } from 'jose';
 import db from '@/lib/db';
-
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+import { verifyAuth } from '@/lib/auth';
 
 function toSqlDateTime(isoOrDate) {
   const d = new Date(isoOrDate);
   const pad = (n) => String(n).padStart(2, '0');
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const h = pad(d.getHours());
-  const mi = pad(d.getMinutes());
-  const s = pad(d.getSeconds());
-  return `${y}-${m}-${day} ${h}:${mi}:${s}`;
-}
-
-function pickAnyUserSessionCookie(cookies = {}) {
-  const key = Object.keys(cookies).find((k) => /^user_session__/.test(k));
-  return key ? cookies[key] : null;
-}
-
-function getUserToken(req) {
-  const nsRaw = req.query?.ns ?? req.body?.ns;
-  const ns = typeof nsRaw === 'string' && NS_RE.test(nsRaw) ? nsRaw : '';
-  const token =
-    (ns && req.cookies?.[`user_session__${ns}`]) ||
-    req.cookies?.user_session ||
-    pickAnyUserSessionCookie(req.cookies);
-
-  return { token, ns };
-}
-
-async function verifyToken(req) {
-  const { token } = getUserToken(req);
-  if (!token) return { ok: false, payload: null, userId: null };
-
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    console.error('Missing JWT_SECRET');
-    return { ok: false, payload: null, userId: null };
-  }
-
-  try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
-      algorithms: ['HS256'],
-      clockTolerance: 10,
-    });
-    const uid = payload?.user_id ?? payload?.id ?? payload?.sub ?? null;
-    return { ok: true, payload, userId: uid ? Number(uid) : null };
-  } catch (e) {
-    return { ok: false, payload: null, userId: null, err: e };
-  }
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 export default async function handler(req, res) {
+  /* ===================== GET ===================== */
   if (req.method === 'GET') {
-    let conn;
     try {
-      // userId dari query atau token
-      const qUserId = req.query.userId ? Number(req.query.userId) : null;
-      let userId = Number.isFinite(qUserId) && qUserId > 0 ? qUserId : null;
-      if (!userId) {
-        const v = await verifyToken(req);
-        if (v.ok && v.userId) userId = v.userId;
-      }
-      if (!userId) {
-        return res.status(400).json({ error: 'userId tidak ditemukan (query atau token)' });
-      }
+      const auth = await verifyAuth(req, ['user', 'admin']);
+      if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
 
+      const { userId, role } = auth;
       const statusMap = { pending: 1, approved: 2, rejected: 3, finished: 4 };
       const statusKey = String(req.query.status || '').toLowerCase();
       const statusId = statusMap[statusKey] ?? null;
+      const bookingId = req.query.bookingId ? Number(req.query.bookingId) : null;
 
-      const params = [userId];
-      let whereSQL = 'WHERE b.user_id = ?';
+      let whereSQL = '';
+      const params = [];
+
+      // filter booking by user
+      if (role === 'user') {
+        whereSQL = 'WHERE b.user_id = ?';
+        params.push(userId);
+      }
+
+      // filter by status
       if (statusId) {
-        whereSQL += ' AND b.status_id = ?';
+        whereSQL += whereSQL ? ' AND b.status_id = ?' : 'WHERE b.status_id = ?';
         params.push(statusId);
       }
 
-      conn = await db.getConnection();
-      const [rows] = await conn.execute(
+      // filter by id
+      if (bookingId) {
+        whereSQL += whereSQL ? ' AND b.id = ?' : 'WHERE b.id = ?';
+        params.push(bookingId);
+      }
+
+      const [rows] = await db.query(
         `
         SELECT
-          b.id, b.user_id, b.room_id, r.name AS room_name, r.capacity,
+          b.id, b.user_id, b.room_id, r.name AS room_name, r.capacity AS room_capacity,
           b.unit_kerja, b.title, b.description,
-          b.start_datetime, b.end_datetime,
+          b.start_datetime AS start_date, b.end_datetime AS end_date,
           b.participants, b.contact_phone, b.pic_name,
           b.status_id, b.created_at, b.updated_at
         FROM bimeet_bookings b
         LEFT JOIN bimeet_rooms r ON r.id = b.room_id
         ${whereSQL}
         ORDER BY b.start_datetime DESC
+
         `,
         params
       );
-      conn.release();
 
+      if (bookingId) {
+        return res.status(200).json({ item: rows[0] || null });
+      }
       return res.status(200).json({ items: rows });
     } catch (e) {
-      try { conn?.release(); } catch {}
       console.error('GET /api/bimeet/createbooking error:', e);
-      return res.status(500).json({
-        error: 'INTERNAL_ERROR',
-        message: e?.message,
-        code: e?.code,
-        sqlMessage: e?.sqlMessage,
-      });
+      return res.status(500).json({ error: 'INTERNAL_ERROR', message: e?.message });
     }
   }
 
+  /* ===================== POST ===================== */
   if (req.method === 'POST') {
     try {
-      const v = await verifyToken(req);
-      if (!v.ok) return res.status(401).json({ error: 'Unauthorized' });
-      if (v.payload?.role && v.payload.role !== 'user') {
-        return res.status(403).json({ error: 'Forbidden' });
-      }
+      const auth = await verifyAuth(req, ['user']);
+      if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
 
+      const userId = auth.userId;
       const {
-        user_id,
-        room_id,
-        unit_kerja,
-        title,
-        description,
-        start_datetime,
-        end_datetime,
-        participants,
-        contact_phone,
-        pic_name,
+        room_id, unit_kerja, title, description,
+        start_date, end_date, participants,
+        contact_phone, pic_name
       } = req.body || {};
 
+      // validasi field wajib
       const miss = [];
       if (!room_id) miss.push('room_id');
       if (!unit_kerja) miss.push('unit_kerja');
       if (!title) miss.push('title');
-      if (!start_datetime) miss.push('start_datetime');
-      if (!end_datetime) miss.push('end_datetime');
+      if (!start_date) miss.push('start_date');
+      if (!end_date) miss.push('end_date');
       if (!participants) miss.push('participants');
       if (!contact_phone) miss.push('contact_phone');
       if (!pic_name) miss.push('pic_name');
       if (miss.length) return res.status(400).json({ error: `Field wajib: ${miss.join(', ')}` });
 
-      const start = new Date(start_datetime);
-      const end = new Date(end_datetime);
-      if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start) {
+      const start = new Date(start_date);
+      const end = new Date(end_date);
+      if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
         return res.status(400).json({ error: 'Rentang waktu tidak valid' });
       }
 
-      const participantsNum = Number.parseInt(participants, 10);
-      if (!Number.isFinite(participantsNum) || participantsNum <= 0) {
+      const participantsNum = parseInt(participants, 10);
+      if (!participantsNum || participantsNum <= 0) {
         return res.status(400).json({ error: 'participants harus angka > 0' });
       }
 
-      const [rooms] = await db.execute(
-        'SELECT capacity FROM bimeet_rooms WHERE id = ?',
-        [room_id]
-      );
+      const [rooms] = await db.query('SELECT capacity FROM bimeet_rooms WHERE id=?', [room_id]);
       if (!rooms.length) return res.status(404).json({ error: 'Ruangan tidak ditemukan' });
-      const capacity = Number(rooms[0].capacity);
 
-      // Cek bentrok untuk yang status approved (2)
-      const [conflict] = await db.execute(
+      // cek bentrok booking
+      const [conflict] = await db.query(
         `SELECT id FROM bimeet_bookings
-         WHERE room_id = ?
-           AND status_id = 2
-           AND NOT (end_datetime <= ? OR start_datetime >= ?)
+         WHERE room_id=? AND status_id=2
+         AND NOT (end_datetime <= ? OR start_datetime >= ?)
          LIMIT 1`,
         [room_id, toSqlDateTime(start), toSqlDateTime(end)]
       );
@@ -174,90 +120,51 @@ export default async function handler(req, res) {
         return res.status(409).json({ error: 'Jadwal bentrok dengan pemakaian lain' });
       }
 
-      const userIdFromToken = v.userId;
-
-      const [result] = await db.execute(
+      const [result] = await db.query(
         `INSERT INTO bimeet_bookings
-          (user_id, room_id, unit_kerja, title, description,
-           start_datetime, end_datetime, participants, contact_phone, pic_name,
-           status_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())`,
-        [
-          user_id || userIdFromToken,
-          room_id,
-          unit_kerja,
-          title,
-          description || null,
-          toSqlDateTime(start),
-          toSqlDateTime(end),
-          participantsNum,
-          contact_phone,
-          pic_name,
-        ]
+        (user_id, room_id, unit_kerja, title, description,
+        start_datetime, end_datetime, participants, contact_phone, pic_name,
+        status_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())`,
+        [userId, room_id, unit_kerja, title, description || null,
+         toSqlDateTime(start), toSqlDateTime(end),
+         participantsNum, contact_phone, pic_name]
       );
 
-      return res.status(200).json({ ok: true, id: result.insertId });
+      return res.status(201).json({ ok: true, id: result.insertId });
     } catch (e) {
       console.error('POST /api/bimeet/createbooking error:', e);
-      return res.status(500).json({
-        error: 'Server error',
-        message: e?.message,
-        code: e?.code,
-        sqlMessage: e?.sqlMessage,
-        sqlState: e?.sqlState,
-      });
+      return res.status(500).json({ error: 'INTERNAL_ERROR', message: e?.message });
     }
   }
 
-  // ====== NEW: PUT untuk update status booking (Finish, dll) ======
+  /* ===================== PUT ===================== */
   if (req.method === 'PUT') {
     try {
-      const v = await verifyToken(req);
-      if (!v.ok) return res.status(401).json({ error: 'Unauthorized' });
+      const auth = await verifyAuth(req, ['user', 'admin']);
+      if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
 
       const { bookingId, newStatusId } = req.body || {};
       const id = Number(bookingId);
       const statusId = Number(newStatusId);
 
-      if (!Number.isFinite(id) || id <= 0) {
-        return res.status(400).json({ error: 'bookingId tidak valid' });
-      }
-      if (![1, 2, 3, 4].includes(statusId)) {
-        return res.status(400).json({ error: 'newStatusId harus salah satu dari 1,2,3,4' });
+      if (!id || ![1,2,3,4].includes(statusId)) {
+        return res.status(400).json({ error: 'Input tidak valid' });
       }
 
-      // Pastikan booking ada & milik user (opsional tapi disarankan)
-      const [rows] = await db.execute(
-        'SELECT user_id FROM bimeet_bookings WHERE id = ? LIMIT 1',
-        [id]
-      );
-      if (!rows.length) {
-        return res.status(404).json({ error: 'Booking tidak ditemukan' });
-      }
-      // Jika perlu batasi hanya pemilik yang boleh update:
-      // if (rows[0].user_id !== v.userId) return res.status(403).json({ error: 'Forbidden' });
+      const [rows] = await db.query('SELECT user_id FROM bimeet_bookings WHERE id=?', [id]);
+      if (!rows.length) return res.status(404).json({ error: 'Booking tidak ditemukan' });
 
-      const [result] = await db.execute(
-        `UPDATE bimeet_bookings
-         SET status_id = ?, updated_at = NOW()
-         WHERE id = ?`,
-        [statusId, id]
-      );
+      // optional: user hanya boleh update miliknya, kecuali admin
+      // if (rows[0].user_id !== auth.userId && auth.role !== 'admin') {
+      //   return res.status(403).json({ error: 'Forbidden' });
+      // }
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Booking tidak ditemukan' });
-      }
-
+      await db.query('UPDATE bimeet_bookings SET status_id=?, updated_at=NOW() WHERE id=?', [statusId, id]);
       return res.status(200).json({ ok: true });
     } catch (e) {
       console.error('PUT /api/bimeet/createbooking error:', e);
-      return res.status(500).json({
-        error: 'Gagal update status booking',
-        message: e?.message,
-        code: e?.code,
-        sqlMessage: e?.sqlMessage,
-        sqlState: e?.sqlState,
-      });
+      return res.status(500).json({ error: 'INTERNAL_ERROR', message: e?.message });
     }
   }
 

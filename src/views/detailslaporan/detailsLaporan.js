@@ -49,6 +49,11 @@ const toWaNumber = (val) => {
   if (p.startsWith('8'))  return '62' + p;
   return p;
 };
+const getStatusId = (slug, booking, detail) => {
+  if (slug === 'dmove' || slug === 'bidrive') return booking?.status_id;
+  return detail?.status_id;
+};
+
 
 // ===== Status styles =====
 const STATUS_CONFIG = {
@@ -565,7 +570,7 @@ export default function DetailsLaporan() {
                   <div className={styles.detailLabel}>KENDARAAN DITUGASKAN</div>
                   <div className={styles.detailValue}>
                     {Array.isArray(booking?.assigned_vehicles) && booking.assigned_vehicles.length ? (
-                      <ul style={{ paddingLeft: 16, margin: 0 }}>
+                      <ul style={{  margin: 0 }}>
                         {booking.assigned_vehicles.map((v) => (
                           <li key={v.id}>{getPlate(v)}{v.type_name ? ` — ${v.type_name}` : ''}</li>
                         ))}
@@ -605,16 +610,22 @@ export default function DetailsLaporan() {
               </div>
             )}
 
-            {Number(booking?.status_id) === 4 && (
+            {/* Export PDF - berlaku untuk semua layanan */}
+            {Number(getStatusId(slug, booking, detail)) === 4 && (
               <div className={styles.actionBtnRow}>
-                <button type="button" className={styles.btnSetujui}
-                        onClick={handleExportPDF} disabled={exporting}
-                        style={exporting ? { visibility: 'hidden' } : undefined}
-                        data-html2canvas-ignore="true">
-                  {exporting ? 'Menyiapkan PDF…' : 'Export to PDF'}
+                <button
+                  type="button"
+                  className={styles.btnSetujui}
+                  onClick={handleExportPDF}
+                  disabled={exporting}
+                  style={exporting ? { visibility: "hidden" } : undefined}
+                  data-html2canvas-ignore="true"
+                >
+                  {exporting ? "Menyiapkan PDF…" : "Export to PDF"}
                 </button>
               </div>
             )}
+            
           </div>
         ) : (
           // ========================== LAYANAN LAIN ==========================
