@@ -1,5 +1,6 @@
 // src/components/ketersediaan/care/CalendarAdmin.js
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 
 const ymd = (d) => {
   const y = d.getFullYear();
@@ -28,6 +29,7 @@ const getMonthMatrix = (year, monthIndex0) => {
 const toHHMM = (t) => String(t).slice(0, 5);
 
 export default function CalendarAdmin({ doctorId, styles }) {
+  const router = useRouter();
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -49,11 +51,26 @@ export default function CalendarAdmin({ doctorId, styles }) {
     if (!doctorId) return;
     setLoading(true);
     try {
+      const ns = typeof window !== 'undefined'
+        ? new URLSearchParams(location.search).get('ns') || ''
+        : '';
+
       const res = await fetch(
-        `/api/BIcare/booked?doctorId=${doctorId}&month=${y_m}&t=${Date.now()}`,
-        { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }
+        `/api/BIcare/booked?doctorId=${doctorId}&month=${y_m}${ns ? `&ns=${encodeURIComponent(ns)}` : ''}&t=${Date.now()}`,
+        {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+          credentials: 'include',             // <<< penting: bawa cookie sesi admin
+        }
       );
+
+      if (res.status === 401) {
+        alert('Sesi admin habis. Silakan login ulang.');
+        router.replace('/Signin/hal-signAdmin');
+        return;
+      }
       if (!res.ok) throw new Error('fetch calendar fail');
+
       const data = await res.json();
 
       const slots = {};
@@ -66,11 +83,13 @@ export default function CalendarAdmin({ doctorId, styles }) {
       setSlotMap(slots);
       setBookedMap(booked);
       setAdminMap(admin);
-    } catch {
+    } catch (e) {
+      console.error('CalendarAdmin fetchMonth error:', e);
       alert('Gagal memuat kalender');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [doctorId]);
+  }, [doctorId, router]);
 
   const isBooked = (dateStr, time) => (bookedMap[dateStr] || []).includes(time);
   const isAdminBlocked = (dateStr, time) => Boolean(adminMap[dateStr]?.has(time));
@@ -139,9 +158,10 @@ export default function CalendarAdmin({ doctorId, styles }) {
       const res = await fetch('/api/ketersediaanAdmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // <<< bawa cookie juga di mutasi
         body: JSON.stringify({ type: 'bicare_calendar', action, doctorId, bookingDate: dateStr, slotTime: time })
       });
-      const out = await res.json();
+      const out = await res.json().catch(() => ({}));
       if (!res.ok || !out?.success) {
         const ym = `${dateStr.slice(0, 4)}-${dateStr.slice(5, 7)}`;
         await fetchMonth(ym);

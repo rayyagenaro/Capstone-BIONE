@@ -473,3 +473,19 @@
   .calDayNames, .calGrid { gap: 4px; }
   .sessionBtn { font-size: 12px; padding: 5px; }
 }
+
+/* Pastikan gaya booked/admin menang walau button disabled */
+.sessionBtn.sessionBooked,
+.sessionBtn.sessionBooked:disabled {
+  background: #f9e9ea !important;
+  border-color: #f0c9cd !important;
+  color: #9a2b2f !important;
+  opacity: 1 !important;
+}
+
+.sessionBtn.sessionAvail:disabled {
+  background: #f2f7ff !important;
+  border-color: #cddaf6 !important;
+  color: #20427f !important;
+  opacity: 1 !important;
+}

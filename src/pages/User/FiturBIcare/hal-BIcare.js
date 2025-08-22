@@ -40,6 +40,19 @@ const SuccessPopup = ({ onClose }) => (
 );
 
 /* kalender util */
+const toDateKey = (v) => {
+  if (!v) return '';
+  if (v instanceof Date) return ymd(v);           // pakai helper ymd yang sudah ada
+  const s = String(v);
+  // "2025-08-29", atau "2025-08-29T00:00:00.000Z"
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // fallback: biar aman
+  const d = new Date(s);
+  return isNaN(d) ? s : ymd(d);
+};
+
+const toHHMM = (s) => String(s || '').slice(0, 5);
+
 const ymd = (d) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -142,7 +155,7 @@ function DoctorCalendar({ slotMap, bookedMap, adminMap, onPick, minDate = new Da
   const bookedSetByDate = useMemo(() => {
     const m = new Map();
     for (const [k, arr] of Object.entries(bookedMap || {})) {
-      m.set(k, new Set((arr || []).map((t) => String(t).slice(0, 5))));
+      m.set(k, new Set((arr || []).map(toHHMM)));
     }
     return m;
   }, [bookedMap]);
@@ -150,7 +163,7 @@ function DoctorCalendar({ slotMap, bookedMap, adminMap, onPick, minDate = new Da
   const adminSetByDate = useMemo(() => {
     const m = new Map();
     for (const [k, arr] of Object.entries(adminMap || {})) {
-      m.set(k, new Set((arr || []).map((t) => String(t).slice(0, 5))));
+      m.set(k, new Set((arr || []).map(toHHMM)));
     }
     return m;
   }, [adminMap]);
@@ -255,10 +268,29 @@ export default function FiturBICare() {
   const [doctorId, setDoctorId] = useState(1);
   const [doctors, setDoctors] = useState([]);
 
+  // helper: merge hasil server dengan bookedMap lokal (optimistic)
+  const mergeServerWithLocalBooked = useCallback((serverBooked) => {
+    setBookedMap((prev) => {
+      const out = { ...serverBooked };
+      for (const [date, times] of Object.entries(prev)) {
+        const set = new Set(out[date] || []);
+        for (const t of times) set.add(String(t).slice(0,5));
+        out[date] = Array.from(set).sort();
+      }
+      return out;
+    });
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/ketersediaanAdmin?type=bicare_doctors', { cache: 'no-store' });
+        const ns = typeof window !== 'undefined'
+          ? new URLSearchParams(location.search).get('ns') || ''
+          : '';
+        const res = await fetch(`/api/ketersediaanAdmin?type=bicare_doctors${ns ? `&ns=${encodeURIComponent(ns)}` : ''}`, {
+          cache: 'no-store',
+          credentials: 'include',
+        });
         const j = await res.json().catch(() => ({}));
         const list = j?.data || [];
         setDoctors(list);
@@ -268,35 +300,45 @@ export default function FiturBICare() {
   }, []);
 
   const handleMonthChange = useCallback(async (ym, idParam) => {
-    const id = idParam ?? doctorId; // selalu pakai doctorId TERKINI bila idParam undefined
+    const id = idParam ?? doctorId;
     try {
-      const res = await fetch(`/api/BIcare/booked?doctorId=${id}&month=${ym}&t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' },
-      });
-      if (!res.ok) throw new Error('Failed to fetch month data');
+      const ns = typeof window !== 'undefined'
+        ? new URLSearchParams(location.search).get('ns') || ''
+        : '';
+
+      const res = await fetch(
+        `/api/BIcare/booked?doctorId=${id}&month=${ym}${ns ? `&ns=${encodeURIComponent(ns)}` : ''}&t=${Date.now()}`,
+        {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+          credentials: 'include',
+        }
+      );
+
+      if (res.status === 401) {
+        alert('Sesi habis. Silakan login ulang.');
+        router.replace('/Signin/hal-sign');
+        return;
+      }
+
+      if (!res.ok) {
+        const txt = await res.text().catch(()=>'');
+        console.error('booked API error:', res.status, txt);
+        throw new Error('Failed to fetch month data');
+      }
+
       const data = await res.json();
 
-      const normSlots = {};
-      for (const [k, arr] of Object.entries(data.slotMap || {})) {
-        normSlots[k] = (arr || []).map((t) => String(t).slice(0,5));
-      }
-      const normBooked = {};
-      for (const [k, arr] of Object.entries(data.bookedMap || {})) {
-        normBooked[k] = (arr || []).map((t) => String(t).slice(0,5));
-      }
-      const normAdmin = {};
-      for (const [k, arr] of Object.entries(data.adminBlocks || {})) {
-        normAdmin[k] = (arr || []).map((t) => String(t).slice(0,5));
-      }
+      const norm = (m = {}) =>
+        Object.fromEntries(Object.entries(m).map(([k, arr]) => [k, (arr || []).map(toHHMM)]));
 
-      setSlotMap(normSlots);
-      setBookedMap(normBooked);
-      setAdminMap(normAdmin);
+      setSlotMap(norm(data.slotMap));
+      mergeServerWithLocalBooked(norm(data.bookedMap)); // << merge, bukan overwrite
+      setAdminMap(norm(data.adminBlocks));
     } catch (e) {
       console.error(e);
     }
-  }, [doctorId]); // <<— penting
+  }, [doctorId, router, mergeServerWithLocalBooked]);
 
   useEffect(() => {
     const now = new Date();
@@ -359,7 +401,6 @@ export default function FiturBICare() {
       gender: fields.jenisKelamin,
       birth_date: fields.tglLahir ? fields.tglLahir.toISOString().slice(0, 10) : null,
       complaint: fields.keluhan || null,
-      // NOTE: kalau API kamu tetap butuh userId, pastikan layer auth menambahkan userId di server.
     };
 
     const ns = typeof window !== 'undefined' ? new URLSearchParams(location.search).get('ns') : '';
@@ -367,32 +408,33 @@ export default function FiturBICare() {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // penting untuk auth
       body: JSON.stringify(payload),
     });
 
     const json = await res.json().catch(() => ({}));
 
     if (res.status === 201 || json?.ok) {
+      // 1) Optimistic update → langsung bikin merah
       const dateKey = payload.bookingDate;                 // "YYYY-MM-DD"
-      const timeHHMM = String(payload.slotTime).slice(0,5);
+      const timeHHMM = toHHMM(payload.slotTime);
       setBookedMap((prev) => {
         const set = new Set(prev[dateKey] || []);
         set.add(timeHHMM);
         return { ...prev, [dateKey]: Array.from(set).sort() };
       });
 
-      // 2) tetap re-fetch untuk sinkronisasi akhir
+      // 2) Re-fetch untuk sinkronisasi, tapi tidak akan menimpa status lokal
       const ymKey = `${dateKey.slice(0, 4)}-${dateKey.slice(5, 7)}`;
       handleMonthChange(ymKey);
       setShowSuccess(true);
     } else {
       if (res.status === 422 && json?.details) {
-        // kalau mau, kamu bisa sekalian setErrors(json.details) juga
         alert('Form belum lengkap:\n' +
           Object.entries(json.details).map(([k,v]) => `• ${k}: ${v}`).join('\n'));
       } else if (res.status === 401) {
         alert('Sesi habis. Silakan login ulang.');
-        // router.push('/Login/hal-login'); // optional
+        router.replace('/Signin/hal-sign');
       } else {
         alert(json?.error || 'Gagal booking');
       }
@@ -435,13 +477,13 @@ export default function FiturBICare() {
               id="doctorId"
               name="doctorId"
               placeholder={doctors.length ? 'Pilih Dokter' : 'Memuat...'}
-              value={doctorId ? String(doctorId) : ''}                 // <— value terisi → bukan placeholder style
+              value={doctorId ? String(doctorId) : ''}                 
               onChange={(e) => {
                 const id = Number(e.target.value) || null;
                 setDoctorId(id);
                 const now = new Date();
                 const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-                handleMonthChange(ym, id);                             // refresh slot sesuai dokter
+                handleMonthChange(ym, id);
               }}
               options={doctors.map(d => ({ value: String(d.id), label: d.name }))}
             />
@@ -451,12 +493,13 @@ export default function FiturBICare() {
           <div className={styles.calendarBlockLarge}>
             <h3 className={styles.calendarTitle}>Pilih Tanggal & Sesi</h3>
             <DoctorCalendar
+              key={`cal-${doctorId}`}           // <<< tambahkan baris ini
               slotMap={slotMap}
               bookedMap={bookedMap}
               adminMap={adminMap}
               onPick={handlePickSession}
               minDate={new Date()}
-              onMonthChange={(ym) => handleMonthChange(ym, doctorId)} // kirim dokter aktif setiap kali
+              onMonthChange={(ym) => handleMonthChange(ym, doctorId)}
             />
             <p className={styles.calendarHint}>Tanggal & jam hanya dapat diubah dari kalender ini.</p>
           </div>
@@ -610,7 +653,7 @@ export default function FiturBICare() {
               : '';
             await fetch(`/api/logout${ns ? `?ns=${encodeURIComponent(ns)}` : ''}`, {
               method: 'POST',
-              credentials: 'include', // biar cookie session ikut
+              credentials: 'include',
             });
           } finally {
             router.replace('/Signin/hal-sign');
