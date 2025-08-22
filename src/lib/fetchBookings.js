@@ -141,27 +141,31 @@ export async function fetchAllBookings(ns, scope = "user", abortSignal) {
     { service: "bidrive", url: "/api/booking", normalize: normalizeBIDriveRow },
     {
       service: "bicare",
-      url: `/api/BIcare/booked?scope=${scope}`,
+      url: `/api/BIcare/my-bookings?scope=${scope}`, // atau /api/my-bookings?scope=${scope}
       normalize: normalizeBICareRow,
       arrKey: "bookings",
     },
+
     {
       service: "bimail",
       url: `/api/BImail?scope=${scope}`,
       normalize: normalizeBIMailRow,
       arrKey: "items",
     },
+
     {
       service: "bimeal",
       url: `/api/bimeal/book?scope=${scope}`,
       normalize: normalizeBIMealRow,
     },
+
     {
       service: "bimeet",
       url: `/api/bimeet/createbooking?scope=${scope}`,
       normalize: normalizeBIMeetRow,
       arrKey: "items",
     },
+    
     {
       service: "bistay",
       url: `/api/BIstaybook/bistaybooking?scope=${scope}`,
