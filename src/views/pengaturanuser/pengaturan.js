@@ -314,6 +314,31 @@ export default function Pengaturan() {
     setAskReasonAdmin(true);
   }
 
+  // --- USER: verify / reject ---
+  function openVerifyUser(u) {
+    setSelectedRow({
+      id: u.id,
+      name: u.name,
+      nip: u.nip,
+      email: u.email,
+      phone: u.phone || '',
+    });
+    setShowVerifyPopup(true);
+  }
+
+  function openRejectUser(u) {
+    setSelectedRow({
+      id: u.id,
+      name: u.name,
+      nip: u.nip,
+      email: u.email,
+      phone: u.phone || '',
+    });
+    setPendingReason('');
+    setAskReasonUser(true);
+  }
+
+
   function proceedRejectAdmin(reason) {
     setPendingReason(reason);
     const msg = adminRejectTemplate(selectedRow || {}, reason);

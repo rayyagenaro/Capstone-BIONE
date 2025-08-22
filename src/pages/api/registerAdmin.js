@@ -1,12 +1,11 @@
 // /src/pages/api/registerAdmin.js
 import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import { getNsFromReq } from '@/lib/ns-server';
+import crypto from 'crypto';
 
 function isValidPhone(raw) {
   if (!raw) return false;
   const s = String(raw).replace(/[^\d+]/g, '');
-  // 08xxxxxxxx / 62xxxxxxxx (7–13 digits setelah prefix)
   return /^(?:\+?62|0)\d{7,13}$/.test(s);
 }
 
@@ -21,11 +20,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metode tidak diizinkan' });
   }
 
-  const ns = getNsFromReq(req);
-  if (!ns) {
-    return res.status(400).json({ error: 'ns wajib diisi (3–32 alnum _-)' });
-  }
-
   // role_id DIHARDCODE = 2 (admin fitur)
   const { nama, email, phone, password, service_ids = [] } = req.body || {};
   if (!nama || !email || !password) {
@@ -38,7 +32,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Format nomor telepon tidak valid (gunakan 08xx atau 62xx)' });
   }
 
-  // === aturan domain → kuota
+  // aturan domain → kuota
   const domain = getEmailDomain(email);
   const isUmi = domain === 'umi.com';
   const maxAllowed = isUmi ? 4 : 2;
@@ -57,14 +51,14 @@ export default async function handler(req, res) {
   try {
     if (conn.beginTransaction) await conn.beginTransaction();
 
-    // Email unik per-namespace
+    // Email unik (tanpa ns filter)
     const [existing] = await conn.query(
-      'SELECT id FROM admins WHERE email = ? AND ns = ? LIMIT 1',
-      [email, ns]
+      'SELECT id FROM admins WHERE email = ? LIMIT 1',
+      [email]
     );
     if (existing.length > 0) {
       if (conn.rollback) await conn.rollback();
-      return res.status(409).json({ error: 'Email sudah digunakan di namespace ini' });
+      return res.status(409).json({ error: 'Email sudah digunakan' });
     }
 
     // Pastikan role admin fitur ada
@@ -77,7 +71,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Role Admin Fitur belum tersedia di database' });
     }
 
-    // Validasi service id terhadap tabel services (harus namespace aware juga kalau tabel punya ns)
+    // Validasi service id terhadap tabel services
     const placeholders = uniqueServiceIds.map(() => '?').join(',');
     const [validSvcs] = await conn.query(
       `SELECT id FROM services WHERE id IN (${placeholders})`,
@@ -91,9 +85,9 @@ export default async function handler(req, res) {
     // Hash & insert admin
     const hashed = await bcrypt.hash(password, 10);
     const [ins] = await conn.query(
-      `INSERT INTO admins (nama, email, phone, password, role_id, verification_id, ns)
-       VALUES (?, ?, ?, ?, ?, 1, ?)`,
-      [nama, email, phone || null, hashed, ROLE_ADMIN_FITUR, ns]
+      `INSERT INTO admins (nama, email, phone, password, role_id, verification_id)
+       VALUES (?, ?, ?, ?, ?, 1)`,
+      [nama, email, phone || null, hashed, ROLE_ADMIN_FITUR]
     );
     const adminId = ins.insertId;
 
@@ -105,6 +99,9 @@ export default async function handler(req, res) {
         [values]
       );
     }
+
+    // Generate ns (3–32 alnum)
+    const ns = crypto.randomBytes(8).toString('hex');
 
     if (conn.commit) await conn.commit();
     return res.status(201).json({

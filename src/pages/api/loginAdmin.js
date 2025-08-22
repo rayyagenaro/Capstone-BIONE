@@ -40,12 +40,12 @@ export default async function handler(req, res) {
     if (!ok) return res.status(401).json({ error: 'Email atau password salah' });
 
     const isSuperAdmin = Number(admin.role_id) === 1;
-    const isVerified   = Number(admin.verification_status_id) === 2;
+    const isVerified   = Number(admin.verification_id) === 2;
 
     if (!isSuperAdmin && !isVerified) {
       return res.status(403).json({
         error:
-          Number(admin.verification_status_id) === 1
+          Number(admin.verification_id) === 1
             ? 'Akun admin menunggu verifikasi Super Admin.'
             : 'Akun admin ditolak. Hubungi Super Admin.',
       });
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
     } else {
       // fallback kalau role_name kosong
       const roleName = admin.role_name || 'default';
-      redirectUrl = `/Admin/Fitur/${roleName}/dashboard?ns=${encodeURIComponent(ns)}`;
+      redirectUrl = `/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`;
     }
 
     return res.status(200).json({
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         role: 'admin',
         role_id: admin.role_id,
         role_name: admin.role_name || (isSuperAdmin ? 'super_admin' : 'admin_fitur'),
-        verification_status_id: admin.verification_status_id,
+        verification_id: admin.verification_id,
         ns,
       },
     });
