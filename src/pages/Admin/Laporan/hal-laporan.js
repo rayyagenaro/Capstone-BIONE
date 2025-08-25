@@ -1,7 +1,8 @@
 // /src/pages/Admin/Laporan/hal-laporan.js
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
-import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
+// ⬇️ ganti ke SidebarFitur
+import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import Pagination from '@/components/Pagination/Pagination';
 import styles from './laporan.module.css';
 
@@ -66,7 +67,7 @@ export default function HalLaporan() {
 
   // state
   const [moduleKey, setModuleKey] = useState('bi-meet');
-  const [from, setFrom] = useState(''); // kosong = semua
+  const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState('');
@@ -77,14 +78,14 @@ export default function HalLaporan() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // === AUTO LOAD: fetch setiap module/from/to berubah ===
+  // auto load
   useEffect(() => {
     if (!router.isReady) return;
 
-    const ac = new AbortController(); // cancel request lama
+    const ac = new AbortController();
     setLoading(true);
     setErrMsg('');
-    setCurrentPage(1); // reset ke halaman 1 setiap filter berubah
+    setCurrentPage(1);
 
     (async () => {
       try {
@@ -110,9 +111,7 @@ export default function HalLaporan() {
             })
           : [];
 
-        // default sort ID ASC
         rows.sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0));
-
         setPreview({ columns: data.columns || [], rows });
       } catch (e) {
         if (e.name !== 'AbortError') {
@@ -127,7 +126,6 @@ export default function HalLaporan() {
     return () => ac.abort();
   }, [router.isReady, moduleKey, from, to, ns]);
 
-  // export SEMUA baris (bukan hanya halaman aktif)
   async function doExport() {
     try {
       const query = qs({
@@ -137,17 +135,13 @@ export default function HalLaporan() {
       });
       const url = withNs(`/api/export/laporan${query}`, ns);
       const a = document.createElement('a');
-      a.href = url;
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      a.href = url; a.target = '_blank';
+      document.body.appendChild(a); a.click(); a.remove();
     } catch (e) {
       alert(e?.message || 'Gagal mengekspor');
     }
   }
 
-  // filter client-side (search box)
   const filteredRows = useMemo(() => {
     if (!q.trim()) return preview.rows;
     const s = q.toLowerCase();
@@ -180,19 +174,19 @@ export default function HalLaporan() {
 
   const resultsText = totalItems ? `Results: ${startIdx + 1} - ${endIdx} of ${totalItems}` : '';
 
-  // kalau ganti items/page, balik ke page-1
   useEffect(() => { setCurrentPage(1); }, [itemsPerPage, moduleKey]);
 
   return (
     <div className={styles.background}>
-      <SidebarAdmin />
+      {/* ⬇️ pakai SidebarFitur */}
+      <SidebarFitur />
       <main className={styles.mainContent}>
         <div className={styles.tableBox}>
           <div className={styles.tableTopRow}>
             <div className={styles.tableTitle}>LAPORAN BOOKING</div>
           </div>
 
-          {/* Controls (tanpa tombol Preview) */}
+          {/* Controls */}
           <div className={styles.controlsRow}>
             <div className={styles.controlGroup}>
               <label className={styles.label}>Layanan</label>
