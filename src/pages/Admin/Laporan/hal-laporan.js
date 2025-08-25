@@ -1,10 +1,11 @@
 // /src/pages/Admin/Laporan/hal-laporan.js
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
-// ⬇️ ganti ke SidebarFitur
+import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import Pagination from '@/components/Pagination/Pagination';
 import styles from './laporan.module.css';
+import { jwtVerify } from 'jose';
 
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
@@ -51,10 +52,10 @@ function looksDateKey(k) {
   return /(date|time|datetime|created|updated|birth|tanggal)/i.test(k);
 }
 
-export default function HalLaporan() {
+export default function HalLaporan({ initialRoleId = null }) {
   const router = useRouter();
 
-  // ns dari query
+  // ==== NS dari query/asPath ====
   const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
   const nsFromAsPath = (() => {
     const q = router.asPath.split('?')[1];
@@ -65,7 +66,33 @@ export default function HalLaporan() {
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
-  // state
+  // ==== Role → pilih sidebar ====
+  const [roleId, setRoleId] = useState(initialRoleId); // 1=super admin, 2=admin fitur
+  const [sbLoading, setSbLoading] = useState(initialRoleId == null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!router.isReady || initialRoleId != null) { setSbLoading(false); return; }
+      try {
+        const url = ns ? `/api/me?scope=admin&ns=${encodeURIComponent(ns)}` : '/api/me?scope=admin';
+        const r = await fetch(url, { cache: 'no-store' });
+        const d = await r.json();
+        if (!alive) return;
+        const rl = Number(d?.payload?.role_id_num ?? d?.payload?.role_id ?? 0);
+        const rs = String(d?.payload?.role || d?.payload?.roleNormalized || '').toLowerCase();
+        const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
+        setRoleId(isSuper ? 1 : 2);
+      } catch {
+        setRoleId(2); // default aman: sidebar fitur
+      } finally {
+        if (alive) setSbLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [router.isReady, ns, initialRoleId]);
+
+  // ==== State data laporan ====
   const [moduleKey, setModuleKey] = useState('bi-meet');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -78,10 +105,9 @@ export default function HalLaporan() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // auto load
+  // auto load saat filter berubah
   useEffect(() => {
     if (!router.isReady) return;
-
     const ac = new AbortController();
     setLoading(true);
     setErrMsg('');
@@ -89,11 +115,7 @@ export default function HalLaporan() {
 
     (async () => {
       try {
-        const query = qs({
-          module: moduleKey,
-          from: from || undefined,
-          to:   to   || undefined,
-        });
+        const query = qs({ module: moduleKey, from: from || undefined, to: to || undefined });
         const url = withNs(`/api/admin/laporan/booking${query}`, ns);
         const res = await fetch(url, { cache: 'no-store', signal: ac.signal });
         const data = await res.json().catch(() => ({}));
@@ -126,13 +148,10 @@ export default function HalLaporan() {
     return () => ac.abort();
   }, [router.isReady, moduleKey, from, to, ns]);
 
+  // export excel
   async function doExport() {
     try {
-      const query = qs({
-        module: moduleKey,
-        from: from || undefined,
-        to:   to   || undefined,
-      });
+      const query = qs({ module: moduleKey, from: from || undefined, to: to || undefined });
       const url = withNs(`/api/export/laporan${query}`, ns);
       const a = document.createElement('a');
       a.href = url; a.target = '_blank';
@@ -142,15 +161,13 @@ export default function HalLaporan() {
     }
   }
 
+  // filter + paging
   const filteredRows = useMemo(() => {
     if (!q.trim()) return preview.rows;
     const s = q.toLowerCase();
-    return preview.rows.filter((row) =>
-      Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(s))
-    );
+    return preview.rows.filter((row) => Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(s)));
   }, [preview.rows, q]);
 
-  // paging
   const totalItems = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const clampedPage = Math.min(currentPage, totalPages);
@@ -173,13 +190,13 @@ export default function HalLaporan() {
   };
 
   const resultsText = totalItems ? `Results: ${startIdx + 1} - ${endIdx} of ${totalItems}` : '';
-
   useEffect(() => { setCurrentPage(1); }, [itemsPerPage, moduleKey]);
+
+  const SidebarComp = roleId === 1 ? SidebarAdmin : SidebarFitur;
 
   return (
     <div className={styles.background}>
-      {/* ⬇️ pakai SidebarFitur */}
-      <SidebarFitur />
+      {!sbLoading && <SidebarComp />}
       <main className={styles.mainContent}>
         <div className={styles.tableBox}>
           <div className={styles.tableTopRow}>
@@ -190,11 +207,7 @@ export default function HalLaporan() {
           <div className={styles.controlsRow}>
             <div className={styles.controlGroup}>
               <label className={styles.label}>Layanan</label>
-              <select
-                className={styles.input}
-                value={moduleKey}
-                onChange={(e) => setModuleKey(e.target.value)}
-              >
+              <select className={styles.input} value={moduleKey} onChange={(e) => setModuleKey(e.target.value)}>
                 {MODULES.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
@@ -203,33 +216,16 @@ export default function HalLaporan() {
 
             <div className={styles.controlGroup}>
               <label className={styles.label}>Dari</label>
-              <input
-                type="date"
-                className={styles.input}
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                placeholder="Semua"
-              />
+              <input type="date" className={styles.input} value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Semua" />
             </div>
 
             <div className={styles.controlGroup}>
               <label className={styles.label}>Sampai</label>
-              <input
-                type="date"
-                className={styles.input}
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                placeholder="Semua"
-              />
+              <input type="date" className={styles.input} value={to} onChange={(e) => setTo(e.target.value)} placeholder="Semua" />
             </div>
 
             <div className={styles.actionsRight}>
-              <button
-                className={styles.exportBtn}
-                onClick={doExport}
-                disabled={loading || !preview.rows.length}
-                title="Ekspor ke Excel"
-              >
+              <button className={styles.exportBtn} onClick={doExport} disabled={loading || !preview.rows.length} title="Ekspor ke Excel">
                 Ekspor Excel
               </button>
             </div>
@@ -319,4 +315,45 @@ export default function HalLaporan() {
       </main>
     </div>
   );
+}
+
+// ====== SSR: validasi token + role → pass initialRoleId ======
+export async function getServerSideProps(ctx) {
+  const { ns: raw } = ctx.query;
+  const ns = Array.isArray(raw) ? raw[0] : raw;
+  const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
+  const fromUrl = ctx.resolvedUrl || '/Admin/Laporan/hal-laporan';
+
+  if (!nsValid) {
+    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
+  }
+
+  const cookieName = `admin_session__${nsValid}`;
+  const token = ctx.req.cookies?.[cookieName] || null;
+  if (!token) {
+    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
+  }
+
+  try {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('missing-secret');
+
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+      clockTolerance: 10,
+    });
+
+    const roleIdNum = Number(payload?.role_id ?? 0);
+    const roleStr   = String(payload?.role || '').toLowerCase();
+    const isSuper = roleIdNum === 1 || ['super_admin','superadmin','super-admin'].includes(roleStr);
+    const isFitur = roleIdNum === 2 || ['admin_fitur','admin-fitur','admin'].includes(roleStr);
+
+    if (!isSuper && !isFitur) {
+      return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
+    }
+
+    return { props: { initialRoleId: isSuper ? 1 : 2 } };
+  } catch {
+    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
+  }
 }
