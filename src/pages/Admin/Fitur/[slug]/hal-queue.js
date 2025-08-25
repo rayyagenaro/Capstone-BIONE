@@ -4,16 +4,13 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import styles from './hal-queue.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
+import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import { jwtVerify } from 'jose';
 
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-const withNs = (url, ns) => {
-  if (!ns) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}ns=${encodeURIComponent(ns)}`;
-};
+const withNs = (url, ns) => (ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url);
 
 const calculateDays = (start, end) => {
   if (!start || !end) return '';
@@ -23,10 +20,10 @@ const calculateDays = (start, end) => {
 
 const META = {
   dmove:  { title: "BI.DRIVE", logo: "/assets/D'MOVE.svg"  },
-  bicare: { title: "BI.CARE",  logo: "/assets/D'CARE.svg"  },
+  bicare: { title: "BI.CARE",  logo: "/assets/BI-CARE.svg" },
   bimeal: { title: "BI.MEAL",  logo: "/assets/D'MEAL.svg"  },
   bimeet: { title: "BI.MEET",  logo: "/assets/D'ROOM.svg"  },
-  bimail: { title: "BI.DOCS",  logo: "/assets/D%27TRACK.svg" },
+  bimail: { title: "BI.DOCS",  logo: "/assets/BI-MAIL.svg" },
   bistay: { title: "BI.STAY",  logo: "/assets/D'REST.svg"  },
 };
 
@@ -75,11 +72,48 @@ function renderCardText(slug, row) {
   }
 }
 
-
-export default function HalQueue({ initialAdminName = 'Admin' }) {
+export default function HalQueue({ initialAdminName = 'Admin', initialRoleId = null }) {
   const router = useRouter();
   const slug = String(router.query.slug || '').toLowerCase();
-  const ns   = typeof router.query.ns === 'string' && NS_RE.test(router.query.ns) ? router.query.ns : '';
+
+  // ns dari query/asPath
+  const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
+  const nsFromAsPath = (() => {
+    const q = (router.asPath || '').split('?')[1];
+    if (!q) return '';
+    const p = new URLSearchParams(q);
+    const v = p.get('ns') || '';
+    return NS_RE.test(v) ? v : '';
+  })();
+  const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
+
+  // ==== pilih sidebar by role (SSR → client fallback) ====
+  const [roleId, setRoleId] = useState(initialRoleId);
+  const [sbLoading, setSbLoading] = useState(initialRoleId == null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!router.isReady || initialRoleId != null) { setSbLoading(false); return; }
+      try {
+        const r = await fetch(withNs('/api/me?scope=admin', ns), { cache: 'no-store' });
+        const d = await r.json();
+        if (!alive) return;
+
+        const rl = Number(d?.payload?.role_id_num ?? d?.payload?.role_id ?? 0);
+        const rs = String(d?.payload?.role || d?.payload?.roleNormalized || '').toLowerCase();
+        const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
+        setRoleId(isSuper ? 1 : 2);
+
+        if (d?.payload?.name) setNamaAdmin(d.payload.name);
+      } catch {
+        setRoleId(2); // fallback aman
+      } finally {
+        if (alive) setSbLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [router.isReady, ns, initialRoleId]);
 
   const [namaAdmin, setNamaAdmin] = useState(initialAdminName);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
@@ -92,30 +126,7 @@ export default function HalQueue({ initialAdminName = 'Admin' }) {
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const listTopRef = useRef(null);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      if (!router.isReady) return;
-      if (!ns) {
-        router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
-        return;
-      }
-      try {
-        const r = await fetch(withNs('/api/me?scope=admin', ns), { cache: 'no-store' });
-        const d = await r.json();
-        if (!active) return;
-        if (!(d?.hasToken && d?.payload?.role === 'admin')) {
-          router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
-          return;
-        }
-        setNamaAdmin(d?.payload?.name || initialAdminName);
-      } catch {
-        router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
-      }
-    })();
-    return () => { active = false; };
-  }, [router.isReady, router.asPath, ns, initialAdminName, router]);
-
+  // fetch antrian
   useEffect(() => {
     let active = true;
     (async () => {
@@ -164,26 +175,25 @@ export default function HalQueue({ initialAdminName = 'Admin' }) {
 
   const handleLogout = async () => {
     try {
-      const nsQ = new URLSearchParams(location.search).get('ns');
       await fetch('/api/logout', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ area: 'admin', ns: nsQ }),
+        body: JSON.stringify({ area: 'admin', ns }),
       });
     } catch {}
     router.replace('/Signin/hal-signAdmin');
   };
 
-  const buildDetailUrl = (row) =>
-    withNs(`/Admin/Fitur/${slug}/detail?id=${row.id}`, ns);
+  const buildDetailUrl = (row) => withNs(`/Admin/Fitur/${slug}/detail?id=${row.id}`, ns);
+  const SidebarComp = roleId === 1 ? SidebarAdmin : SidebarFitur;
 
   return (
     <div className={styles.background}>
-      <SidebarAdmin onLogout={() => setShowLogoutPopup(true)} />
+      {!sbLoading && <SidebarComp onLogout={() => setShowLogoutPopup(true)} />}
 
       <main className={styles.mainContent}>
         <div className={styles.greeting}>
           Selamat datang, {namaAdmin}
-          <div className={styles.adminText}>Admin</div>
+          <div className={styles.adminText}>{roleId === 1 ? 'Super Admin' : 'Admin'}</div>
         </div>
 
         <div className={styles.boxLayanan}>
@@ -272,4 +282,46 @@ export default function HalQueue({ initialAdminName = 'Admin' }) {
       />
     </div>
   );
+}
+
+/* ========= SSR guard (boleh role 1 & 2) ========= */
+export async function getServerSideProps(ctx) {
+  const { ns: raw } = ctx.query;
+  const ns = Array.isArray(raw) ? raw[0] : raw;
+  const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
+  const from = ctx.resolvedUrl || '/Admin/Fitur/[slug]/hal-queue';
+
+  if (!nsValid) {
+    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+  }
+
+  const cookieName = `admin_session__${nsValid}`;
+  const token = ctx.req.cookies?.[cookieName] || null;
+  if (!token) {
+    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET), {
+      algorithms: ['HS256'], clockTolerance: 10
+    });
+
+    const rId = Number(payload?.role_id ?? 0);
+    const rStr = String(payload?.role || '').toLowerCase();
+    const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
+    const isFitur = rId === 2 || ['admin_fitur','admin-fitur','admin'].includes(rStr);
+
+    if (!isSuper && !isFitur) {
+      return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+    }
+
+    return {
+      props: {
+        initialRoleId: isSuper ? 1 : 2,
+        initialAdminName: payload?.name || 'Admin',
+      }
+    };
+  } catch {
+    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+  }
 }

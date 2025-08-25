@@ -1,17 +1,17 @@
-// /components/SidebarFitur.js
+// components/SidebarFitur.js
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './SidebarFitur.module.css';
-import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers } from 'react-icons/fa';
+import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaFileAlt } from 'react-icons/fa';
 
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
 export default function SidebarFitur({ onLogout }) {
   const router = useRouter();
 
-  // Ambil ns dari query (utama) atau dari asPath (fallback)
+  // Ambil ns dari query (utama) atau asPath (fallback)
   const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
   const nsFromAsPath = (() => {
     const q = router.asPath.split('?')[1];
@@ -22,22 +22,18 @@ export default function SidebarFitur({ onLogout }) {
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
-  // Helper untuk menempelkan ?ns= ke URL
-  const withNs = (href) => {
-    if (!ns) return href;
-    return href + (href.includes('?') ? '&' : '?') + 'ns=' + encodeURIComponent(ns);
-  };
+  // Helper tempelkan ?ns=
+  const withNs = (href) => (ns ? `${href}${href.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : href);
 
+  // ⚠️ Tidak ada menu Pengaturan di Admin Fitur
   const menuItems = [
-    { href: '/Admin/HalamanUtama/hal-utamaAdmin', text: 'Beranda',              icon: FaHome },
-    { href: '/Admin/Persetujuan/hal-persetujuan', text: 'Persetujuan Booking',  icon: FaClipboardList },
-    { href: '/Admin/Ketersediaan/hal-ketersediaan', text: 'Ketersediaan',       icon: FaUsers },
+    { href: '/Admin/HalamanUtama/hal-utamaAdmin', text: 'Beranda', icon: FaHome },
+    { href: '/Admin/Laporan/hal-laporan',        text: 'Laporan', icon: FaFileAlt },
+    { href: '/Admin/Persetujuan/hal-persetujuan', text: 'Persetujuan Booking', icon: FaClipboardList },
+    { href: '/Admin/Ketersediaan/hal-ketersediaan', text: 'Ketersediaan', icon: FaUsers },
   ];
 
-  const handleNavigate = (href) => {
-    router.push(withNs(href));
-  };
-
+  const handleNavigate = (href) => router.push(withNs(href));
   const pathnameOnly = router.asPath.split('?')[0];
 
   return (
@@ -57,6 +53,7 @@ export default function SidebarFitur({ onLogout }) {
         <ul>
           {menuItems.map((item) => {
             const isActive = pathnameOnly.startsWith(item.href);
+            const Icon = item.icon;
             return (
               <li
                 key={item.href}
@@ -66,7 +63,7 @@ export default function SidebarFitur({ onLogout }) {
                 role="button"
                 tabIndex={0}
               >
-                <item.icon className={styles.menuIcon} />
+                <Icon className={styles.menuIcon} />
                 <Link href={withNs(item.href)}>{item.text}</Link>
               </li>
             );
@@ -76,7 +73,7 @@ export default function SidebarFitur({ onLogout }) {
 
       <div
         className={styles.logout}
-        onClick={() => onLogout?.(ns)}   
+        onClick={() => onLogout?.(ns)}
         onKeyDown={(e) => e.key === 'Enter' && onLogout?.(ns)}
         role="button"
         tabIndex={0}

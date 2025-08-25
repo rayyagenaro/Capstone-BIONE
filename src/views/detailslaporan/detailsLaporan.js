@@ -4,29 +4,27 @@ import { useRouter } from 'next/router';
 import styles from './detailsLaporan.module.css';
 import { FaFilePdf, FaArrowLeft } from 'react-icons/fa';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
+import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
 import RejectReasonPopup from '@/components/RejectReasonPopup/RejectReasonPopup';
 import RejectVerificationPopup from '@/components/rejectVerification/RejectVerification';
 import KontakDriverPopup from '@/components/KontakDriverPopup/KontakDriverPopup';
 import PopupAdmin from '@/components/PopupAdmin/PopupAdmin';
+import { jwtVerify } from 'jose';
 
 const ALLOWED_SLUGS = ['dmove', 'bicare', 'bimeet', 'bimail', 'bistay', 'bimeal'];
 
-// ===== NS helpers =====
+/* ===== NS helpers ===== */
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 const withNs = (url, ns) => (ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url);
 
-
-// ===== Helpers (formatting) =====
+/* ===== Helpers (formatting) ===== */
 const formatDateTime = (dateString) => {
   if (!dateString) return '-';
   const d = new Date(dateString);
   if (Number.isNaN(d.valueOf())) return String(dateString);
-  return d.toLocaleString('id-ID', {
-    day: 'numeric', month: 'long', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
+  return d.toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 const formatDateOnly = (d) => {
   if (!d) return '-';
@@ -39,7 +37,6 @@ const formatDuration = (start, end) => {
   const diff = Math.ceil(Math.abs(new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
   return `${diff || 1} Hari | ${formatDateOnly(start)} - ${formatDateOnly(end)}`;
 };
-
 const toWaNumber = (val) => {
   if (!val) return '';
   let p = String(val).trim().replace(/[^\d]/g, '');
@@ -49,13 +46,9 @@ const toWaNumber = (val) => {
   if (p.startsWith('8'))  return '62' + p;
   return p;
 };
-const getStatusId = (slug, booking, detail) => {
-  if (slug === 'dmove' || slug === 'bidrive') return booking?.status_id;
-  return detail?.status_id;
-};
+const getStatusId = (slug, booking, detail) => (slug === 'dmove' || slug === 'bidrive') ? booking?.status_id : detail?.status_id;
 
-
-// ===== Status styles =====
+/* ===== Status styles ===== */
 const STATUS_CONFIG = {
   '1': { text: 'Pending',   className: styles.statusPending,  dot: styles.dotPending  },
   '2': { text: 'Approved',  className: styles.statusApproved, dot: styles.dotApproved },
@@ -63,7 +56,7 @@ const STATUS_CONFIG = {
   '4': { text: 'Finished',  className: styles.statusFinished, dot: styles.dotFinished },
 };
 
-// ===== Meta judul =====
+/* ===== Meta judul ===== */
 const META = {
   dmove:  { title: 'BI-DRIVE' },
   bicare: { title: 'BI-CARE'  },
@@ -73,7 +66,7 @@ const META = {
   bimeal: { title: 'BI-MEAL'  },
 };
 
-// ===== Util =====
+/* ===== Util ===== */
 const getPlate = (v) => v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
 
 function mapStatus(detail) {
@@ -93,46 +86,22 @@ function mapStatus(detail) {
 const isPendingGeneric = (slug, d) => {
   if (!d) return false;
   const s = String(slug || '').toLowerCase();
-
-  const numish = (v) => {
-    const n = Number(v);
-    return Number.isNaN(n) ? null : n;
-  };
+  const numish = (v) => { const n = Number(v); return Number.isNaN(n) ? null : n; };
   const byText = () => {
-    const txt =
-      [d.status, d.status_name, d.approval_status, d.booking_status, d.state]
-        .map((v) => String(v ?? '').toLowerCase())
-        .find((t) => t);
-    return !!(
-      txt &&
-      (txt.includes('pend') ||
-        txt.includes('menunggu') ||
-        txt.includes('await') ||
-        txt.includes('diajukan') ||
-        txt.includes('submit'))
-    );
+    const txt = [d.status, d.status_name, d.approval_status, d.booking_status, d.state]
+      .map((v) => String(v ?? '').toLowerCase())
+      .find((t) => t);
+    return !!(txt && (txt.includes('pend') || txt.includes('menunggu') || txt.includes('await') || txt.includes('diajukan') || txt.includes('submit')));
   };
-
-  if (s === 'bimeal') {
-    const n = numish(d.status_id);
-    return n === 1 || n === 0;
-  }
-  if (s === 'bimeet') {
-    if (d.status_id == null) return true;
-    const n = numish(d.status_id);
-    return n === 1 || n === 0;
-  }
-  if (s === 'bistay') {
-    const n = numish(d.status_id ?? d.booking_status_id ?? d.state);
-    if (n != null) return n === 1 || n === 0;
-    return byText();
-  }
+  if (s === 'bimeal') { const n = numish(d.status_id); return n === 1 || n === 0; }
+  if (s === 'bimeet') { if (d.status_id == null) return true; const n = numish(d.status_id); return n === 1 || n === 0; }
+  if (s === 'bistay') { const n = numish(d.status_id ?? d.booking_status_id ?? d.state); if (n != null) return n === 1 || n === 0; return byText(); }
   const n = numish(d.status_id ?? d.booking_status_id ?? d.state);
   if (n != null) return n === 1 || n === 0;
   return byText();
 };
 
-// ===== Penerima WA per fitur =====
+/* ===== Penerima WA per fitur ===== */
 const pickPersonForWA = (slug, booking, detail) => {
   switch (slug) {
     case 'dmove':  return { name: booking?.user_name,  phone: booking?.phone };
@@ -144,8 +113,8 @@ const pickPersonForWA = (slug, booking, detail) => {
   }
 };
 
-// ===== Builder pesan WA default =====
-const buildRejectPreview = (slug, person, reason, id) => {
+/* ===== Builder pesan WA default ===== */
+const buildRejectPreview = (slug, person, reason) => {
   const service = META[slug]?.title || slug.toUpperCase();
   return `Halo ${person?.name || ''},
 
@@ -157,10 +126,12 @@ ${reason}
 Silakan lakukan perbaikan/pengajuan ulang. Terima kasih.`;
 };
 
-// ============================== COMPONENT ==============================
-export default function DetailsLaporan() {
+/* ============================== COMPONENT ============================== */
+export default function DetailsLaporan({ initialRoleId = null }) {
   const router = useRouter();
   const { id, slug: qslug } = router.query || {};
+
+  // ns
   const nsFromQuery = typeof router.query?.ns === 'string' ? router.query.ns : '';
   const nsFromAsPath = (() => {
     const q = (router.asPath || '').split('?')[1];
@@ -170,8 +141,36 @@ export default function DetailsLaporan() {
     return NS_RE.test(v) ? v : '';
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
+
+  // slug
   const raw = (typeof qslug === 'string' ? qslug : '').toLowerCase();
   const slug = ALLOWED_SLUGS.includes(raw) ? raw : 'dmove';
+
+  // ==== pilih sidebar by role (SSR → client fallback) ====
+  const [roleId, setRoleId] = useState(initialRoleId);
+  const [sbLoading, setSbLoading] = useState(initialRoleId == null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!router.isReady || initialRoleId != null) { setSbLoading(false); return; }
+      const nsParam = new URLSearchParams(location.search).get('ns') || '';
+      try {
+        const url = nsParam ? `/api/me?scope=admin&ns=${encodeURIComponent(nsParam)}` : `/api/me?scope=admin`;
+        const r = await fetch(url, { cache: 'no-store' });
+        const d = await r.json();
+        if (!alive) return;
+        const rl = Number(d?.payload?.role_id_num ?? d?.payload?.role_id ?? 0);
+        const rs = String(d?.payload?.role || d?.payload?.roleNormalized || '').toLowerCase();
+        const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
+        setRoleId(isSuper ? 1 : 2);
+      } catch {
+        setRoleId(2); // fallback aman: admin fitur
+      } finally {
+        if (alive) setSbLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [router.isReady, initialRoleId]);
 
   // D'MOVE
   const [booking, setBooking] = useState(null);
@@ -200,15 +199,12 @@ export default function DetailsLaporan() {
   const [pendingRejectReason, setPendingRejectReason] = useState('');
   const [rejectLoading, setRejectLoading] = useState(false);
 
-  // ✅ Notifikasi (PopupAdmin) — pengganti alert()
+  // ✅ Notifikasi (PopupAdmin)
   const [showNotif, setShowNotif] = useState(false);
   const [notif, setNotif] = useState({ message: '', type: 'success' });
-  const openNotif = (message, type = 'success') => {
-    setNotif({ message, type });
-    setShowNotif(true);
-  };
+  const openNotif = (message, type = 'success') => { setNotif({ message, type }); setShowNotif(true); };
 
-  // ===== FETCH utama
+  /* ===== FETCH utama ===== */
   useEffect(() => {
     if (!router.isReady || !id) return;
     (async () => {
@@ -254,7 +250,7 @@ export default function DetailsLaporan() {
     })();
   }, [router.isReady, id, slug]);
 
-  // ========= Aksi BI-DRIVE =========
+  /* ========= Aksi BI-DRIVE ========= */
   const handleSubmitPersetujuan = async ({ driverIds, vehicleIds, keterangan }) => {
     if (slug !== 'dmove' || !booking) return;
     setIsUpdating(true);
@@ -276,6 +272,7 @@ export default function DetailsLaporan() {
       });
       const assignJson = await resAssign.json().catch(() => ({}));
       if (!resAssign.ok || assignJson?.error) throw new Error(assignJson?.error || 'Gagal menyimpan penugasan.');
+
       await Promise.all(
         vehicleIds.map(async (vehId) => {
           const r = await fetch('/api/updateVehiclesStatus', {
@@ -294,11 +291,9 @@ export default function DetailsLaporan() {
           if (!r.ok) throw new Error(`Gagal update driver ${driverId}`);
         })
       );
-      openNotif('Persetujuan berhasil diproses.', 'success');
-      setTimeout(() => {
-        router.push(`/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`);
-      }, 1200);
 
+      openNotif('Persetujuan berhasil diproses.', 'success');
+      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
     } catch (err) {
       openNotif(`Error: ${err.message || err}`, 'error');
     } finally {
@@ -307,7 +302,7 @@ export default function DetailsLaporan() {
     }
   };
 
-  // ========= REJECT (2 langkah) =========
+  /* ========= REJECT (2 langkah) ========= */
   const handleRejectStep1Done = (reasonText) => {
     setPendingRejectReason(reasonText);
     setShowRejectReason(false);
@@ -339,14 +334,12 @@ export default function DetailsLaporan() {
       if (openWhatsApp) {
         const person = pickPersonForWA(slug, booking, detail);
         const target = toWaNumber(person?.phone);
-        const msg = (messageText || buildRejectPreview(slug, person, reason, id)).trim();
+        const msg = (messageText || buildRejectPreview(slug, person, reason)).trim();
         if (target) window.open(`https://wa.me/${target}?text=${encodeURIComponent(msg)}`, '_blank');
       }
 
       openNotif('Permohonan berhasil ditolak.', 'success');
-      setTimeout(() => {
-        router.push(`/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`);
-      }, 1200);
+      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
       setShowRejectSend(false);
       setPendingRejectReason('');
     } catch (e) {
@@ -356,7 +349,7 @@ export default function DetailsLaporan() {
     }
   };
 
-  // ===== Approve generic (selain BI.DOCS) =====
+  /* ===== Approve generic (selain BI.DOCS) ===== */
   const handleApproveGeneric = async () => {
     if (slug === 'bimail') return;
     setIsUpdatingGeneric(true);
@@ -369,11 +362,8 @@ export default function DetailsLaporan() {
       if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menyetujui.');
 
       const svc = META[slug]?.title || slug.toUpperCase();
-      // ✅ format pesan sesuai desain: "Pengajuan {SERVICE} Berhasil!"
       openNotif(`Pengajuan ${svc} Berhasil!`, 'success');
-      setTimeout(() => {
-        router.push(`/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`);
-      }, 1200);
+      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
 
       const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
       const d = await r.json();
@@ -385,7 +375,7 @@ export default function DetailsLaporan() {
     }
   };
 
-  // ===== Export PDF =====
+  /* ===== Export PDF ===== */
   const handleExportPDF = async () => {
     try {
       const el = detailRef.current;
@@ -419,21 +409,30 @@ export default function DetailsLaporan() {
     }
   };
 
-  // ===== UI guard & derived =====
+  /* ===== UI guard ===== */
   if (isLoading) return <div className={styles.loadingState}>Memuat detail laporan...</div>;
   if (error)     return <div className={styles.errorState}>Error: {error}</div>;
 
   const titleService = META[slug]?.title || slug.toUpperCase();
   const nonMoveStatus = slug !== 'dmove' ? mapStatus(detail) : null;
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin');
-    router.push('/Login/hal-login');
+  // Logout (pakai API + redirect Signin Admin)
+  const doLogout = async () => {
+    try {
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ area: 'admin', ns }),
+      });
+    } catch {}
+    router.replace('/Signin/hal-signAdmin');
   };
+
+  const SidebarComp = roleId === 1 ? SidebarAdmin : SidebarFitur;
 
   return (
     <div className={styles.background}>
-      <SidebarAdmin onLogoutClick={() => setShowLogoutPopup(true)} />
+      {!sbLoading && <SidebarComp onLogout={() => setShowLogoutPopup(true)} />}
 
       <main className={styles.mainContent}>
         <div className={styles.header} />
@@ -446,7 +445,7 @@ export default function DetailsLaporan() {
         </div>
 
         {slug === 'dmove' ? (
-          // ========================== D'MOVE ==========================
+          /* ========================== D'MOVE ========================== */
           <div className={styles.detailCard} ref={detailRef}>
             <div className={styles.topRow}>
               <div className={styles.leftTitle}>
@@ -610,7 +609,7 @@ export default function DetailsLaporan() {
               </div>
             )}
 
-            {/* Export PDF - berlaku untuk semua layanan */}
+            {/* Export PDF */}
             {Number(getStatusId(slug, booking, detail)) === 4 && (
               <div className={styles.actionBtnRow}>
                 <button
@@ -625,10 +624,9 @@ export default function DetailsLaporan() {
                 </button>
               </div>
             )}
-            
           </div>
         ) : (
-          // ========================== LAYANAN LAIN ==========================
+          /* ========================== Layanan lain ========================== */
           <div className={styles.detailCard} ref={detailRef}>
             <div className={styles.topRow}>
               <div className={styles.leftTitle}>
@@ -645,10 +643,10 @@ export default function DetailsLaporan() {
               <div className={styles.emptyText}>Data belum tersedia.</div>
             ) : (
               <>
-                {/* ===================== GRID KIRI ===================== */}
+                {/* ===== GRID KIRI ===== */}
                 <div className={styles.detailRow}>
                   <div className={styles.detailColLeft}>
-                    {/* ===== BI.CARE ===== */}
+                    {/* BI.CARE */}
                     {slug === 'bicare' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -685,7 +683,7 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===== BI.MEET ===== */}
+                    {/* BI.MEET */}
                     {slug === 'bimeet' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -713,7 +711,7 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===== BI.STAY ===== */}
+                    {/* BI.STAY */}
                     {slug === 'bistay' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -739,7 +737,7 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===== BI.MAIL (LEFT) ===== */}
+                    {/* BI.DOCS (LEFT) */}
                     {slug === 'bimail' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -779,7 +777,7 @@ export default function DetailsLaporan() {
                       </>
                     )}
 
-                    {/* ===== BI.MEAL (LEFT) ===== */}
+                    {/* BI.MEAL (LEFT) */}
                     {slug === 'bimeal' && (
                       <>
                         <div className={styles.detailLabel}>ID</div>
@@ -800,7 +798,7 @@ export default function DetailsLaporan() {
                     )}
                   </div>
 
-                  {/* ===================== GRID KANAN ===================== */}
+                  {/* ===== GRID KANAN ===== */}
                   <div className={styles.detailColRight}>
                     {slug === 'bicare' && (
                       <>
@@ -876,29 +874,15 @@ export default function DetailsLaporan() {
                               {detail.attachments.map((att, i) => (
                                 <li key={i}>
                                   {att?.url ? (
-                                    <a
-                                      href={att.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}
-                                      title={att.url}
-                                    >
+                                    <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}>
                                       {att.name || 'Buka di SharePoint'}
                                     </a>
-                                  ) : (
-                                    (att?.name || '-')
-                                  )}
+                                  ) : (att?.name || '-')}
                                 </li>
                               ))}
                             </ul>
                           ) : detail.link_dokumen ? (
-                            <a
-                              href={detail.link_dokumen}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}
-                              title={detail.link_dokumen}
-                            >
+                            <a href={detail.link_dokumen} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}>
                               Buka di SharePoint
                             </a>
                           ) : ('-')}
@@ -914,9 +898,7 @@ export default function DetailsLaporan() {
                     {slug === 'bimeal' && (
                       <>
                         <div className={styles.detailLabel}>Waktu Pesanan</div>
-                        <div className={styles.detailValue}>
-                          {formatDateTime(detail.waktu_pesanan)}
-                        </div>
+                        <div className={styles.detailValue}>{formatDateTime(detail.waktu_pesanan)}</div>
 
                         <div className={styles.detailLabel}>Status</div>
                         <div className={styles.detailValue}>
@@ -933,14 +915,10 @@ export default function DetailsLaporan() {
                             {Array.isArray(detail.items) && detail.items.length ? (
                               <ul style={{ margin: 0}}>
                                 {detail.items.map((it) => (
-                                  <li key={it.id}>
-                                    {it.nama_pesanan} ({it.jumlah})
-                                  </li>
+                                  <li key={it.id}>{it.nama_pesanan} ({it.jumlah})</li>
                                 ))}
                               </ul>
-                            ) : (
-                              '-'
-                            )}
+                            ) : ('-')}
                           </div>
                         </div>
                       </div>
@@ -948,21 +926,13 @@ export default function DetailsLaporan() {
                   </div>
                 </div>
 
-                {/* ===== Action row untuk layanan selain BI.DOCS ===== */}
+                {/* ===== Action row (selain BI.DOCS) ===== */}
                 {slug !== 'bimail' && isPendingGeneric(slug, detail) && (
                   <div className={styles.actionBtnRow} style={{ marginTop: 16 }}>
-                    <button
-                      className={styles.btnTolak}
-                      onClick={() => setShowRejectReason(true)}
-                      disabled={isUpdatingGeneric}
-                    >
+                    <button className={styles.btnTolak} onClick={() => setShowRejectReason(true)} disabled={isUpdatingGeneric}>
                       {isUpdatingGeneric ? 'Memproses...' : 'Tolak'}
                     </button>
-                    <button
-                      className={styles.btnSetujui}
-                      onClick={handleApproveGeneric}
-                      disabled={isUpdatingGeneric}
-                    >
+                    <button className={styles.btnSetujui} onClick={handleApproveGeneric} disabled={isUpdatingGeneric}>
                       {isUpdatingGeneric ? 'Memproses...' : 'Setujui'}
                     </button>
                   </div>
@@ -974,18 +944,9 @@ export default function DetailsLaporan() {
       </main>
 
       {/* Popups */}
-      <KontakDriverPopup
-        show={showKontakPopup}
-        onClose={() => setShowKontakPopup(false)}
-        drivers={booking?.assigned_drivers || []}
-        booking={booking || {}}
-      />
+      <KontakDriverPopup show={showKontakPopup} onClose={() => setShowKontakPopup(false)} drivers={booking?.assigned_drivers || []} booking={booking || {}} />
 
-      <LogoutPopup
-        open={showLogoutPopup}
-        onCancel={() => setShowLogoutPopup(false)}
-        onLogout={handleLogout}
-      />
+      <LogoutPopup open={showLogoutPopup} onCancel={() => setShowLogoutPopup(false)} onLogout={doLogout} />
 
       <PersetujuanPopup
         show={showPopup}
@@ -997,12 +958,7 @@ export default function DetailsLaporan() {
       />
 
       {/* Step 1: input alasan */}
-      <RejectReasonPopup
-        show={showRejectReason}
-        onClose={() => setShowRejectReason(false)}
-        onNext={handleRejectStep1Done}
-        title={`Alasan Penolakan ${META[slug]?.title || ''}`}
-      />
+      <RejectReasonPopup show={showRejectReason} onClose={() => setShowRejectReason(false)} onNext={handleRejectStep1Done} title={`Alasan Penolakan ${META[slug]?.title || ''}`} />
 
       {/* Step 2: kirim WA + simpan */}
       <RejectVerificationPopup
@@ -1013,18 +969,48 @@ export default function DetailsLaporan() {
         person={pickPersonForWA(slug, booking, detail)}
         titleText={`Kirimkan Pesan Penolakan ${META[slug]?.title || ''}`}
         infoText="Periksa / ubah pesan yang akan dikirim via WhatsApp. Klik 'Tolak & Kirim' untuk menyimpan dan (opsional) mengirim."
-        previewBuilder={(person, r) => buildRejectPreview(slug, person, r, id)}
+        previewBuilder={(person, r) => buildRejectPreview(slug, person, r)}
         initialReason={pendingRejectReason}
       />
 
-      {/* ✅ Notifikasi Global */}
-      {showNotif && (
-        <PopupAdmin
-          message={notif.message}
-          type={notif.type}
-          onClose={() => setShowNotif(false)}
-        />
-      )}
+      {/* Notifikasi Global */}
+      {showNotif && <PopupAdmin message={notif.message} type={notif.type} onClose={() => setShowNotif(false)} />}
     </div>
   );
+}
+
+/* ====== SSR guard (boleh role 1 & 2) ====== */
+export async function getServerSideProps(ctx) {
+  const { ns: raw } = ctx.query;
+  const ns = Array.isArray(raw) ? raw[0] : raw;
+  const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
+  const from = ctx.resolvedUrl || '/Admin/DetailsLaporan/hal-detailslaporan';
+
+  if (!nsValid) {
+    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+  }
+
+  const cookieName = `admin_session__${nsValid}`;
+  const token = ctx.req.cookies?.[cookieName] || null;
+  if (!token) {
+    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+  }
+
+  try {
+    const secret = process.env.JWT_SECRET;
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), { algorithms: ['HS256'], clockTolerance: 10 });
+
+    const rId = Number(payload?.role_id ?? 0);
+    const rStr = String(payload?.role || '').toLowerCase();
+    const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
+    const isFitur = rId === 2 || ['admin_fitur','admin-fitur','admin'].includes(rStr);
+
+    if (!isSuper && !isFitur) {
+      return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+    }
+
+    return { props: { initialRoleId: isSuper ? 1 : 2 } };
+  } catch {
+    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+  }
 }
