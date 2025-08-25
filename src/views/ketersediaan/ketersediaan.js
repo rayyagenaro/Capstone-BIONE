@@ -6,6 +6,7 @@ import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
+import { FaChevronDown } from 'react-icons/fa';
 import { jwtVerify } from 'jose';
 import { FaUsers, FaCar, FaUserMd, FaCalendarAlt, FaFileAlt } from 'react-icons/fa';
 
@@ -377,7 +378,52 @@ export default function KetersediaanPage({ initialRoleId = null }) {
                 <div className={styles.selectRow} style={{ justifyContent:'flex-end' }}>
                   <span className={styles.selectLabel}>Pilih Dokter:</span>
                   <div className={styles.selectWrap} ref={docSelRef}>
-                    {/* tombol & list dokter: pertahankan dari implementasi kamu */}
+                    <button
+                      type="button"
+                      className={styles.selectBtn}
+                      onClick={() => setIsDocOpen((o) => !o)}
+                      disabled={loading || (careDoctors?.length ?? 0) === 0}
+                      aria-haspopup="listbox"
+                      aria-expanded={isDocOpen}
+                    >
+                      <span className={styles.selectText}>
+                        {(() => {
+                          if (loading) return 'Memuat…';
+                          if (!careDoctors || careDoctors.length === 0) return 'Tidak ada dokter';
+                          const picked =
+                            careDoctors.find((d) => d.id === currentDoctorId) || careDoctors[0];
+                          return picked?.name || 'Pilih Dokter';
+                        })()}
+                      </span>
+                      <span className={styles.selectCaret}>
+                        {/* boleh ganti FaChevronDown dengan karakter ▼ kalau tak pakai react-icons */}
+                        <FaChevronDown />
+                      </span>
+                    </button>
+
+                    {isDocOpen && careDoctors && careDoctors.length > 0 && (
+                      <div className={styles.selectPopover} role="listbox" tabIndex={-1}>
+                        {careDoctors.map((d) => {
+                          const active = d.id === currentDoctorId;
+                          return (
+                            <div
+                              key={d.id}
+                              role="option"
+                              aria-selected={active}
+                              className={`${styles.selectOption} ${
+                                active ? styles.selectOptionActive : ''
+                              }`}
+                              onClick={() => {
+                                setCurrentDoctorId(d.id);
+                                setIsDocOpen(false);
+                              }}
+                            >
+                              {d.name}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
