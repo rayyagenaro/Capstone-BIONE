@@ -42,6 +42,15 @@ const FEATURE_LOGOS = {
   bistay:  "/assets/D'REST.svg",
 };
 
+const SERVICE_ID_MAP = {
+  1: 'bidrive',
+  2: 'bicare',
+  3: 'bimeal',
+  4: 'bimeet',
+  5: 'bimail',
+  6: 'bistay',
+};
+
 const norm = (s) => String(s || '').trim().toLowerCase();
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 const withNs = (url, ns) => (ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url);
@@ -95,7 +104,7 @@ const formatDate = (dateString) => {
 
 const logoSrcOf = (booking) => FEATURE_LOGOS[resolveFeatureKey(booking)] || '/assets/BI-One-Blue.png';
 
-const FeatureDropdown = React.memo(({ value, onChange }) => (
+const FeatureDropdown = React.memo(({ value, onChange, allowedOptions }) => (
   <div className={styles.filterRow}>
     <label htmlFor="featureFilter" className={styles.label}>Fitur/Layanan:</label>
     <select
@@ -104,7 +113,7 @@ const FeatureDropdown = React.memo(({ value, onChange }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      {FEATURE_OPTIONS.map(opt => (
+      {allowedOptions.map(opt => (
         <option key={opt.value} value={opt.value}>{opt.label}</option>
       ))}
     </select>
@@ -174,10 +183,9 @@ const ADMIN_DETAIL_ROUTES = {
   bidrive: (id) => `/Admin/DetailsLaporan/hal-detailslaporan?id=${id}`,
 };
 
-export default function PersetujuanBooking({ initialRoleId = null }) {
+export default function PersetujuanBooking({ initialRoleId = null, initialServiceIds = null }) {
   const router = useRouter();
 
-  // ns dari query/asPath
   const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
   const nsFromAsPath = (() => {
     const q = router.asPath.split('?')[1];
@@ -188,8 +196,8 @@ export default function PersetujuanBooking({ initialRoleId = null }) {
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
-  // ==== pilih sidebar by role (SSR → client fallback) ====
   const [roleId, setRoleId] = useState(initialRoleId);
+  const [allowedServiceIds, setAllowedServiceIds] = useState(initialServiceIds);
   const [sbLoading, setSbLoading] = useState(initialRoleId == null);
 
   useEffect(() => {
@@ -206,10 +214,18 @@ export default function PersetujuanBooking({ initialRoleId = null }) {
         const rl = Number(d?.payload?.role_id_num ?? d?.payload?.role_id ?? 0);
         const rs = String(d?.payload?.role || d?.payload?.roleNormalized || '').toLowerCase();
         const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
-        setRoleId(isSuper ? 1 : 2);
+
+        if (isSuper) {
+          setRoleId(1);
+          setAllowedServiceIds(null);
+        } else {
+          setRoleId(2);
+          const ids = Array.isArray(d?.payload?.service_ids) ? d.payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean) : [];
+          setAllowedServiceIds(ids);
+        }
       } catch {
-        // fallback aman → anggap admin fitur (hide Pengaturan)
         setRoleId(2);
+        setAllowedServiceIds([]);
       } finally {
         if (alive) setSbLoading(false);
       }
@@ -224,12 +240,10 @@ export default function PersetujuanBooking({ initialRoleId = null }) {
   const [activeTab, setActiveTab] = useState('All');
   const [featureValue, setFeatureValue] = useState('all');
 
-  // pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const listTopRef = useRef(null);
 
-  // logout popup
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const handleLogout = async () => {
     try {
@@ -243,7 +257,6 @@ export default function PersetujuanBooking({ initialRoleId = null }) {
     }
   };
 
-  // Fetch data lintas layanan
   useEffect(() => {
     if (!router.isReady) return;
     const abortCtrl = new AbortController();
@@ -258,23 +271,30 @@ export default function PersetujuanBooking({ initialRoleId = null }) {
   }, [router.isReady, ns]);
 
   // ===== FILTER & PAGINATION =====
-  const handleTabChange = useCallback((tabName) => {
-    setActiveTab(tabName);
-    setCurrentPage(1);
-    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
+  const roleFiltered = useMemo(() => {
+    if (!allowedServiceIds || allowedServiceIds.length === 0) return allBookings;
+    return allBookings.filter((b) => {
+      const key = resolveFeatureKey(b);
+      return allowedServiceIds.includes(key);
+    });
+  }, [allBookings, allowedServiceIds]);
 
-  const handleFeatureChange = useCallback((value) => {
-    setFeatureValue(value);
-    setCurrentPage(1);
-    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
+  const allowedFeatureOptions = useMemo(() => {
+    if (!allowedServiceIds || allowedServiceIds.length === 0) {
+      // Super admin → semua fitur + All
+      return FEATURE_OPTIONS;
+    }
+    // Admin fitur → hanya tampilkan All + fitur yg ada di allowedServiceIds
+    return FEATURE_OPTIONS.filter(opt =>
+      opt.value === 'all' || allowedServiceIds.includes(opt.value)
+    );
+  }, [allowedServiceIds]);
 
   const statusFiltered = useMemo(() => {
-    if (activeTab === 'All') return allBookings;
+    if (activeTab === 'All') return roleFiltered;
     const statusId = TAB_TO_STATUS_ID[activeTab];
-    return allBookings.filter((item) => item.status_id === statusId);
-  }, [activeTab, allBookings]);
+    return roleFiltered.filter((item) => item.status_id === statusId);
+  }, [activeTab, roleFiltered]);
 
   const filteredBookings = useMemo(() => {
     if (featureValue === 'all') return statusFiltered;
@@ -308,12 +328,10 @@ export default function PersetujuanBooking({ initialRoleId = null }) {
   const resultsFrom = filteredBookings.length ? startIndex + 1 : 0;
   const resultsTo = Math.min(endIndex, filteredBookings.length);
 
-  // klik kartu → ke detail
   const onCardClick = useCallback((booking) => {
     const fk = resolveFeatureKey(booking);
     const id = numericIdOf(booking.id);
     if (!Number.isFinite(id)) return;
-
     const makeUrl = ADMIN_DETAIL_ROUTES[fk];
     if (makeUrl) router.push(withNs(makeUrl(id), ns));
     else alert('Detail untuk layanan ini belum tersedia di halaman admin.');
@@ -333,8 +351,8 @@ export default function PersetujuanBooking({ initialRoleId = null }) {
             <h1 className={styles.title}>PERSETUJUAN BOOKING</h1>
           </div>
 
-          <FeatureDropdown value={featureValue} onChange={handleFeatureChange} />
-          <TabFilter currentTab={activeTab} onTabChange={handleTabChange} />
+          <FeatureDropdown value={featureValue} onChange={setFeatureValue} allowedOptions={allowedFeatureOptions} />
+          <TabFilter currentTab={activeTab} onTabChange={setActiveTab} />
 
           <div ref={listTopRef} />
 
@@ -375,7 +393,6 @@ export default function PersetujuanBooking({ initialRoleId = null }) {
                   </select>
                 </div>
               </div>
-
               <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
             </div>
           )}
@@ -421,7 +438,9 @@ export async function getServerSideProps(ctx) {
       return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
     }
 
-    return { props: { initialRoleId: isSuper ? 1 : 2 } };
+    const serviceIds = isSuper ? null : (Array.isArray(payload?.service_ids) ? payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean) : []);
+
+    return { props: { initialRoleId: isSuper ? 1 : 2, initialServiceIds: serviceIds } };
   } catch {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
