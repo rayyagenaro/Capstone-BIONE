@@ -1,5 +1,5 @@
 // pages/Admin/Pengaturan/pengaturan.js
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import styles from './pengaturan.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
@@ -51,6 +51,12 @@ function openWhatsAppSafely(link) {
     try { tab.location.replace(link); tab.opener = null; return; } catch {}
   }
   window.open(link, '_blank');
+}
+
+/* ===== Helper domain email (untuk limit layanan) ===== */
+function getEmailDomain(email = '') {
+  const at = String(email).toLowerCase().trim().split('@');
+  return at.length === 2 ? at[1] : '';
 }
 
 /* ===== Template builders ===== */
@@ -199,7 +205,7 @@ export default function Pengaturan() {
     setPagination((p) => ({ ...p, currentPage: 1 }));
   };
 
-  const afterRowRemoved = React.useCallback(() => {
+  const afterRowRemoved = useCallback(() => {
     setPagination((p) => {
       const next = { ...p };
       if (rows.length <= 1 && p.currentPage > 1) next.currentPage = 1;
@@ -288,14 +294,14 @@ export default function Pengaturan() {
   }
 
   /* ===========================================================
-     ADMIN: verify / reject (dua langkah) + EDIT AKSES (BATAS 2)
+     ADMIN: verify / reject (dua langkah) + EDIT AKSES (LIMIT DINAMIS)
      =========================================================== */
 
   // --- state popup Edit Akses ---
   const [showEditAccessPopup, setShowEditAccessPopup] = useState(false);
   const [allServices, setAllServices] = useState([]);           // [{id,name}]
   const [pickedServiceIds, setPickedServiceIds] = useState([]); // [id,id]
-  const MAX_SERVICES = 2;
+  const [maxServices, setMaxServices] = useState(2);            // dinamis: @umi.com=4, lainnya=2
 
   function openVerifyAdmin(a) {
     setSelectedRow({
@@ -337,7 +343,6 @@ export default function Pengaturan() {
     setPendingReason('');
     setAskReasonUser(true);
   }
-
 
   function proceedRejectAdmin(reason) {
     setPendingReason(reason);
@@ -408,6 +413,11 @@ export default function Pengaturan() {
       services: adminRow.services || [],
     });
 
+    // SET LIMIT DINAMIS: @umi.com => 4, lainnya => 2
+    const domain = getEmailDomain(adminRow.email);
+    const limit = domain === 'umi.com' ? 4 : 2;
+    setMaxServices(limit);
+
     try {
       setLoading(true);
       const [allRes, mineRes] = await Promise.all([
@@ -418,9 +428,10 @@ export default function Pengaturan() {
       const mine = await mineRes.json().catch(() => ({ services: [] }));
 
       setAllServices(Array.isArray(all) ? all : []);
-      setPickedServiceIds(
-        Array.isArray(mine?.services) ? mine.services.map((s) => s.id) : []
-      );
+      const pickedIds = Array.isArray(mine?.services) ? mine.services.map((s) => s.id) : [];
+
+      // Jika sebelumnya > limit baru, pangkas agar UI & submit konsisten
+      setPickedServiceIds(pickedIds.slice(0, limit));
 
       setShowEditAccessPopup(true);
     } catch (e) {
@@ -436,9 +447,9 @@ export default function Pengaturan() {
         // uncheck
         return prev.filter((x) => x !== id);
       }
-      // tambahkan hanya jika belum mencapai MAX
-      if (prev.length >= MAX_SERVICES) {
-        alert(`Maksimal ${MAX_SERVICES} layanan untuk Admin Fitur.`);
+      // tambahkan hanya jika belum mencapai limit dinamis
+      if (prev.length >= maxServices) {
+        alert(`Maksimal ${maxServices} layanan untuk Admin Fitur.`);
         return prev;
       }
       return [...prev, id];
@@ -449,8 +460,8 @@ export default function Pengaturan() {
     e?.preventDefault?.();
     if (!selectedRow?.id) return;
 
-    if (pickedServiceIds.length > MAX_SERVICES) {
-      alert(`Maksimal ${MAX_SERVICES} layanan untuk Admin Fitur.`);
+    if (pickedServiceIds.length > maxServices) {
+      alert(`Maksimal ${maxServices} layanan untuk Admin Fitur.`);
       return;
     }
 
@@ -969,7 +980,7 @@ export default function Pengaturan() {
             <div style={{ marginBottom: 10, color: '#41507a', fontSize: 14 }}>
               <div><strong>Admin:</strong> {selectedRow?.name || '-'}</div>
               <div><strong>Email:</strong> {selectedRow?.email || '-'}</div>
-              <div style={{marginTop:6, fontSize:12, color:'#6a7bb8'}}>Maksimal 2 layanan.</div>
+              <div style={{marginTop:6, fontSize:12, color:'#6a7bb8'}}>Maksimal {maxServices} layanan.</div>
             </div>
 
             {/* Daftar layanan dengan checkbox */}
@@ -980,7 +991,7 @@ export default function Pengaturan() {
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
                   {allServices.map((s) => {
                     const checked = pickedServiceIds.includes(s.id);
-                    const disable = !checked && pickedServiceIds.length >= 2;
+                    const disable = !checked && pickedServiceIds.length >= maxServices;
                     return (
                       <label key={s.id} style={{ display:'flex', alignItems:'center', gap:8, opacity: disable ? 0.6 : 1 }}>
                         <input
