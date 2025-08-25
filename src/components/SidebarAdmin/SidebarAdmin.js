@@ -1,4 +1,3 @@
-// /components/SidebarAdmin.js
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -11,7 +10,6 @@ const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 export default function SidebarAdmin({ onLogout }) {
   const router = useRouter();
 
-  // Ambil ns dari query (utama) atau dari asPath (fallback)
   const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
   const nsFromAsPath = (() => {
     const q = router.asPath.split('?')[1];
@@ -22,23 +20,20 @@ export default function SidebarAdmin({ onLogout }) {
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
-  // Helper untuk menempelkan ?ns= ke URL
   const withNs = (href) => {
     if (!ns) return href;
     return href + (href.includes('?') ? '&' : '?') + 'ns=' + encodeURIComponent(ns);
   };
 
   const menuItems = [
-    { href: '/Admin/HalamanUtama/hal-utamaAdmin', text: 'Beranda',              icon: FaHome },
-    { href: '/Admin/Persetujuan/hal-persetujuan', text: 'Persetujuan Booking',  icon: FaClipboardList },
-    { href: '/Admin/Ketersediaan/hal-ketersediaan', text: 'Ketersediaan',       icon: FaUsers },
-    { href: '/Admin/Pengaturan/hal-pengaturan',   text: 'Pengaturan',           icon: FaCog },
+    { href: '/Admin/HalamanUtama/hal-utamaAdmin', text: 'Beranda',             icon: FaHome },
+    { href: '/Admin/Laporan/hal-laporan',         text: 'Laporan',             icon: FaClipboardList },
+    { href: '/Admin/Persetujuan/hal-persetujuan', text: 'Persetujuan Booking', icon: FaClipboardList },
+    { href: '/Admin/Ketersediaan/hal-ketersediaan', text: 'Ketersediaan',      icon: FaUsers },
+    { href: '/Admin/Pengaturan/hal-pengaturan',   text: 'Pengaturan',          icon: FaCog },
   ];
 
-  const handleNavigate = (href) => {
-    router.push(withNs(href));
-  };
-
+  const handleNavigate = (href) => router.push(withNs(href));
   const pathnameOnly = router.asPath.split('?')[0];
 
   return (
@@ -59,16 +54,16 @@ export default function SidebarAdmin({ onLogout }) {
           {menuItems.map((item) => {
             const isActive = pathnameOnly.startsWith(item.href);
             return (
-              <li
-                key={item.href}
-                className={`${styles.menuItem} ${isActive ? styles.active : ''}`}
-                onClick={() => handleNavigate(item.href)}
-                onKeyDown={(e) => e.key === 'Enter' && handleNavigate(item.href)}
-                role="button"
-                tabIndex={0}
-              >
+              <li key={item.href} className={`${styles.menuItem} ${isActive ? styles.active : ''}`}>
                 <item.icon className={styles.menuIcon} />
-                <Link href={withNs(item.href)}>{item.text}</Link>
+                {/* href stabil (tanpa ?ns) → tidak bikin hydration mismatch.
+                    Saat klik, kita override agar tetap bawa ?ns */}
+                <Link
+                  href={item.href}
+                  onClick={(e) => { e.preventDefault(); handleNavigate(item.href); }}
+                >
+                  {item.text}
+                </Link>
               </li>
             );
           })}
@@ -77,7 +72,7 @@ export default function SidebarAdmin({ onLogout }) {
 
       <div
         className={styles.logout}
-        onClick={() => onLogout?.(ns)}   
+        onClick={() => onLogout?.(ns)}
         onKeyDown={(e) => e.key === 'Enter' && onLogout?.(ns)}
         role="button"
         tabIndex={0}

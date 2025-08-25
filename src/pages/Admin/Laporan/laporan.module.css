@@ -1,0 +1,176 @@
+/* ===== Layout dasar (selaras dengan halaman lain) ===== */
+.background {
+  min-height: 100vh;
+  position: relative;
+  background: #2f4d8e;
+}
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #2f4d8e;
+  min-height: 100vh;
+  margin-left: 255px; /* ada sidebar */
+}
+.tableBox {
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 4px 20px 0 rgba(47,77,142,0.11);
+  width: 93%;
+  max-width: 1280px;
+  margin: 44px auto 32px auto;
+  padding: 24px 26px 28px 26px;
+  display: flex;
+  flex-direction: column;
+}
+.tableTopRow { display: flex; align-items: center; gap: 20px; margin-bottom: 14px; }
+.tableTitle {
+  flex: 1; text-align: center;
+  font-size: 25px; color: #2F4D8E; font-weight: bold; letter-spacing: 1.5px;
+  text-shadow: 0 2px 5px #465b8d2a;
+}
+
+/* ===== Controls ===== */
+.controlsRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr)) auto auto;
+  gap: 12px;
+  align-items: end;
+  margin: 8px 0 10px 0;
+}
+.controlGroup { display: flex; flex-direction: column; gap: 6px; }
+.label { color: #22335e; font-weight: 600; font-size: 14px; }
+.input {
+  border: 1.5px solid #cfd6ef;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 15px;
+  background: #f8fafd;
+  color: #213a6f;
+}
+.input:focus { outline: none; border-color: #2f4d8e; background: #fff; }
+
+/* quick-range chips */
+.quickRange { display: flex; gap: 8px; align-items: center; }
+.chip {
+  border: 1px solid #dfe6ff;
+  background: #f4f7ff;
+  color: #2F4D8E;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 1px 6px rgba(47,77,142,0.06);
+}
+.chip:hover { background: #e9efff; }
+
+/* Actions kanan */
+.actionsRight { display: flex; gap: 10px; justify-content: flex-end; }
+.previewBtn {
+  background: #ffffff;
+  color: #2F4D8E;
+  border: 1.5px solid #e2e8fb;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 1px 6px rgba(47,77,142,0.06);
+}
+.previewBtn:hover { background: #f5f8ff; }
+.previewBtn:disabled { opacity: .6; cursor: not-allowed; }
+.exportBtn {
+  background: linear-gradient(90deg,#254e97 60%,#356fd9 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(30,40,140,0.11);
+}
+.exportBtn:hover { filter: brightness(1.04); }
+.exportBtn:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Search row */
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 12px 0;
+}
+.searchInput {
+  flex: 1;
+  border: 1.5px solid #cfd6ef;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 15px;
+  background: #f8fafd;
+  color: #213a6f;
+  box-shadow: 0 1px 6px rgba(47,77,142,0.06);
+}
+.searchInput:focus { outline: none; border-color: #2f4d8e; background: #fff; }
+.resultsText { font-size: 14px; color: #5a6aa3; font-weight: 600; }
+
+/* ===== Tabel ===== */
+.tableWrapper {
+  width: 100%;
+  overflow: auto;
+  border-radius: 10px;
+  box-shadow: 0 1.5px 12px 0 rgba(47,77,142,0.07);
+}
+.dataTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #f8fafd;
+}
+.dataTable thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: #e8edf6;
+  font-weight: bold; color: #233969;
+  border-bottom: 2.2px solid #dbe8ff;
+  padding: 14px 16px; font-size: 15px; text-align: left;
+}
+.dataTable tbody td {
+  background: #fff;
+  color: #222;
+  border-bottom: 1px solid #eef1f7;
+  font-size: 15px;
+  padding: 12px 16px; text-align: left;
+}
+.dataTable tbody tr:nth-child(odd) td { background: #fdfefe; }
+.dataTable tbody tr:hover td { background: #f3f7ff; }
+
+.centerMuted { text-align: center; color: #888; padding: 14px; }
+.centerError { text-align: center; color: #b04141; padding: 14px; }
+.dateCell { color: #2b3f79; font-weight: 600; }
+
+/* Status pill (selaras pengaturan) */
+.statusPill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.pillPending  { background: #fff4d6; color: #a86b00; border: 1px solid #ffe3a1; }
+.pillVerified { background: #e7fbef; color: #0c8a4d; border: 1px solid #bff0d2; }
+.pillRejected { background: #ffe7e7; color: #b42525; border: 1px solid #ffc3c3; }
+
+/* ===== Responsif ===== */
+@media (max-width: 950px) {
+  .tableBox { padding: 20px 2vw; margin: 18px auto; }
+  .controlsRow { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 750px) {
+  .mainContent { margin-left: 0; }
+  .tableBox { padding: 7vw 1vw 5vw 1vw; margin: 10px 0; border-radius: 12px; }
+  .dataTable thead th, .dataTable tbody td { font-size: 13px; padding: 8px 6px; }
+  .controlsRow { grid-template-columns: 1fr; }
+  .actionsRight { justify-content: stretch; }
+  .exportBtn, .previewBtn { width: 100%; }
+}
