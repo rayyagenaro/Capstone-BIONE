@@ -18,11 +18,13 @@ const MODULES = [
   { value: 'bi-docs',  label: 'BI.DOCS' },
 ];
 
+// helper ns
 function withNs(url, ns) {
   if (!ns) return url;
   const sep = url.includes('?') ? '&' : '?';
   return `${url}${sep}ns=${encodeURIComponent(ns)}`;
 }
+// build query string dari object (skip undefined/empty)
 function qs(params) {
   const sp = new URLSearchParams();
   Object.entries(params || {}).forEach(([k, v]) => {
@@ -105,7 +107,7 @@ export default function HalLaporan({ initialRoleId = null }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // auto load saat filter berubah
+  // ====== AUTO LOAD data saat filter berubah ======
   useEffect(() => {
     if (!router.isReady) return;
     const ac = new AbortController();
@@ -133,6 +135,7 @@ export default function HalLaporan({ initialRoleId = null }) {
             })
           : [];
 
+        // default: urut ID ASC
         rows.sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0));
         setPreview({ columns: data.columns || [], rows });
       } catch (e) {
@@ -148,20 +151,58 @@ export default function HalLaporan({ initialRoleId = null }) {
     return () => ac.abort();
   }, [router.isReady, moduleKey, from, to, ns]);
 
-  // export excel
-  async function doExport() {
+  // ====== EKSPOR: Popup & aksi ======
+  const [showExportPopup, setShowExportPopup] = useState(false);
+  const [exportMode, setExportMode] = useState('range'); // 'range' | 'all'
+  const [exportCount, setExportCount] = useState(null);  // jumlah baris
+  const [countLoading, setCountLoading] = useState(false);
+
+  function openExport(mode) {
+    setExportMode(mode);
+    if (mode === 'range') {
+      setExportCount(Array.isArray(preview.rows) ? preview.rows.length : 0);
+    } else {
+      setExportCount(null);
+    }
+    setShowExportPopup(true);
+  }
+
+  async function calcAllCount() {
     try {
-      const query = qs({ module: moduleKey, from: from || undefined, to: to || undefined });
-      const url = withNs(`/api/export/laporan${query}`, ns);
+      setCountLoading(true);
+      const url = withNs(`/api/admin/laporan/booking${qs({ module: moduleKey })}`, ns);
+      const res = await fetch(url, { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Gagal menghitung jumlah');
+      setExportCount(Array.isArray(data.rows) ? data.rows.length : 0);
+    } catch (e) {
+      alert(e?.message || 'Gagal menghitung jumlah baris.');
+    } finally {
+      setCountLoading(false);
+    }
+  }
+
+  function proceedExport() {
+    try {
+      const base = '/api/export/laporan';
+      const query = exportMode === 'all'
+        ? qs({ module: moduleKey })
+        : qs({ module: moduleKey, from: from || undefined, to: to || undefined });
+
+      const url = withNs(`${base}${query}`, ns);
       const a = document.createElement('a');
-      a.href = url; a.target = '_blank';
-      document.body.appendChild(a); a.click(); a.remove();
+      a.href = url;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setShowExportPopup(false);
     } catch (e) {
       alert(e?.message || 'Gagal mengekspor');
     }
   }
 
-  // filter + paging
+  // ====== filter + paging ======
   const filteredRows = useMemo(() => {
     if (!q.trim()) return preview.rows;
     const s = q.toLowerCase();
@@ -225,8 +266,22 @@ export default function HalLaporan({ initialRoleId = null }) {
             </div>
 
             <div className={styles.actionsRight}>
-              <button className={styles.exportBtn} onClick={doExport} disabled={loading || !preview.rows.length} title="Ekspor ke Excel">
-                Ekspor Excel
+              <button
+                className={styles.exportBtn}
+                onClick={() => openExport('range')}
+                disabled={loading || !preview.rows.length || !from || !to}
+                title="Ekspor berdasarkan rentang tanggal"
+              >
+                Ekspor (Rentang)
+              </button>
+              <button
+                className={styles.previewBtn}
+                onClick={() => openExport('all')}
+                disabled={loading || !preview.columns.length}
+                title="Ekspor semua data modul (abaikan tanggal)"
+                style={{ marginLeft: 8 }}
+              >
+                Ekspor (Semua)
               </button>
             </div>
           </div>
@@ -313,6 +368,87 @@ export default function HalLaporan({ initialRoleId = null }) {
           )}
         </div>
       </main>
+
+      {/* ===== POPUP KONFIRMASI EKSPOR ===== */}
+      {showExportPopup && (
+        <div
+          style={{
+            position:'fixed', inset:0, background:'rgba(0,0,0,0.2)',
+            display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000
+          }}
+          onClick={() => setShowExportPopup(false)}
+        >
+          <div
+            style={{
+              background:'#fff', borderRadius:14, boxShadow:'0 12px 40px rgba(0,0,0,.15)',
+              width:'min(520px, 92vw)', padding:'20px 20px 16px 20px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{fontSize:18, fontWeight:800, color:'#2F4D8E', marginBottom:8}}>
+              Konfirmasi Ekspor Excel
+            </div>
+
+            <div style={{fontSize:14.5, color:'#334', lineHeight:1.5}}>
+              <div><b>Modul:</b> {MODULES.find(m => m.value === moduleKey)?.label || moduleKey}</div>
+
+              {exportMode === 'range' ? (
+                <>
+                  <div><b>Mode:</b> Rentang Tanggal</div>
+                  <div><b>Rentang:</b> {from || '—'} s/d {to || '—'}</div>
+                  <div style={{marginTop:6}}>
+                    <b>Jumlah baris (tanpa filter pencarian & pagination):</b> {exportCount ?? 0}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div><b>Mode:</b> Semua Data</div>
+                  <div style={{marginTop:6}}>
+                    <b>Jumlah baris:</b>{' '}
+                    {exportCount != null ? exportCount : <i>(belum dihitung)</i>}
+                    {exportCount == null && (
+                      <button
+                        onClick={calcAllCount}
+                        disabled={countLoading}
+                        style={{
+                          marginLeft:10, padding:'6px 10px', borderRadius:8, border:'1px solid #d9e1ff',
+                          background:'#f5f8ff', color:'#2F4D8E', fontWeight:700, cursor:'pointer'
+                        }}
+                      >
+                        {countLoading ? 'Menghitung…' : 'Hitung jumlah'}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div style={{display:'flex', justifyContent:'flex-end', gap:10, marginTop:16}}>
+              <button
+                onClick={() => setShowExportPopup(false)}
+                style={{
+                  padding:'9px 16px', borderRadius:10, border:'1.5px solid #e6e8f2',
+                  background:'#fff', color:'#2F4D8E', fontWeight:800, cursor:'pointer'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={proceedExport}
+                disabled={exportMode === 'range' && (!from || !to)}
+                style={{
+                  padding:'9px 16px', borderRadius:10, border:'none',
+                  background:'#2F4D8E', color:'#fff', fontWeight:800, cursor:'pointer',
+                  opacity: exportMode === 'range' && (!from || !to) ? .6 : 1
+                }}
+                title={exportMode === 'range' && (!from || !to) ? 'Isi tanggal dulu' : 'Ekspor sekarang'}
+              >
+                Ekspor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
