@@ -209,6 +209,164 @@
 .formGroup :global(.react-datepicker-wrapper) input:focus {
   border-color: #2f4d8e;
 }
+/* ======== Tambahan styling untuk header DatePicker (dropdown Bulan & Tahun) ======== */
+.dpHeader {
+  position: relative;              /* supaya panel tahun bisa absolute di dalam header */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid #e6ebf7;
+}
+
+.dpSelectors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dpNavBtn {
+  border: 1px solid #cfd7ee;
+  background: #f7f9ff;
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: #2f4d8e;
+}
+.dpNavBtn:hover { background: #e9efff; }
+
+/* === Dropdown Bulan (pakai style customSelect yang sudah ada) === */
+.dpSelectors .selectWrap {
+  min-width: 120px;
+}
+.dpSelectors .selectBtn {
+  font-size: 14px;
+  padding: 8px 12px;
+}
+.dpSelectors .selectPopover {
+  max-height: 250px;
+  overflow-y: auto;
+}
+/* Bulan: tampilkan semua opsi (12) tanpa scroll) */
+.monthSelectWrap { min-width: 140px; }
+
+/* Override popover dropdown khusus bulan agar tidak ada scrollbar */
+.monthSelectWrap .selectPopover {
+  max-height: none;        /* hilangkan batas tinggi */
+  overflow: visible;       /* jangan scroll */
+}
+
+/* (Opsional) Sedikit rapat biar muat enak */
+.monthSelectWrap .selectOption {
+  padding: 8px 12px;
+}
+
+
+/* Tombol Tahun (rounded, konsisten) */
+.dpYearBtn {
+  border: 1.5px solid #cfd4dc;
+  background: #fff;
+  color: #23263b;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dpYearBtn:hover {
+  background: #f3f6ff;
+}
+.dpYearBtn:focus {
+  outline: none;
+  border-color: #2f4d8e;
+  box-shadow: 0 2px 10px rgba(47,77,142,.08);
+}
+
+/* Panel Grid Tahun */
+.yearPanel {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #e1e6f3;
+  border-radius: 12px;
+  box-shadow: 0 10px 26px rgba(47,77,142,.14);
+  padding: 10px;
+  width: 320px;            /* cukup untuk 5 kolom */
+  z-index: 50;
+}
+
+.yearPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.yearRange {
+  font-weight: 800;
+  color: #233969;
+  font-size: 14px;
+}
+
+/* Grid 5 kolom × 3 baris (15 tahun) */
+.yearGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.yearBtn {
+  border: 1px solid #cfd7ee;
+  background: #f7f9ff;
+  border-radius: 10px;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2f4d8e;
+  cursor: pointer;
+}
+.yearBtn:hover {
+  background: #e9efff;
+}
+.yearBtnActive {
+  background: #e6f7ea !important;
+  border-color: #bfe8c6 !important;
+  color: #2b6c2f !important;
+}
+
+/* DatePicker popup agar konsisten */
+.formGroup :global(.react-datepicker) {
+  border-radius: 10px;
+  border: 1px solid #e6ebf7;
+  box-shadow: 0 8px 24px rgba(47,77,142,.12);
+}
+.formGroup :global(.react-datepicker__header) {
+  background: #fff;
+  border-bottom: none;
+  padding: 0;
+}
+
+/* Input DatePicker tetap ikut style umum */
+.formGroup :global(.react-datepicker-wrapper) input {
+  width: 100%;
+  border: 1.5px solid #cfd4dc;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px 12px;
+  font-size: 16px;
+  color: #23263b;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .18s;
+  box-sizing: border-box;
+}
+.formGroup :global(.react-datepicker-wrapper) input:focus {
+  border-color: #2f4d8e;
+}
 
 /* errors */
 .errorInput {

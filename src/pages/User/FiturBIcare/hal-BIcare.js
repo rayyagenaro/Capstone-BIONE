@@ -42,17 +42,13 @@ const SuccessPopup = ({ onClose }) => (
 /* kalender util */
 const toDateKey = (v) => {
   if (!v) return '';
-  if (v instanceof Date) return ymd(v);           // pakai helper ymd yang sudah ada
+  if (v instanceof Date) return ymd(v);
   const s = String(v);
-  // "2025-08-29", atau "2025-08-29T00:00:00.000Z"
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  // fallback: biar aman
   const d = new Date(s);
   return isNaN(d) ? s : ymd(d);
 };
-
 const toHHMM = (s) => String(s || '').slice(0, 5);
-
 const ymd = (d) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -322,7 +318,7 @@ export default function FiturBICare() {
       }
 
       if (!res.ok) {
-        const txt = await res.text().catch(()=>'');
+        const txt = await res.text().catch(()=> '');
         console.error('booked API error:', res.status, txt);
         throw new Error('Failed to fetch month data');
       }
@@ -333,7 +329,7 @@ export default function FiturBICare() {
         Object.fromEntries(Object.entries(m).map(([k, arr]) => [k, (arr || []).map(toHHMM)]));
 
       setSlotMap(norm(data.slotMap));
-      mergeServerWithLocalBooked(norm(data.bookedMap)); // << merge, bukan overwrite
+      mergeServerWithLocalBooked(norm(data.bookedMap));
       setAdminMap(norm(data.adminBlocks));
     } catch (e) {
       console.error(e);
@@ -408,23 +404,20 @@ export default function FiturBICare() {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // penting untuk auth
+      credentials: 'include',
       body: JSON.stringify(payload),
     });
 
     const json = await res.json().catch(() => ({}));
 
     if (res.status === 201 || json?.ok) {
-      // 1) Optimistic update → langsung bikin merah
-      const dateKey = payload.bookingDate;                 // "YYYY-MM-DD"
+      const dateKey = payload.bookingDate;
       const timeHHMM = toHHMM(payload.slotTime);
       setBookedMap((prev) => {
         const set = new Set(prev[dateKey] || []);
         set.add(timeHHMM);
         return { ...prev, [dateKey]: Array.from(set).sort() };
       });
-
-      // 2) Re-fetch untuk sinkronisasi, tapi tidak akan menimpa status lokal
       const ymKey = `${dateKey.slice(0, 4)}-${dateKey.slice(5, 7)}`;
       handleMonthChange(ymKey);
       setShowSuccess(true);
@@ -452,6 +445,22 @@ export default function FiturBICare() {
     ? fields.tglPengobatan.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
     : '';
 
+  /* ====== Data bulan & kontrol panel tahun ====== */
+  const CURRENT_YEAR = new Date().getFullYear();
+  const MONTHS = useMemo(
+    () => Array.from({ length: 12 }, (_, i) =>
+      new Date(2000, i, 1).toLocaleString('id-ID', { month: 'long' })
+    ),
+    []
+  );
+
+  // Panel grid tahun
+  const [yearGridOpen, setYearGridOpen] = useState(false);
+  const [yearGridStart, setYearGridStart] = useState(() => {
+    const y = CURRENT_YEAR;
+    return y - (y % 15); // halaman 15-an
+  });
+
   return (
     <div className={styles.background}>
       <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
@@ -477,7 +486,7 @@ export default function FiturBICare() {
               id="doctorId"
               name="doctorId"
               placeholder={doctors.length ? 'Pilih Dokter' : 'Memuat...'}
-              value={doctorId ? String(doctorId) : ''}                 
+              value={doctorId ? String(doctorId) : ''}
               onChange={(e) => {
                 const id = Number(e.target.value) || null;
                 setDoctorId(id);
@@ -493,7 +502,7 @@ export default function FiturBICare() {
           <div className={styles.calendarBlockLarge}>
             <h3 className={styles.calendarTitle}>Pilih Tanggal & Sesi</h3>
             <DoctorCalendar
-              key={`cal-${doctorId}`}           // <<< tambahkan baris ini
+              key={`cal-${doctorId}`}
               slotMap={slotMap}
               bookedMap={bookedMap}
               adminMap={adminMap}
@@ -594,6 +603,126 @@ export default function FiturBICare() {
                 placeholderText="Pilih tanggal lahir"
                 locale={idLocale}
                 className={errors.tglLahir ? styles.errorInput : ''}
+
+                renderCustomHeader={({
+                  date,
+                  changeYear,
+                  changeMonth,
+                  decreaseMonth,
+                  increaseMonth,
+                  prevMonthButtonDisabled,
+                  nextMonthButtonDisabled
+                }) => {
+                  const currentYear = date.getFullYear();
+                  const currentMonth = date.getMonth();
+                  const openYearGrid = () => {
+                    const base = currentYear - (currentYear % 15);
+                    setYearGridStart(base);
+                    setYearGridOpen((v) => !v);
+                  };
+                  const pickYear = (yy) => {
+                    changeYear(yy);
+                    setYearGridOpen(false);
+                  };
+
+                  return (
+                    <div className={styles.dpHeader}>
+                      <button
+                        type="button"
+                        className={styles.dpNavBtn}
+                        onClick={() => { setYearGridOpen(false); decreaseMonth(); }}
+                        disabled={prevMonthButtonDisabled}
+                        aria-label="Bulan sebelumnya"
+                      >
+                        ‹
+                      </button>
+
+                      <div className={styles.dpSelectors}>
+                          {/* Bulan — tampil semua tanpa scroll */}
+                            <div className={styles.monthSelectWrap}>
+                              <CustomSelect
+                                id="monthSelect"
+                                name="monthSelect"
+                                placeholder="Pilih Bulan"
+                                value={currentMonth}
+                                  onChange={(e) => {
+                                    setYearGridOpen(false);
+                                    changeMonth(Number(e.target.value));
+                                  }}
+                                    options={MONTHS.map((m, idx) => ({
+                                    value: String(idx),
+                                    label: m,
+                              }))}
+                                />
+                              </div>
+
+                          {/* Tahun — tombol membuka panel grid */}
+                            <button
+                              type="button"
+                              className={styles.dpYearBtn}
+                              onClick={openYearGrid}
+                              aria-haspopup="dialog"
+                              aria-expanded={yearGridOpen}
+                              title="Pilih tahun"
+                            >
+                              {currentYear} ▾
+                      </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        className={styles.dpNavBtn}
+                        onClick={() => { setYearGridOpen(false); increaseMonth(); }}
+                        disabled={nextMonthButtonDisabled}
+                        aria-label="Bulan berikutnya"
+                      >
+                        ›
+                      </button>
+
+                      {/* Panel grid tahun */}
+                      {yearGridOpen && (
+                        <div className={styles.yearPanel} role="dialog" aria-label="Pilih tahun">
+                          <div className={styles.yearPanelHeader}>
+                            <button
+                              type="button"
+                              className={styles.dpNavBtn}
+                              onClick={() => setYearGridStart(s => s - 15)}
+                              aria-label="Rentang tahun sebelumnya"
+                            >‹</button>
+                            <div className={styles.yearRange}>
+                              {yearGridStart} – {yearGridStart + 14}
+                            </div>
+                            <button
+                              type="button"
+                              className={styles.dpNavBtn}
+                              onClick={() => setYearGridStart(s => s + 15)}
+                              aria-label="Rentang tahun berikutnya"
+                            >›</button>
+                          </div>
+
+                          <div className={styles.yearGrid}>
+                            {Array.from({ length: 15 }).map((_, i) => {
+                              const yy = yearGridStart + i;
+                              const active = yy === currentYear;
+                              return (
+                                <button
+                                  key={yy}
+                                  type="button"
+                                  className={`${styles.yearBtn} ${active ? styles.yearBtnActive : ''}`}
+                                  onClick={() => pickYear(yy)}
+                                >
+                                  {yy}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }}
+                popperPlacement="bottom-start"
+                showPopperArrow={false}
               />
               {errors.tglLahir && <span className={styles.errorMsg}>{errors.tglLahir}</span>}
             </div>
