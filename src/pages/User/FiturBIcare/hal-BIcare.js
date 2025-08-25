@@ -264,6 +264,21 @@ export default function FiturBICare() {
   const [doctorId, setDoctorId] = useState(1);
   const [doctors, setDoctors] = useState([]);
 
+  // === NEW: timer & helper redirect ke Status Booking ===
+  const redirectTimer = useRef(null);
+  const goToStatusBooking = useCallback(() => {
+    setShowSuccess(false);
+    const nsParam = typeof window !== 'undefined'
+      ? new URLSearchParams(location.search).get('ns') || ''
+      : '';
+    router.replace(`/User/StatusBooking/hal-statusBooking${nsParam ? `?ns=${encodeURIComponent(nsParam)}` : ''}`);
+  }, [router]);
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    };
+  }, []);
+
   // helper: merge hasil server dengan bookedMap lokal (optimistic)
   const mergeServerWithLocalBooked = useCallback((serverBooked) => {
     setBookedMap((prev) => {
@@ -411,6 +426,7 @@ export default function FiturBICare() {
     const json = await res.json().catch(() => ({}));
 
     if (res.status === 201 || json?.ok) {
+      // 1) Optimistic update
       const dateKey = payload.bookingDate;
       const timeHHMM = toHHMM(payload.slotTime);
       setBookedMap((prev) => {
@@ -418,9 +434,15 @@ export default function FiturBICare() {
         set.add(timeHHMM);
         return { ...prev, [dateKey]: Array.from(set).sort() };
       });
+
+      // 2) Re-fetch sinkronisasi (tidak menimpa booked lokal)
       const ymKey = `${dateKey.slice(0, 4)}-${dateKey.slice(5, 7)}`;
       handleMonthChange(ymKey);
+
+      // 3) Tampilkan popup success, lalu auto-redirect
       setShowSuccess(true);
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+      redirectTimer.current = setTimeout(goToStatusBooking, 1400);
     } else {
       if (res.status === 422 && json?.details) {
         alert('Form belum lengkap:\n' +
@@ -434,7 +456,7 @@ export default function FiturBICare() {
     }
   };
 
-  const closeSuccess = () => setShowSuccess(false);
+  const closeSuccess = () => setShowSuccess(false); // (masih disimpan walau tak dipakai)
 
   const handlePickSession = (date, time) => {
     setFields((p) => ({ ...p, tglPengobatan: date, pukulPengobatan: time }));
@@ -638,35 +660,35 @@ export default function FiturBICare() {
                       </button>
 
                       <div className={styles.dpSelectors}>
-                          {/* Bulan — tampil semua tanpa scroll */}
-                            <div className={styles.monthSelectWrap}>
-                              <CustomSelect
-                                id="monthSelect"
-                                name="monthSelect"
-                                placeholder="Pilih Bulan"
-                                value={currentMonth}
-                                  onChange={(e) => {
-                                    setYearGridOpen(false);
-                                    changeMonth(Number(e.target.value));
-                                  }}
-                                    options={MONTHS.map((m, idx) => ({
-                                    value: String(idx),
-                                    label: m,
-                              }))}
-                                />
-                              </div>
+                        {/* Bulan — tampil semua tanpa scroll */}
+                        <div className={styles.monthSelectWrap}>
+                          <CustomSelect
+                            id="monthSelect"
+                            name="monthSelect"
+                            placeholder="Pilih Bulan"
+                            value={currentMonth}
+                            onChange={(e) => {
+                              setYearGridOpen(false);
+                              changeMonth(Number(e.target.value));
+                            }}
+                            options={MONTHS.map((m, idx) => ({
+                              value: String(idx),
+                              label: m,
+                            }))}
+                          />
+                        </div>
 
-                          {/* Tahun — tombol membuka panel grid */}
-                            <button
-                              type="button"
-                              className={styles.dpYearBtn}
-                              onClick={openYearGrid}
-                              aria-haspopup="dialog"
-                              aria-expanded={yearGridOpen}
-                              title="Pilih tahun"
-                            >
-                              {currentYear} ▾
-                      </button>
+                        {/* Tahun — tombol membuka panel grid */}
+                        <button
+                          type="button"
+                          className={styles.dpYearBtn}
+                          onClick={openYearGrid}
+                          aria-haspopup="dialog"
+                          aria-expanded={yearGridOpen}
+                          title="Pilih tahun"
+                        >
+                          {currentYear} ▾
+                        </button>
                       </div>
 
                       <button
@@ -769,7 +791,8 @@ export default function FiturBICare() {
           </form>
         </div>
 
-        {showSuccess && <SuccessPopup onClose={closeSuccess} />}
+        {/* Popup sukses -> jika ditutup manual, langsung redirect */}
+        {showSuccess && <SuccessPopup onClose={goToStatusBooking} />}
       </main>
 
       <LogoutPopup
