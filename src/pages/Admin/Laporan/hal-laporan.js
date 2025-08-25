@@ -2,46 +2,58 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
+import Pagination from '@/components/Pagination/Pagination';
 import styles from './laporan.module.css';
 
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+
 const MODULES = [
-  { value: 'bi-care', label: 'BI.CARE' },
-  { value: 'dmove', label: 'D.MOVE' },
+  { value: 'bi-care',  label: 'BI.CARE' },
+  { value: 'bi-drive', label: 'BI.DRIVE' },
+  { value: 'bi-meal',  label: 'BI.MEAL' },
+  { value: 'bi-meet',  label: 'BI.MEET' },
+  { value: 'bi-stay',  label: 'BI.STAY' },
+  { value: 'bi-docs',  label: 'BI.DOCS' },
 ];
 
-// append ?ns= ke url
 function withNs(url, ns) {
   if (!ns) return url;
   const sep = url.includes('?') ? '&' : '?';
   return `${url}${sep}ns=${encodeURIComponent(ns)}`;
+}
+function qs(params) {
+  const sp = new URLSearchParams();
+  Object.entries(params || {}).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
+    const sv = String(v).trim();
+    if (sv === '') return;
+    sp.append(k, sv);
+  });
+  const s = sp.toString();
+  return s ? `?${s}` : '';
 }
 
 // === utils tanggal ===
 const pad = (n) => String(n).padStart(2, '0');
 function fmtDateTimeLocal(v) {
   if (!v) return '';
-  // Jam saja (HH:mm:ss)
   if (/^\d{2}:\d{2}(:\d{2})?$/.test(v)) {
     const [h, m] = v.split(':');
     return `${h}:${m}`;
   }
-  // Tanggal saja (yyyy-mm-dd)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-    return v;
-  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
   const d = new Date(v);
   if (isNaN(d)) return String(v);
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-
 function looksDateKey(k) {
-  return /(date|time|created|updated|birth)/i.test(k);
+  return /(date|time|datetime|created|updated|birth|tanggal)/i.test(k);
 }
 
 export default function HalLaporan() {
   const router = useRouter();
-  // Ambil ns dari query / asPath
+
+  // ns dari query
   const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
   const nsFromAsPath = (() => {
     const q = router.asPath.split('?')[1];
@@ -52,66 +64,78 @@ export default function HalLaporan() {
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
-  // state filter
-  const today = useMemo(() => new Date(), []);
-  const thirtyAgo = useMemo(() => {
-    const d = new Date(); d.setDate(d.getDate() - 30); return d;
-  }, []);
-  const toYMD = (d) => d?.toISOString().slice(0, 10);
-
-  const [moduleKey, setModuleKey] = useState('bi-care');
-  const [from, setFrom] = useState(toYMD(thirtyAgo));
-  const [to, setTo] = useState(toYMD(today));
+  // state
+  const [moduleKey, setModuleKey] = useState('bi-meet');
+  const [from, setFrom] = useState(''); // kosong = semua
+  const [to, setTo] = useState('');
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [preview, setPreview] = useState({ columns: [], rows: [] });
   const [q, setQ] = useState('');
 
-  // auto preview saat pertama
-  useEffect(() => {
-    // tunggu router siap agar ns terbaca
-    if (!router.isReady) return;
-    doPreview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady]);
+  // pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  async function doPreview() {
+  // === AUTO LOAD: fetch setiap module/from/to berubah ===
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const ac = new AbortController(); // cancel request lama
     setLoading(true);
     setErrMsg('');
-    try {
-      const url = withNs(
-        `/api/admin/laporan/booking?module=${encodeURIComponent(moduleKey)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-        ns
-      );
-      const res = await fetch(url, { cache: 'no-store' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || 'Gagal mengambil data');
-      // normalisasi rows -> format tanggal
-      const rows = Array.isArray(data.rows) ? data.rows.map((r) => {
-        const out = { ...r };
-        Object.keys(out).forEach((k) => {
-          if (out[k] == null) out[k] = '';
-          else if (looksDateKey(k)) out[k] = fmtDateTimeLocal(out[k]);
-          else if (typeof out[k] === 'string' && out[k].endsWith('.000Z')) out[k] = fmtDateTimeLocal(out[k]);
-        });
-        return out;
-      }) : [];
-      setPreview({ columns: data.columns || [], rows });
-    } catch (e) {
-      setPreview({ columns: [], rows: [] });
-      setErrMsg(e?.message || 'Terjadi kesalahan');
-    } finally {
-      setLoading(false);
-    }
-  }
+    setCurrentPage(1); // reset ke halaman 1 setiap filter berubah
 
+    (async () => {
+      try {
+        const query = qs({
+          module: moduleKey,
+          from: from || undefined,
+          to:   to   || undefined,
+        });
+        const url = withNs(`/api/admin/laporan/booking${query}`, ns);
+        const res = await fetch(url, { cache: 'no-store', signal: ac.signal });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Gagal mengambil data');
+
+        const rows = Array.isArray(data.rows)
+          ? data.rows.map((r) => {
+              const out = { ...r };
+              Object.keys(out).forEach((k) => {
+                if (out[k] == null) out[k] = '';
+                else if (looksDateKey(k)) out[k] = fmtDateTimeLocal(out[k]);
+                else if (typeof out[k] === 'string' && out[k].endsWith('.000Z')) out[k] = fmtDateTimeLocal(out[k]);
+              });
+              return out;
+            })
+          : [];
+
+        // default sort ID ASC
+        rows.sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0));
+
+        setPreview({ columns: data.columns || [], rows });
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          setPreview({ columns: [], rows: [] });
+          setErrMsg(e?.message || 'Terjadi kesalahan');
+        }
+      } finally {
+        if (!ac.signal.aborted) setLoading(false);
+      }
+    })();
+
+    return () => ac.abort();
+  }, [router.isReady, moduleKey, from, to, ns]);
+
+  // export SEMUA baris (bukan hanya halaman aktif)
   async function doExport() {
     try {
-      const url = withNs(
-        `/api/export/laporan?module=${encodeURIComponent(moduleKey)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-        ns
-      );
-      // open di tab baru biar cepet
+      const query = qs({
+        module: moduleKey,
+        from: from || undefined,
+        to:   to   || undefined,
+      });
+      const url = withNs(`/api/export/laporan${query}`, ns);
       const a = document.createElement('a');
       a.href = url;
       a.target = '_blank';
@@ -123,42 +147,41 @@ export default function HalLaporan() {
     }
   }
 
-  // filter client-side
+  // filter client-side (search box)
   const filteredRows = useMemo(() => {
     if (!q.trim()) return preview.rows;
     const s = q.toLowerCase();
-    return preview.rows.filter((row) => {
-      return Object.values(row).some((v) => String(v).toLowerCase().includes(s));
-    });
+    return preview.rows.filter((row) =>
+      Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(s))
+    );
   }, [preview.rows, q]);
 
-  // status pill
+  // paging
+  const totalItems = filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const clampedPage = Math.min(currentPage, totalPages);
+  const startIdx = (clampedPage - 1) * itemsPerPage;
+  const endIdx = Math.min(startIdx + itemsPerPage, totalItems);
+  const pageRows = filteredRows.slice(startIdx, endIdx);
+
   const statusCell = (value) => {
     if (!value) return '';
     const val = String(value).toLowerCase();
-    let cls = styles.pillPending, text = value;
-    if (/finish|verified|approved/.test(val)) { cls = styles.pillVerified; }
-    else if (/reject|cancel/.test(val)) { cls = styles.pillRejected; }
-    return <span className={`${styles.statusPill} ${cls}`}>{text}</span>;
+    let cls = styles.pillPending;
+    if (/finish|verified|approved/.test(val)) cls = styles.pillVerified;
+    else if (/reject|cancel/.test(val)) cls = styles.pillRejected;
+    return <span className={`${styles.statusPill} ${cls}`}>{value}</span>;
   };
-
-  // render table cells dengan format spesifik
   const renderCell = (k, v) => {
     if (k === 'status' || k === 'status_name') return statusCell(v);
     if (looksDateKey(k)) return <span className={styles.dateCell}>{fmtDateTimeLocal(v)}</span>;
     return v || '';
   };
 
-  // quick ranges
-  const setRangeDays = (days) => {
-    const end = new Date();
-    const start = new Date(); start.setDate(start.getDate() - days);
-    setFrom(toYMD(start)); setTo(toYMD(end));
-  };
+  const resultsText = totalItems ? `Results: ${startIdx + 1} - ${endIdx} of ${totalItems}` : '';
 
-  const resultsText = filteredRows.length
-    ? `Results: ${filteredRows.length} row${filteredRows.length > 1 ? 's' : ''}`
-    : '';
+  // kalau ganti items/page, balik ke page-1
+  useEffect(() => { setCurrentPage(1); }, [itemsPerPage, moduleKey]);
 
   return (
     <div className={styles.background}>
@@ -169,7 +192,7 @@ export default function HalLaporan() {
             <div className={styles.tableTitle}>LAPORAN BOOKING</div>
           </div>
 
-          {/* Controls */}
+          {/* Controls (tanpa tombol Preview) */}
           <div className={styles.controlsRow}>
             <div className={styles.controlGroup}>
               <label className={styles.label}>Modul</label>
@@ -191,6 +214,7 @@ export default function HalLaporan() {
                 className={styles.input}
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
+                placeholder="Semua"
               />
             </div>
 
@@ -201,23 +225,11 @@ export default function HalLaporan() {
                 className={styles.input}
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
+                placeholder="Semua"
               />
             </div>
 
-            <div className={styles.quickRange}>
-              <button className={styles.chip} onClick={() => setRangeDays(7)}>7 Hari</button>
-              <button className={styles.chip} onClick={() => setRangeDays(30)}>30 Hari</button>
-            </div>
-
             <div className={styles.actionsRight}>
-              <button
-                className={styles.previewBtn}
-                onClick={doPreview}
-                disabled={loading}
-                title="Tampilkan preview data"
-              >
-                {loading ? 'Memuat…' : 'Preview'}
-              </button>
               <button
                 className={styles.exportBtn}
                 onClick={doExport}
@@ -262,13 +274,13 @@ export default function HalLaporan() {
                     <td className={styles.centerError} colSpan={preview.columns.length}>{errMsg}</td>
                   </tr>
                 )}
-                {!loading && !errMsg && filteredRows.length === 0 && (
+                {!loading && !errMsg && pageRows.length === 0 && (
                   <tr>
                     <td className={styles.centerMuted} colSpan={preview.columns.length}>Tidak ada data.</td>
                   </tr>
                 )}
-                {!loading && !errMsg && filteredRows.map((row, idx) => (
-                  <tr key={idx}>
+                {!loading && !errMsg && pageRows.map((row, idx) => (
+                  <tr key={`${row.id}-${idx}`}>
                     {preview.columns.map((c) => (
                       <td key={c.key}>
                         {renderCell(c.key, row[c.key])}
@@ -279,6 +291,36 @@ export default function HalLaporan() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalItems > 0 && (
+            <>
+              <div className={styles.paginationControls}>
+                <span className={styles.resultsText}>{resultsText}</span>
+                <div>
+                  <label htmlFor="itemsPerPage" className={styles.label}>Items per page:</label>
+                  <select
+                    id="itemsPerPage"
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    className={styles.itemsPerPageDropdown}
+                    aria-label="Items per page"
+                  >
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+              </div>
+
+              <Pagination
+                currentPage={Math.min(currentPage, totalPages)}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </>
+          )}
         </div>
       </main>
     </div>
