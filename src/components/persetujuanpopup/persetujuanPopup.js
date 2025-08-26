@@ -215,7 +215,7 @@ export default function PersetujuanPopup({
     <div className={styles.popupOverlay}>
       <div className={styles.popupBox}>
         <div className={styles.popupHeader}>
-          <div className={styles.popupTitle}>Persetujuan Form D&apos;MOVE</div>
+          <div className={styles.popupTitle}>Persetujuan Form BI-DRIVE</div>
           <button className={styles.closeBtn} onClick={onClose}><FaTimes size={24} /></button>
         </div>
 
