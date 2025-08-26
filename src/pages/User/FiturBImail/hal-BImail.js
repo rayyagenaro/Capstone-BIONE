@@ -350,7 +350,7 @@ export default function HalBIMail() {
 
             <div className={styles.logoDmoveWrapper}>
               <Image
-                src="/assets/BI-MAIL.svg"
+                src="/assets/D'TRACK.svg"
                 alt="BI-MAIL"
                 width={180}
                 height={85}
