@@ -9,14 +9,36 @@ import { jwtVerify } from 'jose';
 
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
+/* ====== PEMETAAN LAYANAN (sama spirit dengan halaman Persetujuan) ====== */
+// Service ID dari payload token -> service key internal
+const SERVICE_ID_MAP = {
+  1: 'bidrive',
+  2: 'bicare',
+  3: 'bimeal',
+  4: 'bimeet',
+  5: 'bimail', // alias docs
+  6: 'bistay',
+};
+
+// Daftar modul yang tampil di dropdown + kunci service untuk filter role
 const MODULES = [
-  { value: 'bi-care',  label: 'BI.CARE' },
-  { value: 'bi-drive', label: 'BI.DRIVE' },
-  { value: 'bi-meal',  label: 'BI.MEAL' },
-  { value: 'bi-meet',  label: 'BI.MEET' },
-  { value: 'bi-stay',  label: 'BI.STAY' },
-  { value: 'bi-docs',  label: 'BI.DOCS' },
+  { value: 'bi-care',  label: 'BI.CARE',  serviceKey: 'bicare'  },
+  { value: 'bi-drive', label: 'BI.DRIVE', serviceKey: 'bidrive' },
+  { value: 'bi-meal',  label: 'BI.MEAL',  serviceKey: 'bimeal'  },
+  { value: 'bi-meet',  label: 'BI.MEET',  serviceKey: 'bimeet'  },
+  { value: 'bi-stay',  label: 'BI.STAY',  serviceKey: 'bistay'  },
+  // bi-docs mewakili docs/mail, kita anggap serviceKey 'bimail' (alias 'bidocs' juga diloloskan)
+  { value: 'bi-docs',  label: 'BI.DOCS',  serviceKey: 'bimail'  },
 ];
+
+// Alias service key yang dianggap sama
+const isAlias = (svcKey, compare) => {
+  if (!svcKey || !compare) return false;
+  if (svcKey === compare) return true;
+  // docs <-> mail alias
+  if ((svcKey === 'bimail' && compare === 'bidocs') || (svcKey === 'bidocs' && compare === 'bimail')) return true;
+  return false;
+};
 
 // helper ns
 function withNs(url, ns) {
@@ -54,7 +76,7 @@ function looksDateKey(k) {
   return /(date|time|datetime|created|updated|birth|tanggal)/i.test(k);
 }
 
-export default function HalLaporan({ initialRoleId = null }) {
+export default function HalLaporan({ initialRoleId = null, initialServiceIds = null }) {
   const router = useRouter();
 
   // ==== NS dari query/asPath ====
@@ -68,8 +90,52 @@ export default function HalLaporan({ initialRoleId = null }) {
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
-  // ==== Role → pilih sidebar ====
-  const [roleId, setRoleId] = useState(initialRoleId); // 1=super admin, 2=admin fitur
+  // ==== Role & Allowed Services (SSR-first) ====
+  const [roleId, setRoleId] = useState(initialRoleId);          // 1=super admin, 2=admin fitur
+  const [allowedServiceIds, setAllowedServiceIds] = useState(initialServiceIds); // null=super admin (semua modul)
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    // Super admin: null artinya semua modul, tidak perlu fetch
+    if (allowedServiceIds === null) return;
+
+    // Kalau sudah ada izin (length > 0), beres
+    if (Array.isArray(allowedServiceIds) && allowedServiceIds.length > 0) return;
+
+    let alive = true;
+    (async () => {
+      try {
+        // Hydrate dari /api/me karena token SSR sering tak membawa service_ids
+        const url = ns ? `/api/me?scope=admin&ns=${encodeURIComponent(ns)}` : '/api/me?scope=admin';
+        const r = await fetch(url, { cache: 'no-store' });
+        const d = await r.json();
+
+        if (!alive) return;
+
+        const rl = Number(d?.payload?.role_id_num ?? d?.payload?.role_id ?? 0);
+        const rs = String(d?.payload?.role || d?.payload?.roleNormalized || '').toLowerCase();
+        const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
+
+        setRoleId(isSuper ? 1 : 2);
+
+        if (isSuper) {
+          setAllowedServiceIds(null); // semua modul
+        } else {
+          const raw = Array.isArray(d?.payload?.service_ids) ? d.payload.service_ids : [];
+          const ids = raw
+            .map(x => SERVICE_ID_MAP[x] || null)
+            .filter(Boolean);
+          setAllowedServiceIds(ids);
+        }
+      } catch {
+        // biarkan kosong; UI akan tetap menampilkan pesan tidak ada modul
+      }
+    })();
+
+    return () => { alive = false; };
+  }, [router.isReady, ns, allowedServiceIds]);
+
   const [sbLoading, setSbLoading] = useState(initialRoleId == null);
 
   useEffect(() => {
@@ -81,12 +147,24 @@ export default function HalLaporan({ initialRoleId = null }) {
         const r = await fetch(url, { cache: 'no-store' });
         const d = await r.json();
         if (!alive) return;
+
         const rl = Number(d?.payload?.role_id_num ?? d?.payload?.role_id ?? 0);
         const rs = String(d?.payload?.role || d?.payload?.roleNormalized || '').toLowerCase();
         const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
         setRoleId(isSuper ? 1 : 2);
+
+        if (isSuper) {
+          setAllowedServiceIds(null); // semua modul
+        } else {
+          const ids = Array.isArray(d?.payload?.service_ids)
+            ? d.payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean)
+            : [];
+          setAllowedServiceIds(ids);
+        }
       } catch {
-        setRoleId(2); // default aman: sidebar fitur
+        // fallback aman: treat sebagai admin fitur tanpa akses modul
+        setRoleId(2);
+        setAllowedServiceIds([]);
       } finally {
         if (alive) setSbLoading(false);
       }
@@ -94,14 +172,38 @@ export default function HalLaporan({ initialRoleId = null }) {
     return () => { alive = false; };
   }, [router.isReady, ns, initialRoleId]);
 
+  // ==== Filter modul berdasarkan layanan yang diizinkan =====
+  const allowedModules = useMemo(() => {
+    // Super admin => semua modul
+    if (allowedServiceIds === null) return MODULES;
+    // Admin fitur => hanya modul yang serviceKey-nya ada di allowedServiceIds (dengan alias)
+    if (Array.isArray(allowedServiceIds) && allowedServiceIds.length) {
+      return MODULES.filter(m =>
+        allowedServiceIds.some(sid => isAlias(m.serviceKey, sid))
+      );
+    }
+    // Tidak ada izin modul
+    return [];
+  }, [allowedServiceIds]);
+
   // ==== State data laporan ====
-  const [moduleKey, setModuleKey] = useState('bi-meet');
+  // default pilih modul pertama yang diizinkan (kalau ada), kalau belum ada izin pakai bi-meet sementara (akan dikoreksi di effect berikut)
+  const [moduleKey, setModuleKey] = useState(allowedModules[0]?.value || 'bi-meet');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [preview, setPreview] = useState({ columns: [], rows: [] });
   const [q, setQ] = useState('');
+
+  // Jika izin modul berubah, pastikan moduleKey valid
+  useEffect(() => {
+    if (!allowedModules.length) return;
+    const exists = allowedModules.some(m => m.value === moduleKey);
+    if (!exists) {
+      setModuleKey(allowedModules[0].value); // geser ke modul pertama yang diizinkan
+    }
+  }, [allowedModules, moduleKey]);
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -110,6 +212,14 @@ export default function HalLaporan({ initialRoleId = null }) {
   // ====== AUTO LOAD data saat filter berubah ======
   useEffect(() => {
     if (!router.isReady) return;
+    if (allowedModules.length === 0 && allowedServiceIds !== null) {
+      // admin fitur tanpa izin modul -> kosongkan preview
+      setPreview({ columns: [], rows: [] });
+      setErrMsg('Tidak ada modul yang diizinkan untuk role ini.');
+      setLoading(false);
+      return;
+    }
+
     const ac = new AbortController();
     setLoading(true);
     setErrMsg('');
@@ -135,8 +245,7 @@ export default function HalLaporan({ initialRoleId = null }) {
             })
           : [];
 
-        // default: urut ID ASC
-        rows.sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0));
+        rows.sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0)); // default ID ASC
         setPreview({ columns: data.columns || [], rows });
       } catch (e) {
         if (e.name !== 'AbortError') {
@@ -149,7 +258,7 @@ export default function HalLaporan({ initialRoleId = null }) {
     })();
 
     return () => ac.abort();
-  }, [router.isReady, moduleKey, from, to, ns]);
+  }, [router.isReady, moduleKey, from, to, ns, allowedModules.length, allowedServiceIds]);
 
   // ====== EKSPOR: Popup & aksi ======
   const [showExportPopup, setShowExportPopup] = useState(false);
@@ -248,8 +357,13 @@ export default function HalLaporan({ initialRoleId = null }) {
           <div className={styles.controlsRow}>
             <div className={styles.controlGroup}>
               <label className={styles.label}>Layanan</label>
-              <select className={styles.input} value={moduleKey} onChange={(e) => setModuleKey(e.target.value)}>
-                {MODULES.map((m) => (
+              <select
+                className={styles.input}
+                value={moduleKey}
+                onChange={(e) => setModuleKey(e.target.value)}
+                disabled={allowedModules.length === 0}
+              >
+                {allowedModules.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
               </select>
@@ -269,7 +383,7 @@ export default function HalLaporan({ initialRoleId = null }) {
               <button
                 className={styles.exportBtn}
                 onClick={() => openExport('range')}
-                disabled={loading || !preview.rows.length || !from || !to}
+                disabled={loading || !preview.rows.length || !from || !to || allowedModules.length === 0}
                 title="Ekspor berdasarkan rentang tanggal"
               >
                 Ekspor (Rentang)
@@ -277,7 +391,7 @@ export default function HalLaporan({ initialRoleId = null }) {
               <button
                 className={styles.previewBtn}
                 onClick={() => openExport('all')}
-                disabled={loading || !preview.columns.length}
+                disabled={loading || !preview.columns.length || allowedModules.length === 0}
                 title="Ekspor semua data modul (abaikan tanggal)"
                 style={{ marginLeft: 8 }}
               >
@@ -294,6 +408,7 @@ export default function HalLaporan({ initialRoleId = null }) {
               className={styles.searchInput}
               value={q}
               onChange={(e) => setQ(e.target.value)}
+              disabled={allowedModules.length === 0}
             />
             <div className={styles.resultsText}>{resultsText}</div>
           </div>
@@ -309,22 +424,29 @@ export default function HalLaporan({ initialRoleId = null }) {
                 </tr>
               </thead>
               <tbody>
+                {allowedModules.length === 0 && !loading && !errMsg && (
+                  <tr>
+                    <td className={styles.centerMuted} colSpan={preview.columns.length || 1}>
+                      Tidak ada modul yang diizinkan untuk role ini.
+                    </td>
+                  </tr>
+                )}
                 {loading && (
                   <tr>
-                    <td className={styles.centerMuted} colSpan={preview.columns.length}>Memuat data…</td>
+                    <td className={styles.centerMuted} colSpan={preview.columns.length || 1}>Memuat data…</td>
                   </tr>
                 )}
                 {!loading && errMsg && (
                   <tr>
-                    <td className={styles.centerError} colSpan={preview.columns.length}>{errMsg}</td>
+                    <td className={styles.centerError} colSpan={preview.columns.length || 1}>{errMsg}</td>
                   </tr>
                 )}
-                {!loading && !errMsg && pageRows.length === 0 && (
+                {!loading && !errMsg && pageRows.length === 0 && allowedModules.length > 0 && (
                   <tr>
-                    <td className={styles.centerMuted} colSpan={preview.columns.length}>Tidak ada data.</td>
+                    <td className={styles.centerMuted} colSpan={preview.columns.length || 1}>Tidak ada data.</td>
                   </tr>
                 )}
-                {!loading && !errMsg && pageRows.map((row, idx) => (
+                {!loading && !errMsg && pageRows.length > 0 && allowedModules.length > 0 && pageRows.map((row, idx) => (
                   <tr key={`${row.id}-${idx}`}>
                     {preview.columns.map((c) => (
                       <td key={c.key}>
@@ -338,7 +460,7 @@ export default function HalLaporan({ initialRoleId = null }) {
           </div>
 
           {/* Pagination */}
-          {totalItems > 0 && (
+          {totalItems > 0 && allowedModules.length > 0 && (
             <>
               <div className={styles.paginationControls}>
                 <span className={styles.resultsText}>{resultsText}</span>
@@ -390,7 +512,7 @@ export default function HalLaporan({ initialRoleId = null }) {
             </div>
 
             <div style={{fontSize:14.5, color:'#334', lineHeight:1.5}}>
-              <div><b>Modul:</b> {MODULES.find(m => m.value === moduleKey)?.label || moduleKey}</div>
+              <div><b>Modul:</b> {allowedModules.find(m => m.value === moduleKey)?.label || moduleKey}</div>
 
               {exportMode === 'range' ? (
                 <>
@@ -435,11 +557,11 @@ export default function HalLaporan({ initialRoleId = null }) {
               </button>
               <button
                 onClick={proceedExport}
-                disabled={exportMode === 'range' && (!from || !to)}
+                disabled={(exportMode === 'range' && (!from || !to)) || allowedModules.length === 0}
                 style={{
                   padding:'9px 16px', borderRadius:10, border:'none',
                   background:'#2F4D8E', color:'#fff', fontWeight:800, cursor:'pointer',
-                  opacity: exportMode === 'range' && (!from || !to) ? .6 : 1
+                  opacity: (exportMode === 'range' && (!from || !to)) || allowedModules.length === 0 ? .6 : 1
                 }}
                 title={exportMode === 'range' && (!from || !to) ? 'Isi tanggal dulu' : 'Ekspor sekarang'}
               >
@@ -453,7 +575,7 @@ export default function HalLaporan({ initialRoleId = null }) {
   );
 }
 
-// ====== SSR: validasi token + role → pass initialRoleId ======
+// ====== SSR: validasi token + role → pass initialRoleId & initialServiceIds ======
 export async function getServerSideProps(ctx) {
   const { ns: raw } = ctx.query;
   const ns = Array.isArray(raw) ? raw[0] : raw;
@@ -488,7 +610,14 @@ export async function getServerSideProps(ctx) {
       return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
     }
 
-    return { props: { initialRoleId: isSuper ? 1 : 2 } };
+    // penting: pass daftar layanan yang diperbolehkan ke client (null untuk super admin)
+    const initialServiceIds = isSuper
+      ? null
+      : (Array.isArray(payload?.service_ids)
+          ? payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean)
+          : []);
+
+    return { props: { initialRoleId: isSuper ? 1 : 2, initialServiceIds } };
   } catch {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
   }
