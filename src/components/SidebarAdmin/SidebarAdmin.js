@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './SidebarAdmin.module.css';
-import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers } from 'react-icons/fa';
+import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaAddressBook, FaBook } from 'react-icons/fa';
 
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
@@ -27,9 +27,9 @@ export default function SidebarAdmin({ onLogout }) {
 
   const menuItems = [
     { href: '/Admin/HalamanUtama/hal-utamaAdmin', text: 'Beranda',             icon: FaHome },
-    { href: '/Admin/Laporan/hal-laporan',         text: 'Laporan',             icon: FaClipboardList },
     { href: '/Admin/Persetujuan/hal-persetujuan', text: 'Persetujuan Booking', icon: FaClipboardList },
     { href: '/Admin/Ketersediaan/hal-ketersediaan', text: 'Ketersediaan',      icon: FaUsers },
+    { href: '/Admin/Laporan/hal-laporan',         text: 'Laporan',             icon: FaBook },
     { href: '/Admin/Pengaturan/hal-pengaturan',   text: 'Pengaturan',          icon: FaCog },
   ];
 
