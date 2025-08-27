@@ -304,7 +304,7 @@ export default function FiturBImeal() {
                 showTimeSelect timeFormat="HH:mm" timeIntervals={15}
                 dateFormat="dd MMMM yyyy HH:mm" timeCaption="Jam"
                 minDate={new Date()} locale={idLocale}
-                placeholderText="Pilih tanggal & jam"
+                placeholderText="Pilih Tanggal & Jam"
                 className={errors.tgl ? styles.errorInput : ''}
               />
               {errors.tgl && <span className={styles.errorMsg}>{errors.tgl}</span>}

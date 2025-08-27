@@ -404,7 +404,7 @@ export default function FiturBimeet() {
                   id="agenda"
                   name="agenda"
                   type="text"
-                  placeholder="cth: Koordinasi Proyek X"
+                  placeholder="Contoh: Koordinasi Proyek X"
                   value={fields.agenda}
                   onChange={handleChange}
                   className={errors.agenda ? styles.errorInput : ""}
@@ -477,7 +477,7 @@ export default function FiturBimeet() {
                   id="picPhone"
                   name="picPhone"
                   type="text"
-                  placeholder="08xxxxxxxxxx"
+                  placeholder="Masukkan No WA PIC"
                   value={fields.picPhone}
                   onChange={handleChange}
                   className={errors.picPhone ? styles.errorInput : ""}

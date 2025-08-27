@@ -510,7 +510,7 @@ export default function HalBIMail() {
                 required
                 aria-required="true"
                 className={errors.perihal ? styles.errorInput : ''}
-                placeholder="Tuliskan perihal dokumen"
+                placeholder="Tuliskan Perihal Dokumen"
               />
               {errors.perihal && <span className={styles.errorMsg}>{errors.perihal}</span>}
             </div>
@@ -530,7 +530,7 @@ export default function HalBIMail() {
                 required
                 aria-required="true"
                 className={errors.dari ? styles.errorInput : ''}
-                placeholder="Pihak pengirim"
+                placeholder="Pihak Pengirim"
               />
               {errors.dari && <span className={styles.errorMsg}>{errors.dari}</span>}
             </div>
@@ -550,7 +550,7 @@ export default function HalBIMail() {
                 required
                 aria-required="true"
                 className={errors.kepada ? styles.errorInput : ''}
-                placeholder="Pihak penerima"
+                placeholder="Pihak Penerima"
               />
               {errors.kepada && <span className={styles.errorMsg}>{errors.kepada}</span>}
             </div>

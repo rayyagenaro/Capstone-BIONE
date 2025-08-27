@@ -496,7 +496,7 @@ export default function FiturBICare() {
             </button>
 
             <div className={styles.logoCareWrapper}>
-              <Image src="/assets/BI-CARE.svg" alt="BI.CARE" width={190} height={86} priority />
+              <Image src="/assets/D'CARE.svg" alt="BI.CARE" width={190} height={86} priority />
             </div>
 
             <div />
@@ -532,7 +532,7 @@ export default function FiturBICare() {
               minDate={new Date()}
               onMonthChange={(ym) => handleMonthChange(ym, doctorId)}
             />
-            <p className={styles.calendarHint}>Tanggal & jam hanya dapat diubah dari kalender ini.</p>
+            <p className={styles.calendarHint}>Tanggal & waktu pengobatan hanya dapat diubah dari kalender ini.</p>
           </div>
 
           {/* Form */}
@@ -622,7 +622,7 @@ export default function FiturBICare() {
                 onChange={(d) => handleDateChange(d, 'tglLahir')}
                 dateFormat="dd MMMM yyyy"
                 maxDate={new Date()}
-                placeholderText="Pilih tanggal lahir"
+                placeholderText="Pilih Tanggal Lahir"
                 locale={idLocale}
                 className={errors.tglLahir ? styles.errorInput : ''}
 
@@ -756,9 +756,9 @@ export default function FiturBICare() {
                 type="text"
                 value={prettyDate}
                 className={`${styles.readonlyField} ${errors.tglPengobatan ? styles.errorInput : ''}`}
-                placeholder="Pilih dari kalender di atas"
+                placeholder="Pilih dari Kalender"
                 readOnly
-                title="Ubah tanggal lewat kalender di atas"
+                title="Pilih dari Kalender"
               />
               {errors.tglPengobatan && <span className={styles.errorMsg}>{errors.tglPengobatan}</span>}
             </div>
@@ -769,9 +769,9 @@ export default function FiturBICare() {
                 type="text"
                 value={fields.pukulPengobatan}
                 className={`${styles.readonlyField} ${errors.pukulPengobatan ? styles.errorInput : ''}`}
-                placeholder="Pilih dari kalender di atas"
+                placeholder="Pilih dari Kalender"
                 readOnly
-                title="Ubah jam lewat kalender di atas"
+                title="Pilih dari Kalender"
               />
               {errors.pukulPengobatan && <span className={styles.errorMsg}>{errors.pukulPengobatan}</span>}
             </div>
@@ -780,7 +780,7 @@ export default function FiturBICare() {
               <label htmlFor="keluhan">Deskripsi Keluhan Pasien</label>
               <textarea
                 id="keluhan" name="keluhan" rows={2}
-                placeholder="Tulis keluhan pasien secara singkat"
+                placeholder="Contoh: Demam Tinggi, Flu."
                 value={fields.keluhan} onChange={handleChange}
               />
             </div>

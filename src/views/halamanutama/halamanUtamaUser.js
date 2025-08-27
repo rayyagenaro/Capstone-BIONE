@@ -57,37 +57,37 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
   // ✅ daftar fitur: semua link di-append ?ns=
   const fiturLayanan = [
     {
-      title: "BI.DRIVE",
+     
       logo: "/assets/D'MOVE.svg",
       desc: "BI.DRIVE, mendukung pemesanan layanan pengemudi secara terjadwal untuk mendukung pelaksanaan tugas dinas.",
       link: "/User/FiturDmove/hal-dmove"
     },
     {
-      title: "BI.CARE",
+      
       logo: "/assets/D'CARE.svg",
       desc: "BI.CARE, memfasilitasi pembuatan janji temu dan reservasi layanan klinik Bank Indonesia secara terencana.",
       link: "/User/FiturBIcare/hal-BIcare"
     },
     {
-      title: "BI.MEAL",
+     
       logo: "/assets/D'MEAL.svg",
       desc: "BI.MEAL, memfasilitasi pemesanan konsumsi secara terjadwal untuk mendukung kelancaran rapat dan tugas dinas.",
       link: "/User/FiturBImeal/hal-BImeal"
     },
     {
-      title: "BI.MEET",
+     
       logo: "/assets/D'ROOM.svg",
       desc: "BI.MEET, menghadirkan kemudahan reservasi ruang rapat dalam penyelenggaraan pertemuan dan kolaborasi antarunit kerja.",
       link: "/User/FiturBimeet/hal-bimeet"
     },
     {
-      title: "BI.DOCS",
+    
       logo: "/assets/D'TRACK.svg",
       desc: "BI.MAIL, menyediakan layanan pelacakan dan penomoran surat dinas secara digital, sehingga administrasi surat-menyurat.",
       link: "/User/FiturBImail/hal-BImail"
     },
     {
-      title: "BI.STAY",
+     
       logo: "/assets/D'REST.svg",
       desc: "BI.STAY, menyediakan sistem reservasi akomodasi rumah dinas Bank Indonesia selama menjalankan penugasan.",
       link: "/User/FiturBIstay/hal-BIstay"
@@ -117,7 +117,7 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
           <div className={styles.servicesBox}>
             <div className={styles.servicesTitle}>Pilih Layanan Sesuai Kebutuhan Anda</div>
             <div className={styles.servicesDesc}>
-              BI.ONE, memudahkan Anda dalam memilih layanan digital untuk mendukung aktivitas di lingkungan Bank Indonesia.
+              BI.ONE, platform satu pintu layanan digital untuk mendukung aktivitas di lingkungan KPw Bank Indonesia Provinsi Jawa Timur.
             </div>
             <div className={styles.cardsGrid}>
               {fiturLayanan.map((fitur, idx) => (

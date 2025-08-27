@@ -39,19 +39,20 @@ const SuccessPopup = ({ onClose }) => (
 export default function FiturDmove() {
     const [availabilityData, setAvailabilityData] = useState(null);
     useEffect(() => {
-    fetch('/api/vehicleAvailability')
-        .then(res => res.ok ? res.json() : Promise.reject('Gagal ambil data availability'))
-        .then(setAvailabilityData)
-        .catch(err => console.error('Error availability:', err));
+        fetch('/api/vehicleAvailability')
+            .then(res => res.ok ? res.json() : Promise.reject('Gagal ambil data availability'))
+            .then(setAvailabilityData)
+            .catch(err => console.error('Error availability:', err));
     }, []);
+
     const router = useRouter();
     const { ns } = router.query;
     const { isOpen: isVehicleDropdownOpen, setIsOpen: setVehicleDropdownOpen, ref: vehicleDropdownRef } = useDropdown();
 
     const getMaxQuantity = (typeId) => {
-    if (!availabilityData?.vehicles) return Infinity;
-    const item = availabilityData.vehicles.find(v => v.type_id === typeId);
-    return item ? item.available : 0; // kalau nggak ada, anggap 0
+        if (!availabilityData?.vehicles) return Infinity;
+        const item = availabilityData.vehicles.find(v => v.type_id === typeId);
+        return item ? item.available : 0;
     };
 
     const [fields, setFields] = useState({
@@ -90,12 +91,8 @@ export default function FiturDmove() {
         setFields(prev => ({ ...prev, jumlahKendaraan: totalKendaraan }));
     }, [fields.jenisKendaraan]);
 
-    // Anda harus punya fungsi ini di komponen Anda
     const handleChange = (e) => {
-        // Ambil 'name' dan 'value' dari input yang sedang diubah
         const { name, value } = e.target;
-
-        // Update state 'fields' berdasarkan 'name' dari input
         setFields(prevFields => ({
             ...prevFields,
             [name]: value
@@ -103,34 +100,32 @@ export default function FiturDmove() {
     };
 
     const handleQuantityChange = (option, change) => {
-    setFields(prev => {
-        const maxForThisType = getMaxQuantity(option.id);
-        const existing = prev.jenisKendaraan.find(item => item.id === option.id);
-        let newSelection = [...prev.jenisKendaraan];
+        setFields(prev => {
+            const maxForThisType = getMaxQuantity(option.id);
+            const existing = prev.jenisKendaraan.find(item => item.id === option.id);
+            let newSelection = [...prev.jenisKendaraan];
 
-        if (existing) {
-        let newQuantity = existing.quantity + change;
-        if (newQuantity <= 0) {
-            newSelection = newSelection.filter(item => item.id !== option.id);
-        } else {
-            // clamp ke max
-            if (newQuantity > maxForThisType) newQuantity = maxForThisType;
-            newSelection = newSelection.map(item =>
-            item.id === option.id ? { ...item, quantity: newQuantity } : item
-            );
-        }
-        } else if (change > 0) {
-        if (maxForThisType > 0) {
-            newSelection.push({ ...option, quantity: 1 });
-        } else {
-            // opsional: kasih info user
-            alert(`Stok ${option.name} sedang tidak tersedia.`);
-        }
-        }
+            if (existing) {
+                let newQuantity = existing.quantity + change;
+                if (newQuantity <= 0) {
+                    newSelection = newSelection.filter(item => item.id !== option.id);
+                } else {
+                    if (newQuantity > maxForThisType) newQuantity = maxForThisType;
+                    newSelection = newSelection.map(item =>
+                        item.id === option.id ? { ...item, quantity: newQuantity } : item
+                    );
+                }
+            } else if (change > 0) {
+                if (maxForThisType > 0) {
+                    newSelection.push({ ...option, quantity: 1 });
+                } else {
+                    alert(`Stok ${option.name} sedang tidak tersedia.`);
+                }
+            }
 
-        return { ...prev, jenisKendaraan: newSelection };
-    });
-    if (errors.jenisKendaraan) setErrors(prev => ({ ...prev, jenisKendaraan: null }));
+            return { ...prev, jenisKendaraan: newSelection };
+        });
+        if (errors.jenisKendaraan) setErrors(prev => ({ ...prev, jenisKendaraan: null }));
     };
 
     const handleDateChange = (date, field) => {
@@ -156,17 +151,29 @@ export default function FiturDmove() {
             err.jumlahDriver = `Jumlah driver melebihi batas. Maksimal ${maxDrivers} tersedia.`;
         }
 
-        // Validasi jenis kendaraan tidak melebihi jumlah yang tersedia
+        // Validasi jenis kendaraan melebihi stok
         if (availabilityData?.vehicles?.length > 0) {
-        for (const vehicle of fields.jenisKendaraan) {
-            const avail = availabilityData.vehicles.find(v => v.type_id === vehicle.id);
-            const max = avail ? avail.available : 0;
-            if (vehicle.quantity > max) {
-            err.jenisKendaraan = `Jumlah ${vehicle.name} melebihi stok (maks ${max}).`;
-            break;
+            for (const vehicle of fields.jenisKendaraan) {
+                const avail = availabilityData.vehicles.find(v => v.type_id === vehicle.id);
+                const max = avail ? avail.available : 0;
+                if (vehicle.quantity > max) {
+                    err.jenisKendaraan = `Jumlah ${vehicle.name} melebihi stok (maks ${max}).`;
+                    break;
+                }
             }
         }
+
+        // --- Wajib: Link File ---
+        if (!fields.file_link.trim()) {
+            err.file_link = 'Link file wajib diisi';
+        } else {
+            // opsional: cek pola URL sederhana
+            const simpleUrl = /^(https?:\/\/|www\.)/i;
+            if (!simpleUrl.test(fields.file_link.trim())) {
+                err.file_link = 'Masukkan tautan yang valid (awali dengan http(s):// atau www.)';
+            }
         }
+
         return err;
     };
 
@@ -194,7 +201,7 @@ export default function FiturDmove() {
             }
 
             const payload = {
-                user_id: meData.payload.sub, // langsung dari token
+                user_id: meData.payload.sub,
                 tujuan: fields.tujuan,
                 jumlah_orang: parseInt(fields.jumlahOrang, 10) || null,
                 jumlah_kendaraan: fields.jumlahKendaraan,
@@ -227,76 +234,75 @@ export default function FiturDmove() {
         }
     };
 
-
     // --- AvailabilitySection (pakai /api/vehicle-availability) ---
     const AvailabilitySection = () => {
-    const { isOpen, setIsOpen, ref } = useDropdown();
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+        const { isOpen, setIsOpen, ref } = useDropdown();
+        const [data, setData] = useState(null);
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState('');
 
-    useEffect(() => {
-        if (isOpen && !data && !loading) {
-        setLoading(true);
-        setError('');
-        fetch('/api/vehicleAvailability')
-            .then(res => res.ok ? res.json() : Promise.reject('Gagal mengambil data.'))
-            .then(setData)
-            .catch((e) => setError(typeof e === 'string' ? e : e?.message || 'Gagal mengambil data.'))
-            .finally(() => setLoading(false));
-        }
-    }, [isOpen, data, loading]);
+        useEffect(() => {
+            if (isOpen && !data && !loading) {
+                setLoading(true);
+                setError('');
+                fetch('/api/vehicleAvailability')
+                    .then(res => res.ok ? res.json() : Promise.reject('Gagal mengambil data.'))
+                    .then(setData)
+                    .catch((e) => setError(typeof e === 'string' ? e : e?.message || 'Gagal mengambil data.'))
+                    .finally(() => setLoading(false));
+            }
+        }, [isOpen, data, loading]);
 
-    const renderStatus = (count) =>
-        Number(count) === 0
-        ? <span style={{ color: 'red', fontWeight: 'bold' }}>Tidak tersedia</span>
-        : count;
+        const renderStatus = (count) =>
+            Number(count) === 0
+                ? <span style={{ color: 'red', fontWeight: 'bold' }}>Tidak tersedia</span>
+                : count;
 
-    return (
-        <div className={styles.availabilitySection}>
-        <div className={styles.availabilityLabel}>Availability</div>
-        <div className={styles.availabilityDropdownWrap} ref={ref}>
-            <button
-            type="button"
-            className={styles.availabilityDropdownBtn}
-            onClick={() => setIsOpen(v => !v)}
-            >
-            Lihat Ketersediaan <span className={styles.availChevron}>▼</span>
-            </button>
+        return (
+            <div className={styles.availabilitySection}>
+                <div className={styles.availabilityLabel}>Availability</div>
+                <div className={styles.availabilityDropdownWrap} ref={ref}>
+                    <button
+                        type="button"
+                        className={styles.availabilityDropdownBtn}
+                        onClick={() => setIsOpen(v => !v)}
+                    >
+                        Lihat Ketersediaan <span className={styles.availChevron}>▼</span>
+                    </button>
 
-            {isOpen && (
-            <div className={styles.availabilityDropdown}>
-                {loading && <div>Loading...</div>}
-                {error && <div style={{ color: 'red', padding: 4 }}>{error}</div>}
+                    {isOpen && (
+                        <div className={styles.availabilityDropdown}>
+                            {loading && <div>Loading...</div>}
+                            {error && <div style={{ color: 'red', padding: 4 }}>{error}</div>}
 
-                {data && (
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Jenis</th>
-                        <th>Jumlah</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Driver</td>
-                        <td>{renderStatus(data.drivers)}</td>
-                    </tr>
+                            {data && (
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Jenis</th>
+                                            <th>Jumlah</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Driver</td>
+                                            <td>{renderStatus(data.drivers)}</td>
+                                        </tr>
 
-                    {Array.isArray(data.vehicles) && data.vehicles.map(v => (
-                        <tr key={v.type_id}>
-                        <td>{v.type_name}</td>
-                        <td>{renderStatus(v.available)}</td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-                )}
+                                        {Array.isArray(data.vehicles) && data.vehicles.map(v => (
+                                            <tr key={v.type_id}>
+                                                <td>{v.type_name}</td>
+                                                <td>{renderStatus(v.available)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
-            )}
-        </div>
-        </div>
-    );
+        );
     };
 
     const closeSuccess = () => {
@@ -305,13 +311,13 @@ export default function FiturDmove() {
     };
     const handleLogout = async () => {
         try {
-        const ns = new URLSearchParams(location.search).get('ns');
-        await fetch('/api/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ area: 'admin', ns }), 
-        });
-        } catch {}
+            const ns = new URLSearchParams(location.search).get('ns');
+            await fetch('/api/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ area: 'admin', ns }),
+            });
+        } catch { }
         router.replace('/Signin/hal-signAdmin');
     };
 
@@ -322,27 +328,27 @@ export default function FiturDmove() {
                 <div className={styles.formBox}>
                     <div className={styles.topRow}>
                         <button className={styles.backBtn} onClick={() => router.back()} type="button">
-                        <FaArrowLeft /> Kembali
+                            <FaArrowLeft /> Kembali
                         </button>
                         <div className={styles.logoDmoveWrapper}><Image src="/assets/D'MOVE.svg" alt="BI.DRIVE" width={180} height={85} priority /></div>
                         <AvailabilitySection />
                     </div>
                     <form className={styles.formGrid} autoComplete="off" onSubmit={handleSubmit}>
                         <div className={styles.formRow}>
-                          <div className={styles.formGroup}><label htmlFor="jumlahDriver">Jumlah Driver</label>
-                            <input
-                            id="jumlahDriver"
-                            name="jumlahDriver"
-                            type="number"
-                            min="1"
-                            max={availabilityData?.drivers || undefined}
-                            value={fields.jumlahDriver}
-                            onChange={handleChange}
-                            className={errors.jumlahDriver ? styles.errorInput : ''}
-                            placeholder="Masukkan jumlah driver"
-                            />
-                            {errors.jumlahDriver && <span className={styles.errorMsg}>{errors.jumlahDriver}</span>}
-                          </div>
+                            <div className={styles.formGroup}><label htmlFor="jumlahDriver">Jumlah Driver</label>
+                                <input
+                                    id="jumlahDriver"
+                                    name="jumlahDriver"
+                                    type="number"
+                                    min="1"
+                                    max={availabilityData?.drivers || undefined}
+                                    value={fields.jumlahDriver}
+                                    onChange={handleChange}
+                                    className={errors.jumlahDriver ? styles.errorInput : ''}
+                                    placeholder="Masukkan jumlah driver"
+                                />
+                                {errors.jumlahDriver && <span className={styles.errorMsg}>{errors.jumlahDriver}</span>}
+                            </div>
                             <div className={styles.formGroup}>
                                 <label htmlFor="jenisKendaraan">Jenis Kendaraan</label>
                                 <div className={`${styles.multiSelectBox} ${errors.jenisKendaraan ? styles.errorInput : ''}`} ref={vehicleDropdownRef} onClick={() => setVehicleDropdownOpen(open => !open)}>
@@ -360,11 +366,11 @@ export default function FiturDmove() {
                                                     <div key={option.id} className={styles.quantityOption}>
                                                         <span>{option.name}</span>
                                                         <div className={styles.quantityControl}>
-                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleQuantityChange(option, -1); }} 
-                                                            disabled={quantity === 0}>-</button>
+                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleQuantityChange(option, -1); }}
+                                                                disabled={quantity === 0}>-</button>
                                                             <span>{quantity}</span>
                                                             <button type="button" onClick={(e) => { e.stopPropagation(); handleQuantityChange(option, +1); }}
-                                                            disabled={quantity >= maxForThisType}>+</button>
+                                                                disabled={quantity >= maxForThisType}>+</button>
                                                         </div>
                                                     </div>
                                                 );
@@ -406,7 +412,7 @@ export default function FiturDmove() {
                                 {errors.endDate && <span className={styles.errorMsg}>{errors.endDate}</span>}
                             </div>
                         </div>
-                        
+
                         {/* --- PERBAIKAN TAMPILAN --- */}
                         <div className={styles.formRow}>
                             <div className={styles.formGroup}>
@@ -414,15 +420,29 @@ export default function FiturDmove() {
                                 <input id="noHp" name="noHp" type="text" value={fields.noHp} onChange={handleChange} className={errors.noHp ? styles.errorInput : ''} placeholder='Masukkan No HP' />
                                 {errors.noHp && <span className={styles.errorMsg}>{errors.noHp}</span>}
                             </div>
+
+                            {/* LINK FILE WAJIB + BINTANG MERAH */}
                             <div className={styles.formGroup}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <label htmlFor="file_link">Link File</label>
+                                    <label htmlFor="file_link">
+                                        Link File <span aria-hidden="true" style={{ color: 'red' }}>*</span>
+                                    </label>
                                     <a href="https://onedrive.live.com" target="_blank" rel="noopener noreferrer" style={{ color: "#2667c7", fontWeight: 500, fontSize: 15 }}>Upload di Sini</a>
                                 </div>
-                                <input id="file_link" name="file_link" type="text" value={fields.file_link} onChange={handleChange} className={errors.file_link ? styles.errorInput : ''} placeholder='Masukkan Link File' />
+                                <input
+                                    id="file_link"
+                                    name="file_link"
+                                    type="text"
+                                    value={fields.file_link}
+                                    onChange={handleChange}
+                                    className={errors.file_link ? styles.errorInput : ''}
+                                    placeholder='Masukkan Link File'
+                                    aria-required="true"
+                                />
                                 {errors.file_link && <span className={styles.errorMsg}>{errors.file_link}</span>}
                             </div>
                         </div>
+
                         <div className={styles.formRow}>
                             <div className={styles.formGroup}>
                                 <label htmlFor="keterangan">Keterangan Booking</label>
@@ -440,10 +460,10 @@ export default function FiturDmove() {
                 </div>
                 {showSuccess && <SuccessPopup onClose={closeSuccess} />}
             </main>
-            <LogoutPopup 
-            open={showLogoutPopup} 
-            onCancel={() => setShowLogoutPopup(false)} 
-            onLogout={handleLogout} />
+            <LogoutPopup
+                open={showLogoutPopup}
+                onCancel={() => setShowLogoutPopup(false)}
+                onLogout={handleLogout} />
         </div>
     );
 }

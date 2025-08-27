@@ -43,7 +43,7 @@ export default function SidebarAdmin({ onLogout }) {
     <aside className={styles.sidebar}>
       <div className={styles.logoSidebar}>
         <Image
-          src="/assets/BI-One-Blue.png"
+          src="/assets/BI-One-Blue.svg"
           alt="Bank Indonesia"
           width={160}
           height={160}

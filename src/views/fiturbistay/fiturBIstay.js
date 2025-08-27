@@ -65,18 +65,18 @@ const SOPPopup = ({ onClose, onOpenLink }) => {
         </div>
 
         <div className={styles.sopTitle}>
-          Harap Membaca dan Mengakses <b>SOP Booking</b> BI.STAY
+          Harap Membaca dan Mengakses <b>SOP Booking Wisma BI</b> 
         </div>
         <div className={styles.sopSubtitle}>
-          Silakan buka tautan di bawah ini. Setelah Anda kembali ke tab ini, form akan otomatis
+          Silakan buka tautan di bawah ini. Setelah Anda kembali ke tab ini, form booking akan otomatis
           tersedia.
         </div>
 
         <button className={styles.sopLinkBtn} onClick={handleOpenSOP}>
-          Link SOP Booking BI.STAY
+          Link SOP Booking Wisma BI
         </button>
 
-        <div className={styles.sopHint}>(Tautan akan terbuka di tab baru)</div>
+        <div className={styles.sopHint}>(Tautan akan Terbuka di Tab Baru)</div>
       </div>
     </div>
   );
@@ -404,7 +404,7 @@ export default function FiturBIstay() {
                 dateFormat="dd MMMM yyyy"
                 // >>> Tidak dibatasi tanggalnya
                 locale={idLocale}
-                placeholderText="Pilih tanggal"
+                placeholderText="Pilih Tanggal"
               />
               {errors.checkIn && <span className={styles.errorMsg}>{errors.checkIn}</span>}
             </div>
@@ -418,7 +418,7 @@ export default function FiturBIstay() {
                 dateFormat="dd MMMM yyyy"
                 // >>> Tidak ada min/max tanggal
                 locale={idLocale}
-                placeholderText="Pilih tanggal"
+                placeholderText="Pilih Tanggal"
                 disabled={!fields.checkIn}
               />
               {errors.checkOut && <span className={styles.errorMsg}>{errors.checkOut}</span>}
