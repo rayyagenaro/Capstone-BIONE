@@ -317,22 +317,20 @@ export default function FiturBImeal() {
               </select>
               {errors.uker && <span id="err-uker" className={styles.errorMsg}>{errors.uker}</span>}
             </div>
-
             <div className={styles.formGroup}>
-              <label htmlFor="lokasi">Lokasi Pengiriman</label>
+              <label htmlFor="lokasi">Lokasi Pengiriman (Ruangan)</label>
               <input
-                id="lokasi" name="lokasi" type="text" placeholder="Masukkan Lokasi Pengiriman"
+                id="lokasi" name="lokasi" type="text" placeholder="Ruangan Tujuan Pesanan"
                 value={fields.lokasi} onChange={handleChange}
                 className={errors.lokasi ? styles.errorInput : ''}
                 aria-invalid={!!errors.lokasi} aria-describedby={errors.lokasi ? 'err-lokasi' : undefined}
               />
               {errors.lokasi && <span id="err-lokasi" className={styles.errorMsg}>{errors.lokasi}</span>}
             </div>
-            
             <div className={`${styles.formGroup} ${styles.colBig}`}>
               <label htmlFor="ket">Keterangan</label>
               <textarea
-                id="ket" name="ket" type="text" placeholder="Masukkan Keterangan"
+                id="ket" name="ket" type="text" placeholder="Keterangan (Agenda/Detail Pesanan)"
                 value={fields.ket} onChange={handleChange}
                 className={errors.ket ? styles.errorInput : ''}
                 aria-invalid={!!errors.ket} aria-describedby={errors.ket ? 'err-ket' : undefined}
