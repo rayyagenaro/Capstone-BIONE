@@ -46,7 +46,7 @@ const FEATURE_LOGOS = {
   bicare:  "/assets/D'CARE.svg",
   bimeal:  "/assets/D'MEAL.svg",
   bimeet:  "/assets/D'ROOM.svg",
-  bimail:  "/assets/BI-MAIL.svg",
+  bimail:  "/assets/D'TRACK.svg",
   bistay:  "/assets/D'REST.svg",
 };
 const logoSrcOf = (booking) => {
