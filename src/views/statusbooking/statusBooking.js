@@ -29,12 +29,12 @@ const seenStorageKey = (userId) => `statusTabSeen:${userId}`;
 /* ===================== KONFIGURASI & HELPER (FITUR/LAYANAN) ===================== */
 const FEATURE_OPTIONS = [
   { label: 'All', value: 'all' },
-  { label: 'BI.Drive', value: 'bidrive' },
-  { label: 'BI.Care',  value: 'bicare' },
-  { label: 'BI.Meal',  value: 'bimeal' },
-  { label: 'BI.Meet',  value: 'bimeet' },
-  { label: 'BI.Docs',  value: 'bimail' },
-  { label: 'BI.Stay',  value: 'bistay' },
+  { label: 'Drive', value: 'bidrive' },
+  { label: 'Care',  value: 'bicare' },
+  { label: 'Meal',  value: 'bimeal' },
+  { label: 'Meet',  value: 'bimeet' },
+  { label: 'Docs',  value: 'bimail' },
+  { label: 'Stay',  value: 'bistay' },
 ];
 
 const SERVICE_ID_TO_KEY = {};
@@ -43,7 +43,7 @@ const norm = (s) => String(s || '').trim().toLowerCase();
 
 const FEATURE_LOGOS = {
   bidrive: "/assets/D'MOVE.svg",
-  bicare:  "/assets/BI-CARE.svg",
+  bicare:  "/assets/D'CARE.svg",
   bimeal:  "/assets/D'MEAL.svg",
   bimeet:  "/assets/D'ROOM.svg",
   bimail:  "/assets/BI-MAIL.svg",
@@ -824,7 +824,7 @@ export default function StatusBooking() {
             <button className={styles.backBtn} onClick={() => router.back()} type="button">
               <FaArrowLeft /> Kembali
             </button>
-            <div className={styles.title}>STATUS BOOKING</div>
+            <div className={styles.title}>Status Booking</div>
           </div>
 
           <FeatureDropdown value={featureValue} onChange={handleFeatureChange} />
