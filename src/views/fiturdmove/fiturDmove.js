@@ -11,11 +11,6 @@ import 'react-datepicker/dist/react-datepicker.css';
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 
-function makeNs() {
-  const rnd = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
-  return rnd.replace(/-/g, '').slice(0, 8);
-}
-
 // --- CUSTOM HOOKS ---
 const useDropdown = (initialState = false) => {
     const [isOpen, setIsOpen] = useState(initialState);

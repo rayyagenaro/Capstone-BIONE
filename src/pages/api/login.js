@@ -1,8 +1,7 @@
-// pages/api/login.js
 import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
-import { getNsFromReq } from '@/lib/ns-server';
+import { getNsFromReq, NS_RE } from '@/lib/ns-server';   // ✅ pakai NS_RE juga
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -10,13 +9,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const ns = getNsFromReq(req);
+  const ns = (getNsFromReq(req) || '').trim();
   const email = (req.body?.email || '').trim().toLowerCase();
   const password = req.body?.password || '';
 
-  if (!ns || !email || !password) {
+  if (!email || !password || !NS_RE.test(ns)) {
     return res.status(400).json({
-      error: 'Email, password, dan ns wajib diisi (ns 3-32 char: a-zA-Z0-9_-).'
+      error: 'Email, password, dan ns wajib diisi (ns 3-32 alnum_-).'
     });
   }
 
@@ -37,7 +36,7 @@ export default async function handler(req, res) {
 
     const user = rows[0];
 
-    // 🔹 Cek status verifikasi
+    // 🔹 Status verifikasi
     if (user.verification_status_id === 1) {
       return res.status(403).json({ error: 'Akun Anda masih menunggu verifikasi admin (Pending).' });
     }
@@ -51,7 +50,7 @@ export default async function handler(req, res) {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: 'Email atau password salah' });
 
-    // 🔹 Generate JWT
+    // 🔹 JWT
     const secret = process.env.JWT_SECRET;
     if (!secret) return res.status(500).json({ error: 'JWT_SECRET belum diset.' });
 
@@ -81,22 +80,9 @@ export default async function handler(req, res) {
       `Max-Age=${maxAge}`,
     ].filter(Boolean).join('; ');
 
-    // 🔹 Sticky cookie (non-HttpOnly) → supaya frontend / router bisa restore ns
-    const stickyMaxAge = 60 * 60 * 24 * 30; // 30 hari
-    const sticky = [
-      `current_user_ns=${encodeURIComponent(ns)}`,
-      'Path=/User',
-      'SameSite=Lax',
-      isProd ? 'Secure' : '',
-      `Max-Age=${stickyMaxAge}`,
-      `Expires=${new Date(Date.now() + stickyMaxAge * 1000).toUTCString()}`,
-    ].filter(Boolean).join('; ');
-
-    // 🔹 Set semua cookie
+    // 🔹 Set cookies (tanpa sticky)
     res.setHeader('Set-Cookie', [
       `${cookieName}=${token}; ${sessionAttrs}`,
-      sticky,
-      // Bersihkan legacy supaya tidak bentrok
       `user_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
       `user_token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
       `token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,

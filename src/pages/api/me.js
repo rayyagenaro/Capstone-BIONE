@@ -1,10 +1,12 @@
 // pages/api/me.js
 import { getNsFromReq } from '@/lib/ns-server';
 import { parseCookieHeader } from '@/lib/resolve';
-import { resolveUser, resolveAdmin } from '@/lib/resolve-server';
+import { resolveUser } from '@/lib/resolve';
+import { resolveAdmin } from '@/lib/resolve-server';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+
   const cookies = parseCookieHeader(req.headers.cookie);
   const ns = getNsFromReq(req);
   const scope = String(req.query.scope || '').toLowerCase();
@@ -20,6 +22,7 @@ export default async function handler(req, res) {
       return res.status(200).json(a);
     }
 
+    // default: check both
     const [u, a] = await Promise.all([resolveUser(ns, cookies), resolveAdmin(ns, cookies)]);
     return res.status(200).json({ scope: 'both', user: u, admin: a });
   } catch (e) {

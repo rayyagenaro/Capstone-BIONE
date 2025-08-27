@@ -600,7 +600,7 @@ export default function HalBIMail() {
         </div>
 
         {showSuccess && (
-          <SuccessPopup onClose={() => { setShowSuccess(false); router.push('/User/HalamanUtama/hal-utamauser'); }} />
+          <SuccessPopup onClose={() => { setShowSuccess(false); router.push(`/User/StatusBooking/hal-statusBooking?ns=${ns}`); }} />
         )}
       </main>
 

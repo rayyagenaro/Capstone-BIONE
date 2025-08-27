@@ -1,29 +1,19 @@
 // /src/pages/Admin/DetailsLaporan/[slug].js
 import React from 'react';
-import { jwtVerify } from 'jose';
 import DetailsLaporanView from '@/views/detailslaporan/detailsLaporan';
-
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-const withNs = (url, ns) => {
-  if (!ns) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}ns=${encodeURIComponent(ns)}`;
-};
+import { NS_RE, withNs } from '@/lib/ns';
+import { getNsFromReq } from '@/lib/ns-server';
+import { verifyOrNull } from '@/lib/resolve';
 
 export default function DetailsLaporanPage(props) {
-  // Semua UI ada di views/detailslaporan/detailsLaporan.js
   return <DetailsLaporanView {...props} />;
 }
 
-// ===== SSR guard: cek cookie namespaced admin_session__{ns}
 export async function getServerSideProps(ctx) {
-  const { ns: nsRaw } = ctx.query;
-  const ns = Array.isArray(nsRaw) ? nsRaw[0] : nsRaw;
-  const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
-
+  const ns = getNsFromReq(ctx.req);
   const from = ctx.resolvedUrl || '/Admin/DetailsLaporan/[slug]';
 
-  if (!nsValid) {
+  if (!ns || !NS_RE.test(ns)) {
     return {
       redirect: {
         destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
@@ -32,31 +22,25 @@ export async function getServerSideProps(ctx) {
     };
   }
 
-  const cookieName = `admin_session__${nsValid}`;
+  const cookieName = `admin_session__${ns}`;
   const token = ctx.req.cookies?.[cookieName] || null;
 
   if (!token) {
     return {
       redirect: {
-        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(withNs(from, nsValid))}`,
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(withNs(from, ns))}`,
         permanent: false,
       },
     };
   }
 
   try {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) throw new Error('missing-secret');
+    const payload = await verifyOrNull(token);
 
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
-      algorithms: ['HS256'],
-      clockTolerance: 10,
-    });
-
-    if (payload?.role !== 'admin') {
+    if (!payload || !['super_admin', 'admin_fitur'].includes(payload?.role)) {
       return {
         redirect: {
-          destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(withNs(from, nsValid))}`,
+          destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(withNs(from, ns))}`,
           permanent: false,
         },
       };
@@ -66,7 +50,7 @@ export async function getServerSideProps(ctx) {
   } catch {
     return {
       redirect: {
-        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(withNs(from, nsValid))}`,
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(withNs(from, ns))}`,
         permanent: false,
       },
     };
