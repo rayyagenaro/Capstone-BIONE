@@ -11,8 +11,9 @@ export default async function handler(req, res) {
   const scope = String(req.query.scope || 'user').toLowerCase(); // 'user' | 'admin'
 
   // role yang diizinkan tergantung scope
-  const auth = await verifyAuth(req, scope === 'admin' ? ['admin'] : ['user','admin']);
-  if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+  const auth = await verifyAuth(req, 'admin');
+  if (!auth.ok) return res.status(401).json({ error: auth.reason });
+
 
   try {
     let rows = [];

@@ -12,7 +12,11 @@ export default async function handler(req, res) {
   /* ===================== GET ===================== */
   if (req.method === 'GET') {
     try {
-      const auth = await verifyAuth(req, ['user', 'admin']);
+      const isAdminScope = String(req.query?.scope || '').toLowerCase() === 'admin';
+      const auth = isAdminScope
+        ? await verifyAuth(req, ['super_admin', 'admin_fitur'], 'admin')
+        : await verifyAuth(req, ['user'], 'user');
+
       if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
 
       const { userId, role } = auth;
@@ -54,7 +58,6 @@ export default async function handler(req, res) {
         LEFT JOIN bimeet_rooms r ON r.id = b.room_id
         ${whereSQL}
         ORDER BY b.start_datetime DESC
-
         `,
         params
       );
@@ -65,14 +68,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ items: rows });
     } catch (e) {
       console.error('GET /api/bimeet/createbooking error:', e);
-      return res.status(500).json({ error: 'INTERNAL_ERROR', message: e?.message });
+      return res.status(500).json({ error: 'INTERNAL_ERROR', reason: e?.message });
     }
   }
 
   /* ===================== POST ===================== */
   if (req.method === 'POST') {
     try {
-      const auth = await verifyAuth(req, ['user']);
+      const auth = await verifyAuth(req, ['user'], 'user');
       if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
 
       const userId = auth.userId;
@@ -92,21 +95,21 @@ export default async function handler(req, res) {
       if (!participants) miss.push('participants');
       if (!contact_phone) miss.push('contact_phone');
       if (!pic_name) miss.push('pic_name');
-      if (miss.length) return res.status(400).json({ error: `Field wajib: ${miss.join(', ')}` });
+      if (miss.length) return res.status(400).json({ error: 'VALIDATION_ERROR', fields: miss });
 
       const start = new Date(start_date);
       const end = new Date(end_date);
       if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
-        return res.status(400).json({ error: 'Rentang waktu tidak valid' });
+        return res.status(400).json({ error: 'VALIDATION_ERROR', reason: 'Rentang waktu tidak valid' });
       }
 
       const participantsNum = parseInt(participants, 10);
       if (!participantsNum || participantsNum <= 0) {
-        return res.status(400).json({ error: 'participants harus angka > 0' });
+        return res.status(400).json({ error: 'VALIDATION_ERROR', reason: 'participants harus angka > 0' });
       }
 
       const [rooms] = await db.query('SELECT capacity FROM bimeet_rooms WHERE id=?', [room_id]);
-      if (!rooms.length) return res.status(404).json({ error: 'Ruangan tidak ditemukan' });
+      if (!rooms.length) return res.status(404).json({ error: 'NOT_FOUND', reason: 'Ruangan tidak ditemukan' });
 
       // cek bentrok booking
       const [conflict] = await db.query(
@@ -117,7 +120,7 @@ export default async function handler(req, res) {
         [room_id, toSqlDateTime(start), toSqlDateTime(end)]
       );
       if (conflict.length) {
-        return res.status(409).json({ error: 'Jadwal bentrok dengan pemakaian lain' });
+        return res.status(409).json({ error: 'CONFLICT', reason: 'Jadwal bentrok dengan pemakaian lain' });
       }
 
       const [result] = await db.query(
@@ -131,17 +134,21 @@ export default async function handler(req, res) {
          participantsNum, contact_phone, pic_name]
       );
 
-      return res.status(201).json({ ok: true, id: result.insertId });
+      return res.status(201).json({ ok: true, id: result.insertId, status_id: 1 });
     } catch (e) {
       console.error('POST /api/bimeet/createbooking error:', e);
-      return res.status(500).json({ error: 'INTERNAL_ERROR', message: e?.message });
+      return res.status(500).json({ error: 'INTERNAL_ERROR', reason: e?.message });
     }
   }
 
   /* ===================== PUT ===================== */
   if (req.method === 'PUT') {
     try {
-      const auth = await verifyAuth(req, ['user', 'admin']);
+      const isAdminScope = String(req.query?.scope || '').toLowerCase() === 'admin';
+      const auth = isAdminScope
+        ? await verifyAuth(req, ['super_admin','admin_fitur'], 'admin')
+        : await verifyAuth(req, ['user'], 'user');
+
       if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
 
       const { bookingId, newStatusId } = req.body || {};
@@ -149,25 +156,25 @@ export default async function handler(req, res) {
       const statusId = Number(newStatusId);
 
       if (!id || ![1,2,3,4].includes(statusId)) {
-        return res.status(400).json({ error: 'Input tidak valid' });
+        return res.status(400).json({ error: 'VALIDATION_ERROR', reason: 'Input tidak valid' });
       }
 
       const [rows] = await db.query('SELECT user_id FROM bimeet_bookings WHERE id=?', [id]);
-      if (!rows.length) return res.status(404).json({ error: 'Booking tidak ditemukan' });
+      if (!rows.length) return res.status(404).json({ error: 'NOT_FOUND', reason: 'Booking tidak ditemukan' });
 
-      // optional: user hanya boleh update miliknya, kecuali admin
-      // if (rows[0].user_id !== auth.userId && auth.role !== 'admin') {
-      //   return res.status(403).json({ error: 'Forbidden' });
-      // }
+      const isOwner = String(rows[0].user_id) === String(auth.userId);
+      if (auth.role === 'user' && !isOwner) {
+        return res.status(403).json({ error: 'FORBIDDEN', reason: 'Booking bukan milik Anda' });
+      }
 
       await db.query('UPDATE bimeet_bookings SET status_id=?, updated_at=NOW() WHERE id=?', [statusId, id]);
       return res.status(200).json({ ok: true });
     } catch (e) {
       console.error('PUT /api/bimeet/createbooking error:', e);
-      return res.status(500).json({ error: 'INTERNAL_ERROR', message: e?.message });
+      return res.status(500).json({ error: 'INTERNAL_ERROR', reason: e?.message });
     }
   }
 
-  res.setHeader('Allow', 'GET, POST, PUT');
-  return res.status(405).json({ error: 'Method Not Allowed' });
+  res.setHeader('Allow', ['GET', 'POST', 'PUT']);
+  return res.status(405).json({ error: `Method ${req.method} not allowed` });
 }

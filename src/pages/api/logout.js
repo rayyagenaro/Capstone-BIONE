@@ -57,7 +57,6 @@ export default async function handler(req, res) {
   const legacyHttpOnly = [
     'user_session', 'admin_session',
     'token', 'user_token', 'admin_token',
-    'admin_token', 'user_token'
   ];
   const legacyClient   = [
     'role', 'displayName',

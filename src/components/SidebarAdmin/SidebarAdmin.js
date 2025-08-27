@@ -1,6 +1,5 @@
 import React from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './SidebarAdmin.module.css';
 import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaAddressBook, FaBook } from 'react-icons/fa';
@@ -54,16 +53,16 @@ export default function SidebarAdmin({ onLogout }) {
           {menuItems.map((item) => {
             const isActive = pathnameOnly.startsWith(item.href);
             return (
-              <li key={item.href} className={`${styles.menuItem} ${isActive ? styles.active : ''}`}>
+              <li
+                key={item.href}
+                className={`${styles.menuItem} ${isActive ? styles.active : ''}`}
+                onClick={() => handleNavigate(item.href)}
+                onKeyDown={(e) => e.key === 'Enter' && handleNavigate(item.href)}
+                role="button"
+                tabIndex={0}
+              >
                 <item.icon className={styles.menuIcon} />
-                {/* href stabil (tanpa ?ns) → tidak bikin hydration mismatch.
-                    Saat klik, kita override agar tetap bawa ?ns */}
-                <Link
-                  href={item.href}
-                  onClick={(e) => { e.preventDefault(); handleNavigate(item.href); }}
-                >
-                  {item.text}
-                </Link>
+                <span>{item.text}</span>
               </li>
             );
           })}

@@ -27,9 +27,6 @@ export default function SidebarAdmin({ onLogout }) {
     return href + (href.includes('?') ? '&' : '?') + 'ns=' + encodeURIComponent(ns);
   };
 
-  // NOTE: kamu menamai file "SidebarAdmin" tapi href-nya area User.
-  // Kalau ini sidebar User, biarkan seperti ini.
-  // Kalau ini sidebar Admin, ubah href ke /Admin/... sesuai kebutuhanmu.
   const menuItems = [
     { href: '/User/HalamanUtama/hal-utamauser', text: 'Beranda',        icon: FaHome },
     { href: '/User/StatusBooking/hal-statusBooking', text: 'Status Booking', icon: FaClipboardList },

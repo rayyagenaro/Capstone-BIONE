@@ -1,4 +1,4 @@
-// pages/Admin/Pengaturan/pengaturan.js
+// pages/Admin/Pengaturan/hal-pengaturan.js
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import styles from './pengaturan.module.css';
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
@@ -11,6 +11,10 @@ import Pagination from '@/components/Pagination/Pagination';
 import VerifyVerificationPopup from '@/components/verifyVerification/VerifyVerification';
 // Popup minta alasan singkat
 import ReasonPopup from '@/components/rejectReason/ReasonPopup';
+import { jwtVerify } from "jose";
+import { getNsFromReq } from "@/lib/ns-server";
+
+const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
 /* ============================================================
    TABS: urutan baru -> Pending -> Verified -> Rejected
@@ -106,7 +110,14 @@ Detail:
 Silakan login ke BI.ONE Admin. Terima kasih.`;
 
 /* ===== Page ===== */
-export default function Pengaturan() {
+export default function Pengaturan({
+  initialAdminName = "Admin",
+  initialRoleId = null,
+  ns = null,
+}) {
+
+  
+
   const router = useRouter();
 
   // users | admins
@@ -1028,4 +1039,78 @@ export default function Pengaturan() {
       )}
     </div>
   );
+}
+
+export async function getServerSideProps(ctx) {
+  const ns = getNsFromReq(ctx.req);
+  const from = ctx.resolvedUrl || "/Admin/Pengaturan/hal-pengaturan";
+
+  // 🔹 1. regex cek
+  if (!ns || !NS_RE.test(ns)) {
+    console.log("[SSR Pengaturan] ns invalid:", ns);
+    return {
+      redirect: {
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
+        permanent: false,
+      },
+    };
+  }
+
+  // 🔹 2. cek apakah ada cookie admin_session__{ns}
+  const cookieName = `admin_session__${ns}`;
+  const token = ctx.req.cookies?.[cookieName];
+  if (!token) {
+    console.log("[SSR Pengaturan] tidak ada cookie untuk", cookieName);
+    return {
+      redirect: {
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
+        permanent: false,
+      },
+    };
+  }
+
+  try {
+    // 🔹 3. verify token
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(process.env.JWT_SECRET),
+      { algorithms: ["HS256"], clockTolerance: 10 }
+    );
+
+    const roleStr = String(payload?.role || payload?.role_name || "").toLowerCase();
+    const roleIdNum = Number(payload?.role_id ?? 0);
+
+    const isSuper =
+      roleIdNum === 1 ||
+      roleStr === "super_admin" ||
+      roleStr === "superadmin" ||
+      roleStr === "super-admin";
+
+    if (!isSuper) {
+      console.log("[SSR Pengaturan] role bukan super admin → redirect");
+      return {
+        redirect: {
+          destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
+          permanent: false,
+        },
+      };
+    }
+
+    console.log("[SSR Pengaturan] OK super admin → lolos");
+    return {
+      props: {
+        initialAdminName: payload?.name || "Super Admin",
+        initialRoleId: 1,
+        ns,
+      },
+    };
+  } catch (err) {
+    console.error("[SSR Pengaturan] gagal verify:", err.message);
+    return {
+      redirect: {
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
+        permanent: false,
+      },
+    };
+  }
 }

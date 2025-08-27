@@ -2,7 +2,7 @@
 import db from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
-import { getNsFromReq } from '@/lib/ns-server';
+import { getNsFromReq, NS_RE } from '@/lib/ns-server';   // ✅ ambil ns konsisten dari server-side
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,11 +15,14 @@ export default async function handler(req, res) {
   const email = (req.body?.email || '').trim().toLowerCase();
   const password = req.body?.password || '';
 
-  if (!email || !password || !/^[a-zA-Z0-9_-]{3,32}$/.test(ns)) {
-    return res.status(400).json({ error: 'Email, password, dan ns wajib diisi (ns 3-32 alnum_-).' });
+  if (!email || !password || !NS_RE.test(ns)) {
+    return res.status(400).json({
+      error: 'Email, password, dan ns wajib diisi (ns 3-32 alnum_-).',
+    });
   }
 
   try {
+    // 🔹 Cari admin di DB
     const [rows] = await db.query(
       `SELECT a.id, a.email, a.nama, a.password, a.role_id, a.verification_id,
               r.role AS role_name
@@ -35,13 +38,14 @@ export default async function handler(req, res) {
 
     const admin = rows[0];
 
-    // ✅ Cek password
+    // 🔹 Cek password
     const ok = await bcrypt.compare(password, admin.password);
     if (!ok) return res.status(401).json({ error: 'Email atau password salah' });
 
     const isSuperAdmin = Number(admin.role_id) === 1;
     const isVerified   = Number(admin.verification_id) === 2;
 
+    // Admin fitur harus diverifikasi
     if (!isSuperAdmin && !isVerified) {
       return res.status(403).json({
         error:
@@ -54,15 +58,17 @@ export default async function handler(req, res) {
     const secret = process.env.JWT_SECRET;
     if (!secret) return res.status(500).json({ error: 'JWT_SECRET belum diset.' });
 
-    // ✅ Buat JWT
+    // 🔹 Role normalisasi
+    const roleNormalized = isSuperAdmin ? 'super_admin' : 'admin_fitur';
+
+    // 🔹 Buat JWT
     const maxAge = 60 * 60; // 1 jam
     const token = await new SignJWT({
       sub: String(admin.id),
       email: admin.email,
       name: admin.nama,
-      role: 'admin',
+      role: roleNormalized,   // ✅ langsung role yang sesuai
       role_id: Number(admin.role_id),
-      role_name: admin.role_name || (isSuperAdmin ? 'super_admin' : 'admin_fitur'),
       ns,
     })
       .setProtectedHeader({ alg: 'HS256' })
@@ -72,7 +78,7 @@ export default async function handler(req, res) {
 
     const isProd = process.env.NODE_ENV === 'production';
 
-    // ✅ Set cookie
+    // 🔹 Set cookie
     const cookieName = `admin_session__${ns}`;
     const baseAttrs = [
       'Path=/',
@@ -80,32 +86,29 @@ export default async function handler(req, res) {
       'SameSite=Lax',
       isProd ? 'Secure' : '',
       `Max-Age=${maxAge}`,
-    ].filter(Boolean).join('; ');
+    ]
+      .filter(Boolean)
+      .join('; ');
 
     const stickyAttrs = [
       'Path=/',
       'SameSite=Lax',
       isProd ? 'Secure' : '',
       `Max-Age=${maxAge}`,
-    ].filter(Boolean).join('; ');
+    ]
+      .filter(Boolean)
+      .join('; ');
 
     res.setHeader('Set-Cookie', [
       `${cookieName}=${token}; ${baseAttrs}`,
-      `current_admin_ns=${encodeURIComponent(ns)}; ${stickyAttrs}`,
+      // 🔹 Bersihkan cookie lama
       `admin_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
       `admin_token=;  HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
       `token=;        HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
     ]);
 
-    // ✅ Redirect
-    let redirectUrl = '';
-    if (isSuperAdmin) {
-      redirectUrl = `/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`;
-    } else {
-      // fallback kalau role_name kosong
-      const roleName = admin.role_name || 'default';
-      redirectUrl = `/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`;
-    }
+    // 🔹 Tentukan redirect URL
+    const redirectUrl = `/Admin/HalamanUtama/hal-utamaAdmin?ns=${encodeURIComponent(ns)}`;
 
     return res.status(200).json({
       ok: true,
@@ -114,15 +117,17 @@ export default async function handler(req, res) {
         id: admin.id,
         email: admin.email,
         name: admin.nama,
-        role: 'admin',
+        role: roleNormalized,
         role_id: admin.role_id,
-        role_name: admin.role_name || (isSuperAdmin ? 'super_admin' : 'admin_fitur'),
         verification_id: admin.verification_id,
         ns,
       },
     });
   } catch (e) {
     console.error('Login Admin Error:', e);
-    return res.status(500).json({ error: 'Terjadi kesalahan server', detail: e.message });
+    return res.status(500).json({
+      error: 'Terjadi kesalahan server',
+      detail: e.message,
+    });
   }
 }

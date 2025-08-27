@@ -1,7 +1,5 @@
-// /pages/api/bimeal/book.js
 import db from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
-
 
 const PENDING_STATUS_ID = 1;
 
@@ -17,24 +15,26 @@ function normalizeItems(items) {
     })
     .filter((r) => r.item.length > 0);
 }
+
 const toMysqlDatetime = (d) =>
   new Date(d.getTime() - d.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 19)
     .replace('T', ' ');
 
-/* ===== handler ===== */
+/* ===== handler utama ===== */
 export default async function handler(req, res) {
-  // ===== GET: user (milik sendiri) atau admin (semua / userId tertentu) =====
+  // ===== GET =====
   if (req.method === 'GET') {
     const isAdminScope = String(req.query?.scope || '').toLowerCase() === 'admin';
-    const auth = await verifyAuth(req, isAdminScope ? ['user', 'admin'] : ['user']);
+    const auth = isAdminScope
+      ? await verifyAuth(req, ['super_admin', 'admin_fitur'], 'admin')
+      : await verifyAuth(req, ['user'], 'user');
+
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
       console.warn('Unauthorized GET /bimeal/book:', auth.reason);
-      return res
-        .status(401)
-        .json({ error: 'Unauthorized', reason: auth.reason, detail: auth.error });
+      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
 
     const requestedUserId = req.query.userId ? Number(req.query.userId) : null;
@@ -49,14 +49,12 @@ export default async function handler(req, res) {
     try {
       conn = await db.getConnection();
 
-      // 1) header bookings
       let rows;
       if (listForUserId) {
         [rows] = await conn.query(
           `
-          SELECT
-            b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
-            b.waktu_pesanan, b.status_id, b.created_at
+          SELECT b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
+                 b.waktu_pesanan, b.status_id, b.created_at
           FROM bimeal_bookings b
           WHERE b.user_id = ?
           ORDER BY b.created_at DESC
@@ -64,12 +62,10 @@ export default async function handler(req, res) {
           [listForUserId]
         );
       } else {
-        // admin lihat semua
         [rows] = await conn.query(
           `
-          SELECT
-            b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
-            b.waktu_pesanan, b.status_id, b.created_at
+          SELECT b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
+                 b.waktu_pesanan, b.status_id, b.created_at
           FROM bimeal_bookings b
           ORDER BY b.created_at DESC
           `
@@ -82,7 +78,6 @@ export default async function handler(req, res) {
         return res.status(200).json([]);
       }
 
-      // 2) items
       const ids = bookings.map((r) => r.id);
       const [items] = await conn.query(
         `SELECT booking_id, nama_pesanan, jumlah
@@ -106,15 +101,13 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== POST: hanya user membuat booking =====
+  // ===== POST =====
   if (req.method === 'POST') {
-    const auth = await verifyAuth(req, ['user']);
+    const auth = await verifyAuth(req, ['user'], 'user');
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
       console.warn('Unauthorized POST /bimeal/book:', auth.reason);
-      return res
-        .status(401)
-        .json({ error: 'Unauthorized', reason: auth.reason, detail: auth.error });
+      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
     const userId = Number(auth.userId);
 
@@ -154,18 +147,13 @@ export default async function handler(req, res) {
       if (pesanan.length) {
         const values = pesanan.map((p) => [bookingId, p.item, p.qty]);
         await conn.query(
-          `
-          INSERT INTO bimeal_booking_items (booking_id, nama_pesanan, jumlah)
-          VALUES ?
-          `,
+          `INSERT INTO bimeal_booking_items (booking_id, nama_pesanan, jumlah) VALUES ?`,
           [values]
         );
       }
 
       await conn.commit();
-      return res
-        .status(201)
-        .json({ ok: true, booking_id: bookingId, status_id: PENDING_STATUS_ID });
+      return res.status(201).json({ ok: true, booking_id: bookingId, status_id: PENDING_STATUS_ID });
     } catch (e) {
       if (conn) await conn.rollback();
       console.error('POST /api/bimeal/book error:', e?.message, e);
@@ -175,15 +163,13 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== PUT: update status (user: miliknya saja; admin: bebas) =====
+  // ===== PUT =====
   if (req.method === 'PUT') {
-    const auth = await verifyAuth(req, ['user', 'admin']);
+    const auth = await verifyAuth(req, ['user', 'super_admin', 'admin_fitur'], 'user');
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
       console.warn('Unauthorized PUT /bimeal/book:', auth.reason);
-      return res
-        .status(401)
-        .json({ error: 'Unauthorized', reason: auth.reason, detail: auth.error });
+      return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
 
     let body = {};
@@ -205,7 +191,6 @@ export default async function handler(req, res) {
     try {
       conn = await db.getConnection();
 
-      // cek kepemilikan
       const [own] = await conn.query(
         'SELECT id, user_id FROM bimeal_bookings WHERE id = ? LIMIT 1',
         [bookingId]
@@ -214,6 +199,7 @@ export default async function handler(req, res) {
         conn?.release();
         return res.status(404).json({ error: 'Booking tidak ditemukan' });
       }
+
       const isOwner = String(own[0].user_id) === String(auth.userId);
       if (auth.role === 'user' && !isOwner) {
         conn?.release();
