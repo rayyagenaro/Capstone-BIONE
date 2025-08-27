@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       sub: String(admin.id),
       email: admin.email,
       name: admin.nama,
-      role: roleNormalized,   // ✅ langsung role yang sesuai
+      role: roleNormalized,
       role_id: Number(admin.role_id),
       ns,
     })
@@ -78,33 +78,27 @@ export default async function handler(req, res) {
 
     const isProd = process.env.NODE_ENV === 'production';
 
-    // 🔹 Set cookie
-    const cookieName = `admin_session__${ns}`;
-    const baseAttrs = [
-      'Path=/',
-      'HttpOnly',
-      'SameSite=Lax',
-      isProd ? 'Secure' : '',
-      `Max-Age=${maxAge}`,
-    ]
-      .filter(Boolean)
-      .join('; ');
+    // 🔹 Ambil semua cookies lama dari header
+    const rawCookies = String(req.headers.cookie || '');
+    const allCookies = rawCookies.split(';').map(c => c.trim()).filter(Boolean);
 
-    const stickyAttrs = [
-      'Path=/',
-      'SameSite=Lax',
-      isProd ? 'Secure' : '',
-      `Max-Age=${maxAge}`,
-    ]
-      .filter(Boolean)
-      .join('; ');
+    // 🔹 Cari semua cookie admin_session__* dan kill
+    const killOldAdmin = allCookies
+      .map(c => {
+        const name = c.split('=')[0];
+        return name.startsWith('admin_session__')
+          ? `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`
+          : null;
+      })
+      .filter(Boolean);
 
+    // 🔹 Set cookie baru + bersihkan legacy
     res.setHeader('Set-Cookie', [
-      `${cookieName}=${token}; ${baseAttrs}`,
-      // 🔹 Bersihkan cookie lama
-      `admin_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
-      `admin_token=;  HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
-      `token=;        HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
+      ...killOldAdmin, // hapus semua session admin lama
+      `admin_session__${ns}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${isProd ? '; Secure' : ''}`,
+      `admin_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`,
+      `admin_token=;  Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`,
+      `token=;        Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`,
     ]);
 
     // 🔹 Tentukan redirect URL
