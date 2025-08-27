@@ -1,8 +1,7 @@
-// middleware.js
 import { NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import { normalizeRole } from '@/lib/role';
-import { getNsFromReq } from '@/lib/ns-server'; // ✅ gunakan helper
+import { getNsFromReq } from '@/lib/ns-server';
 
 const PUBLIC = new Set([
   '/', '/Login/hal-login', '/Signin/hal-sign', '/Signin/hal-signAdmin',
@@ -53,7 +52,6 @@ export async function middleware(req) {
     cookies: Object.fromEntries(req.cookies.getAll().map(c => [c.name, c.value])),
   });
 
-  // fallback infer jika helper tidak dapat ns
   if (!ns) {
     const r = NextResponse.redirect(
       redirectTo(isAdminArea ? '/Signin/hal-signAdmin' : '/Login/hal-login')
@@ -106,7 +104,7 @@ export async function middleware(req) {
     return r;
   }
 
-  // 🔒 Cross-check ns
+  // 🔒 Cross-check ns dalam payload
   if (payload.ns && payload.ns !== ns) {
     const r = NextResponse.redirect(
       redirectTo(isAdminArea ? '/Signin/hal-signAdmin' : '/Login/hal-login')
@@ -138,13 +136,6 @@ export async function middleware(req) {
   r.headers.set('x-auth-pass', 'true');
   r.headers.set('x-auth-ns', ns);
   r.headers.set('x-auth-role', String(role ?? ''));
-
-  const stickyKey = isAdminArea ? 'current_admin_ns' : 'current_user_ns';
-  r.cookies.set(stickyKey, ns, {
-    path: '/',
-    sameSite: 'Lax',
-    maxAge: 60 * 60 * 24 * 30,
-  });
 
   return r;
 }
