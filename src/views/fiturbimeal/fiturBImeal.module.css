@@ -205,6 +205,16 @@
   grid-column: 1 / -1;
 }
 
+.colBig {
+  grid-column: 1 / -1;   /* tetap full width */
+}
+
+.colBig textarea,
+.colBig input {
+  min-height: 120px;     /* bikin lebih tinggi */
+  resize: vertical;      /* optional: biar user bisa tarik tingginya */
+}
+
 .formGroup {
   display: flex;
   flex-direction: column;

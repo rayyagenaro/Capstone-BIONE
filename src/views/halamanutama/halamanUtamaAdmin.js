@@ -104,16 +104,16 @@ export default function HalamanUtamaAdmin({
 
       <main className={styles.mainContent}>
         <div className={styles.welcomeBox}>
-          <h2 className={styles.greeting}>Selamat datang, {namaAdmin}</h2>
+          <h2 className={styles.greeting}>Selamat Datang, {namaAdmin}</h2>
           <div className={styles.roleBadge}>
             {roleId === 1 ? 'Super Admin' : 'Admin Fitur'}
           </div>
 
           <div className={styles.servicesBox}>
-            <div className={styles.servicesTitle}>Pilih Layanan untuk Dikelola</div>
+            <div className={styles.servicesTitle}>Pilih Fitur untuk Dikelola</div>
             <div className={styles.servicesDesc}>
-              Lihat antrian &amp; pesanan per fitur BI.ONE. Semua tautan di bawah
-              akan membawa Anda ke halaman administrasi tiap layanan.
+              Lihat Antrian &amp; Pesanan Setiap Fitur BI.ONE. Semua Tautan di Bawah
+              Akan Membawa Anda ke Halaman Administrasi Setiap Layanan.
             </div>
             <ServicesCards ns={ns} allowedServiceIds={allowedServiceIds} />
           </div>

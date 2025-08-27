@@ -24,12 +24,12 @@ const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
 
 const FEATURE_OPTIONS = [
   { label: 'All',      value: 'all'     },
-  { label: 'BI.Drive', value: 'bidrive' },
-  { label: 'BI.Care',  value: 'bicare'  },
-  { label: 'BI.Meal',  value: 'bimeal'  },
-  { label: 'BI.Meet',  value: 'bimeet'  },
-  { label: 'BI.Docs',  value: 'bimail'  },
-  { label: 'BI.Stay',  value: 'bistay'  },
+  { label: 'Drive', value: 'bidrive' },
+  { label: 'Care',  value: 'bicare'  },
+  { label: 'Meal',  value: 'bimeal'  },
+  { label: 'Meet',  value: 'bimeet'  },
+  { label: 'Docs',  value: 'bimail'  },
+  { label: 'Stay',  value: 'bistay'  },
 ];
 
 const FEATURE_LOGOS = {
@@ -348,7 +348,7 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
             <button className={styles.backBtn} onClick={() => router.back()} type="button">
               <FaArrowLeft /> Kembali
             </button>
-            <h1 className={styles.title}>PERSETUJUAN BOOKING</h1>
+            <h1 className={styles.title}>Persetujuan Booking</h1>
           </div>
 
           <FeatureDropdown value={featureValue} onChange={setFeatureValue} allowedOptions={allowedFeatureOptions} />

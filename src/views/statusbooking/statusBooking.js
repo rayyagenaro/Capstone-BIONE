@@ -322,10 +322,12 @@ export default function StatusBooking() {
           const unit = booking._raw_bimeal?.unit_kerja;
           const count = booking._raw_bimeal?.items?.length || 0;
           const total = booking._raw_bimeal?.total_qty || 0;
+          const ket = booking._raw_bimeal?.keterangan;
           const parts = [
             unit && `Unit: ${unit}`,
             count ? `Item: ${count}` : null,
             total ? `Total qty: ${total}` : null,
+            ket && `Keterangan: ${ket}`,
           ].filter(Boolean);
           return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
         }

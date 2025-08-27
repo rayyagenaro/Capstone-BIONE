@@ -54,7 +54,7 @@ export default async function handler(req, res) {
         [rows] = await conn.query(
           `
           SELECT b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
-                 b.waktu_pesanan, b.status_id, b.created_at
+                 b.waktu_pesanan, b.keterangan, b.lokasi_pengiriman, b.status_id, b.created_at
           FROM bimeal_bookings b
           WHERE b.user_id = ?
           ORDER BY b.created_at DESC
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         [rows] = await conn.query(
           `
           SELECT b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
-                 b.waktu_pesanan, b.status_id, b.created_at
+                 b.waktu_pesanan, b.keterangan, b.lokasi_pengiriman, b.status_id, b.created_at
           FROM bimeal_bookings b
           ORDER BY b.created_at DESC
           `
@@ -124,8 +124,10 @@ export default async function handler(req, res) {
     const uker = String(body?.uker || '').trim();
     const tgl = body?.tgl ? new Date(body.tgl) : null;
     const pesanan = normalizeItems(body?.pesanan);
+    const lokasi = String(body?.lokasi || '').trim();
+    const ket = String(body?.ket || '').trim();
 
-    if (!nama || !nip || !wa || !uker || !tgl || Number.isNaN(tgl.getTime()) || !pesanan.length) {
+    if (!nama || !nip || !wa || !uker || !tgl || !lokasi || !ket || Number.isNaN(tgl.getTime()) || !pesanan.length) {
       return res.status(422).json({ error: 'VALIDATION_ERROR' });
     }
 
@@ -138,9 +140,9 @@ export default async function handler(req, res) {
 
       const [result] = await conn.query(
         `INSERT INTO bimeal_bookings
-           (user_id, nama_pic, nip_pic, no_wa_pic, unit_kerja, waktu_pesanan, status_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [userId, nama, nip, wa, uker, waktu_pesanan, PENDING_STATUS_ID]
+           (user_id, nama_pic, nip_pic, no_wa_pic, unit_kerja, waktu_pesanan, status_id, keterangan, lokasi_pengiriman)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, nama, nip, wa, uker, waktu_pesanan, PENDING_STATUS_ID, body?.keterangan, body?.lokasi_pengiriman]
       );
       const bookingId = result.insertId;
 

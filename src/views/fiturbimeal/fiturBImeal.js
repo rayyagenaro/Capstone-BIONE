@@ -90,6 +90,8 @@ export default function FiturBImeal() {
     wa: '',
     uker: '',
     tgl: null,
+    ket: '',
+    lokasi: '',
     pesanan: [{ item: '', qty: 1 }],
   });
   const [errors, setErrors] = useState({});
@@ -151,6 +153,8 @@ export default function FiturBImeal() {
     if (!fields.wa.trim()) e.wa = 'No WA wajib diisi';
     if (!fields.uker) e.uker = 'Unit Kerja wajib dipilih';
     if (!fields.tgl) e.tgl = 'Tanggal pesanan wajib diisi';
+    if (!fields.ket.trim()) e.ket = 'Keterangan wajib diisi';
+    if (!fields.lokasi.trim()) e.lokasi = 'Lokasi pengiriman wajib diisi';
 
     const list = toObjList(fields.pesanan);
     if (!list.some(p => String(p.item || '').trim())) {
@@ -209,6 +213,8 @@ export default function FiturBImeal() {
         uker: '',
         tgl: null,
         pesanan: [{ item: '', qty: 1 }],
+        ket: '',
+        lokasi: '',
       });
     } catch (err) {
       setServerMsg('Gagal mengirim data. Periksa koneksi Anda.');
@@ -217,7 +223,10 @@ export default function FiturBImeal() {
     }
   };
 
-  const closeSuccess = () => setShowSuccess(false);
+    const closeSuccess = () => {
+      setShowSuccess(false);
+      router.push(`/User/StatusBooking/hal-statusBooking?ns=${ns}`);
+  };
 
   const handleLogout = async () => {
     try { await fetch('/api/logout', { method: 'POST' }); } catch {}
@@ -277,6 +286,20 @@ export default function FiturBImeal() {
             </div>
 
             <div className={styles.formGroup}>
+              <label htmlFor="tgl">Waktu Pesanan</label>
+              <DatePicker
+                id="tgl"
+                selected={fields.tgl}
+                onChange={(d) => handleDateChange(d, 'tgl')}
+                showTimeSelect timeFormat="HH:mm" timeIntervals={15}
+                dateFormat="dd MMMM yyyy HH:mm" timeCaption="Jam"
+                minDate={new Date()} locale={idLocale}
+                placeholderText="Pilih tanggal & jam"
+                className={errors.tgl ? styles.errorInput : ''}
+              />
+              {errors.tgl && <span className={styles.errorMsg}>{errors.tgl}</span>}
+            </div>
+            <div className={styles.formGroup}>
               <label htmlFor="uker">Atas Beban Anggaran</label>
               <select
                 id="uker" name="uker"
@@ -295,19 +318,26 @@ export default function FiturBImeal() {
               {errors.uker && <span id="err-uker" className={styles.errorMsg}>{errors.uker}</span>}
             </div>
 
-            <div className={`${styles.formGroup} ${styles.colFull}`}>
-              <label htmlFor="tgl">Waktu Pesanan</label>
-              <DatePicker
-                id="tgl"
-                selected={fields.tgl}
-                onChange={(d) => handleDateChange(d, 'tgl')}
-                showTimeSelect timeFormat="HH:mm" timeIntervals={15}
-                dateFormat="dd MMMM yyyy HH:mm" timeCaption="Jam"
-                minDate={new Date()} locale={idLocale}
-                placeholderText="Pilih Tanggal & Jam"
-                className={errors.tgl ? styles.errorInput : ''}
+            <div className={styles.formGroup}>
+              <label htmlFor="lokasi">Lokasi Pengiriman</label>
+              <input
+                id="lokasi" name="lokasi" type="text" placeholder="Masukkan Lokasi Pengiriman"
+                value={fields.lokasi} onChange={handleChange}
+                className={errors.lokasi ? styles.errorInput : ''}
+                aria-invalid={!!errors.lokasi} aria-describedby={errors.lokasi ? 'err-lokasi' : undefined}
               />
-              {errors.tgl && <span className={styles.errorMsg}>{errors.tgl}</span>}
+              {errors.lokasi && <span id="err-lokasi" className={styles.errorMsg}>{errors.lokasi}</span>}
+            </div>
+            
+            <div className={`${styles.formGroup} ${styles.colBig}`}>
+              <label htmlFor="ket">Keterangan</label>
+              <textarea
+                id="ket" name="ket" type="text" placeholder="Masukkan Keterangan"
+                value={fields.ket} onChange={handleChange}
+                className={errors.ket ? styles.errorInput : ''}
+                aria-invalid={!!errors.ket} aria-describedby={errors.ket ? 'err-ket' : undefined}
+              />
+              {errors.ket && <span id="err-ket" className={styles.errorMsg}>{errors.ket}</span>}
             </div>
 
             {/* Pesanan + Jumlah */}
@@ -363,6 +393,7 @@ export default function FiturBImeal() {
 
               {errors.pesanan && <span className={styles.errorMsg}>{errors.pesanan}</span>}
             </div>
+            
 
             {serverMsg && (
               <div className={`${styles.colFull} ${styles.serverMsg}`}>

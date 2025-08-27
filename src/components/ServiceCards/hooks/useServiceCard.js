@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 
 // Metadata per layanan (logo, nama, slug, dsb)
 const META_BY_ID = {
-  1: { slug: 'dmove',  name: "BI.DRIVE", desc: "Penugasan kendaraan & driver.",        logo: "/assets/D'MOVE.svg"  },
-  2: { slug: 'bicare', name: "BI.CARE",  desc: "Antrian poli & konsultasi dokter.",    logo: "/assets/D'CARE.svg"  },
-  3: { slug: 'bimeal', name: "BI.MEAL",  desc: "Permintaan konsumsi & progres.",       logo: "/assets/D'MEAL.svg"  },
-  4: { slug: 'bimeet', name: "BI.MEET",  desc: "Peminjaman ruang rapat.",              logo: "/assets/D'ROOM.svg"  },
-  5: { slug: 'bimail', name: "BI.DOCS",  desc: "Monitoring penomoran & pelacakan.",    logo: "/assets/D%27TRACK.svg" },
-  6: { slug: 'bistay', name: "BI.STAY",  desc: "Reservasi akomodasi rumah dinas.",     logo: "/assets/D'REST.svg"  },
+  1: { slug: 'dmove',  desc: "Penugasan Kendaraan & Driver.",        logo: "/assets/D'MOVE.svg"  },
+  2: { slug: 'bicare',  desc: "Antrian Poli & Konsultasi Dokter.",    logo: "/assets/D'CARE.svg"  },
+  3: { slug: 'bimeal',  desc: "Permintaan Konsumsi.",       logo: "/assets/D'MEAL.svg"  },
+  4: { slug: 'bimeet',  desc: "Peminjaman Ruang Rapat.",              logo: "/assets/D'ROOM.svg"  },
+  5: { slug: 'bimail',  desc: "Monitoring Penomoran & Pelacakan.",    logo: "/assets/D%27TRACK.svg" },
+  6: { slug: 'bistay',  desc: "Reservasi Akomodasi Rumah Dinas.",     logo: "/assets/D'REST.svg"  },
 };
 
 export function useServiceCard(serviceId) {

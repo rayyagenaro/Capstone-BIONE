@@ -6,8 +6,7 @@ import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import Pagination from '@/components/Pagination/Pagination';
 import styles from './laporan.module.css';
 import { jwtVerify } from 'jose';
-
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
+import { NS_RE } from '@/lib/ns-server';
 
 /* ====== PEMETAAN LAYANAN (sama spirit dengan halaman Persetujuan) ====== */
 // Service ID dari payload token -> service key internal
@@ -22,13 +21,12 @@ const SERVICE_ID_MAP = {
 
 // Daftar modul yang tampil di dropdown + kunci service untuk filter role
 const MODULES = [
-  { value: 'bi-care',  label: 'BI.CARE',  serviceKey: 'bicare'  },
-  { value: 'bi-drive', label: 'BI.DRIVE', serviceKey: 'bidrive' },
-  { value: 'bi-meal',  label: 'BI.MEAL',  serviceKey: 'bimeal'  },
-  { value: 'bi-meet',  label: 'BI.MEET',  serviceKey: 'bimeet'  },
-  { value: 'bi-stay',  label: 'BI.STAY',  serviceKey: 'bistay'  },
-  // bi-docs mewakili docs/mail, kita anggap serviceKey 'bimail' (alias 'bidocs' juga diloloskan)
-  { value: 'bi-docs',  label: 'BI.DOCS',  serviceKey: 'bimail'  },
+  { value: 'bi-care',  label: 'CARE',  serviceKey: 'bicare'  },
+  { value: 'bi-drive', label: 'DRIVE', serviceKey: 'bidrive' },
+  { value: 'bi-meal',  label: 'MEAL',  serviceKey: 'bimeal'  },
+  { value: 'bi-meet',  label: 'MEET',  serviceKey: 'bimeet'  },
+  { value: 'bi-stay',  label: 'STAY',  serviceKey: 'bistay'  },
+  { value: 'bi-docs',  label: 'DOCS',  serviceKey: 'bimail'  },
 ];
 
 // Alias service key yang dianggap sama
@@ -350,7 +348,7 @@ export default function HalLaporan({ initialRoleId = null, initialServiceIds = n
       <main className={styles.mainContent}>
         <div className={styles.tableBox}>
           <div className={styles.tableTopRow}>
-            <div className={styles.tableTitle}>LAPORAN BOOKING</div>
+            <div className={styles.tableTitle}>Laporan Booking</div>
           </div>
 
           {/* Controls */}
