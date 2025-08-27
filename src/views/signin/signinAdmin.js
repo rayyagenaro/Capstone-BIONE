@@ -116,7 +116,7 @@ async function handleSubmit(e) {
             </button>
             <div className={styles.headerLogoWrapper}>
               <Image
-                src="/assets/BI-One-Blue.png"
+                src="/assets/BI-One-Blue.svg"
                 alt="Logo BI.ONE"
                 width={160}
                 height={44}

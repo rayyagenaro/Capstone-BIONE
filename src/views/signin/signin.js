@@ -109,7 +109,7 @@ export default function SignIn() {
             </button>
             <div className={styles.headerLogoWrapper}>
               <Image
-                src="/assets/BI-One-Blue.png"
+                src="/assets/BI-One-Blue.svg"
                 alt="Logo D'ONE"
                 width={160}
                 height={44}
