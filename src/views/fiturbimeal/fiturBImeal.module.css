@@ -283,12 +283,11 @@
   gap: 10px;
   align-items: center;
 }
-
-/* Tambahan gaya khusus untuk input pesanan (opsional)
-   Sebenarnya input ini sudah mengikuti .formGroup input[type="text"] */
-.orderRow input[type="text"] {
-  /* biarkan mewarisi dari .formGroup input[...] */
+.orderRow input,
+.orderRow select {
+  flex: 1;
 }
+
 
 /* Tombol + Tambah Pesanan */
 .addItemBtn {
@@ -310,18 +309,14 @@
 
 /* Tombol hapus di tiap baris */
 .removeItemBtn {
-  border: 1px solid #e4e6ef;
-  background: #f6f8fd;
-  color: #2F4D8E;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 700;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  transition: background .14s, color .14s, border-color .14s;
-  line-height: 1;
-  min-width: 44px;
-  text-align: center;
+  color: #dc3545; /* merah */
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .removeItemBtn:hover {
@@ -523,7 +518,7 @@
 
 .orderRow {
   display: grid;
-  grid-template-columns: 1fr 86px auto; /* item | qty kecil | tombol hapus */
+  grid-template-columns: 1fr 86px 90px 45px; /* item | qty kecil | tombol hapus */
   gap: 10px;
   align-items: center;
 }
@@ -568,7 +563,7 @@
   background: #f6f8fd;
   color: #2F4D8E;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 16px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -576,6 +571,7 @@
   line-height: 1;
   min-width: 44px;
   text-align: center;
+  margin-top: 24px;
 }
 
 .removeItemBtn:hover {
@@ -589,6 +585,7 @@
   justify-content: flex-start;
   margin-top: 6px;
 }
+
 
 @media (max-width: 720px) {
   .orderRow { grid-template-columns: 1fr 70px auto; }

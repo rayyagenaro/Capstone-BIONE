@@ -35,7 +35,7 @@ const CFG = {
     select: `
       b.id,
       b.nama_pic,
-      b.nip_pic,
+      b.nama_pic_tagihan,
       b.no_wa_pic,
       b.unit_kerja,
       b.waktu_pesanan,

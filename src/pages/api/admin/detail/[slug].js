@@ -100,7 +100,7 @@ export default async function handler(req, res) {
     // ==== Special case BI.MEAL ====
     if (service === 'bimeal') {
       const [items] = await db.query(
-        `SELECT id, nama_pesanan, jumlah
+        `SELECT id, nama_pesanan, jumlah, satuan
          FROM bimeal_booking_items
          WHERE booking_id = ?
          ORDER BY id ASC`,

@@ -1,7 +1,6 @@
 // src/pages/BImail/hal-BImail.js
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './hal-BImail.module.css';
 import { FaArrowLeft } from 'react-icons/fa';
@@ -29,6 +28,7 @@ const SuccessPopup = ({ onClose, message = "Data BI.MAIL berhasil disimpan!" }) 
 
 export default function HalBIMail() {
   const router = useRouter();
+  const { ns } = router.query;
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -234,6 +234,11 @@ export default function HalBIMail() {
   const handleDateChange = (date) => {
     setFields(prev => ({ ...prev, tanggalDokumen: date }));
     if (errors.tanggalDokumen) setErrors(prev => ({ ...prev, tanggalDokumen: null }));
+  };
+
+  const closeSuccess = () => {
+    setShowSuccess(false);
+    router.push(`/User/StatusBooking/hal-statusBooking?ns=${ns}`);
   };
 
   // ===== Validasi wajib untuk 4 field: perihal, dari, kepada, linkDokumen =====
@@ -600,7 +605,7 @@ export default function HalBIMail() {
         </div>
 
         {showSuccess && (
-          <SuccessPopup onClose={() => { setShowSuccess(false); router.push(`/User/StatusBooking/hal-statusBooking?ns=${ns}`); }} />
+          <SuccessPopup onClose={closeSuccess} />
         )}
       </main>
 
