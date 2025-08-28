@@ -1,8 +1,9 @@
-// /src/views/detailslaporan/detailsLaporan.js
+// src/views/detailslaporan/detailsLaporan.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import styles from './detailsLaporan.module.css';
-import { FaFilePdf, FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft } from 'react-icons/fa';
+
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
@@ -13,7 +14,13 @@ import KontakDriverPopup from '@/components/KontakDriverPopup/KontakDriverPopup'
 import PopupAdmin from '@/components/PopupAdmin/PopupAdmin';
 import { jwtVerify } from 'jose';
 
-const ALLOWED_SLUGS = ['dmove', 'bicare', 'bimeet', 'bimail', 'bistay', 'bimeal'];
+// SECTION COMPONENTS (per modul)
+import BiDriveSection from '@/components/DetailsLaporan/bidrive/BiDriveSection';
+import BiCareSection  from '@/components/DetailsLaporan/bicare/BiCareSection';
+import BiMeetSection  from '@/components/DetailsLaporan/bimeet/BiMeetSection';
+import BiStaySection  from '@/components/DetailsLaporan/bistay/BiStaySection';
+import BiMailSection  from '@/components/DetailsLaporan/bidocs/BiDocsSection';
+import BiMealSection  from '@/components/DetailsLaporan/bimeal/BiMealSection';
 
 /* ===== NS helpers ===== */
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
@@ -46,7 +53,7 @@ const toWaNumber = (val) => {
   if (p.startsWith('8'))  return '62' + p;
   return p;
 };
-const getStatusId = (slug, booking, detail) => (slug === 'dmove' || slug === 'bidrive') ? booking?.status_id : detail?.status_id;
+const getStatusId = (slug, booking, detail) => (slug === 'bidrive') ? booking?.status_id : detail?.status_id;
 
 /* ===== Status styles ===== */
 const STATUS_CONFIG = {
@@ -58,15 +65,16 @@ const STATUS_CONFIG = {
 
 /* ===== Meta judul ===== */
 const META = {
-  dmove:  { title: 'BI-DRIVE' },
-  bicare: { title: 'BI-CARE'  },
-  bimeet: { title: 'BI-MEET'  },
-  bimail: { title: 'BI-DOCS'  },
-  bistay: { title: 'BI-STAY'  },
-  bimeal: { title: 'BI-MEAL'  },
+  bidrive: { title: 'BI-DRIVE' },
+  bicare:  { title: 'BI-CARE'  },
+  bimeet:  { title: 'BI-MEET'  },
+  bimail:  { title: 'BI-DOCS'  },
+  bistay:  { title: 'BI-STAY'  },
+  bimeal:  { title: 'BI-MEAL'  },
 };
 
 /* ===== Util ===== */
+const ALLOWED_SLUGS = ['bidrive', 'bicare', 'bimeet', 'bimail', 'bistay', 'bimeal', 'dmove']; // 'dmove' untuk kompatibel
 const getPlate = (v) => v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
 
 function mapStatus(detail) {
@@ -104,12 +112,12 @@ const isPendingGeneric = (slug, d) => {
 /* ===== Penerima WA per fitur ===== */
 const pickPersonForWA = (slug, booking, detail) => {
   switch (slug) {
-    case 'dmove':  return { name: booking?.user_name,  phone: booking?.phone };
-    case 'bicare': return { name: detail?.booker_name || detail?.patient_name, phone: detail?.wa };
-    case 'bimeet': return { name: detail?.pic_name,    phone: detail?.contact_phone };
-    case 'bistay': return { name: detail?.nama_pemesan, phone: detail?.no_wa };
-    case 'bimeal': return { name: detail?.nama_pic,     phone: detail?.no_wa_pic };
-    default:       return { name: '', phone: '' };
+    case 'bidrive': return { name: booking?.user_name,  phone: booking?.phone };
+    case 'bicare':  return { name: detail?.booker_name || detail?.patient_name, phone: detail?.wa };
+    case 'bimeet':  return { name: detail?.pic_name,    phone: detail?.contact_phone };
+    case 'bistay':  return { name: detail?.nama_pemesan, phone: detail?.no_wa };
+    case 'bimeal':  return { name: detail?.nama_pic,     phone: detail?.no_wa_pic };
+    default:        return { name: '', phone: '' };
   }
 };
 
@@ -127,7 +135,7 @@ Silakan lakukan perbaikan/pengajuan ulang. Terima kasih.`;
 };
 
 /* ============================== COMPONENT ============================== */
-export default function DetailsLaporan({ initialRoleId = null }) {
+export default function DetailsLaporanView({ initialRoleId = null }) {
   const router = useRouter();
   const { id, slug: qslug } = router.query || {};
 
@@ -142,9 +150,11 @@ export default function DetailsLaporan({ initialRoleId = null }) {
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
-  // slug
+  // slug (aliaskan 'dmove' -> 'bidrive' untuk tampilan; API tetap pakai 'dmove')
   const raw = (typeof qslug === 'string' ? qslug : '').toLowerCase();
-  const slug = ALLOWED_SLUGS.includes(raw) ? raw : 'dmove';
+  const normalized = raw === 'dmove' ? 'bidrive' : raw;
+  const slug = ALLOWED_SLUGS.includes(normalized) ? (normalized === 'dmove' ? 'bidrive' : normalized) : 'bidrive';
+  const apiSlug = slug === 'bidrive' && raw === 'dmove' ? 'dmove' : (slug === 'bidrive' ? 'dmove' : slug); // endpoint admin/* masih pakai 'dmove'?
 
   // ==== pilih sidebar by role (SSR → client fallback) ====
   const [roleId, setRoleId] = useState(initialRoleId);
@@ -172,11 +182,9 @@ export default function DetailsLaporan({ initialRoleId = null }) {
     return () => { alive = false; };
   }, [router.isReady, initialRoleId]);
 
-  // D'MOVE
-  const [booking, setBooking] = useState(null);
-  // Layanan lain
-  const [detail, setDetail] = useState(null);
-
+  // Data
+  const [booking, setBooking] = useState(null); // BI-DRIVE
+  const [detail, setDetail] = useState(null);   // layanan lain
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -211,7 +219,7 @@ export default function DetailsLaporan({ initialRoleId = null }) {
       setIsLoading(true);
       setError(null);
       try {
-        if (slug === 'dmove') {
+        if (slug === 'bidrive') {
           const r = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
           if (!r.ok) throw new Error('Gagal memuat data booking');
           const d = await r.json();
@@ -237,7 +245,7 @@ export default function DetailsLaporan({ initialRoleId = null }) {
             setAvailableVehicles(Array.isArray(d4) ? d4 : []);
           }
         } else {
-          const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
+          const r = await fetch(`/api/admin/detail/${apiSlug}?id=${id}`);
           const j = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(j?.error || 'Gagal memuat detail');
           setDetail(j.item || null);
@@ -248,11 +256,11 @@ export default function DetailsLaporan({ initialRoleId = null }) {
         setIsLoading(false);
       }
     })();
-  }, [router.isReady, id, slug]);
+  }, [router.isReady, id, slug, apiSlug]);
 
   /* ========= Aksi BI-DRIVE ========= */
   const handleSubmitPersetujuan = async ({ driverIds, vehicleIds, keterangan }) => {
-    if (slug !== 'dmove' || !booking) return;
+    if (slug !== 'bidrive' || !booking) return;
     setIsUpdating(true);
     try {
       if ((driverIds?.length || 0) !== Number(booking.jumlah_driver)) {
@@ -273,6 +281,7 @@ export default function DetailsLaporan({ initialRoleId = null }) {
       const assignJson = await resAssign.json().catch(() => ({}));
       if (!resAssign.ok || assignJson?.error) throw new Error(assignJson?.error || 'Gagal menyimpan penugasan.');
 
+      // Update status driver/vehicle (tetap sesuai logic lama)
       await Promise.all(
         vehicleIds.map(async (vehId) => {
           const r = await fetch('/api/updateVehiclesStatus', {
@@ -315,7 +324,7 @@ export default function DetailsLaporan({ initialRoleId = null }) {
 
     setRejectLoading(true);
     try {
-      const res = await fetch(`/api/admin/reject/${slug}`, {
+      const res = await fetch(`/api/admin/reject/${apiSlug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: Number(id), reason })
@@ -323,11 +332,11 @@ export default function DetailsLaporan({ initialRoleId = null }) {
       const j = await res.json().catch(() => ({}));
       if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menolak.');
 
-      if (slug === 'dmove') {
+      if (slug === 'bidrive') {
         const r = await fetch(`/api/bookings-with-vehicle?bookingId=${id}`);
         setBooking(await r.json());
       } else {
-        const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
+        const r = await fetch(`/api/admin/detail/${apiSlug}?id=${id}`);
         const d = await r.json(); setDetail(d.item || null);
       }
 
@@ -354,7 +363,7 @@ export default function DetailsLaporan({ initialRoleId = null }) {
     if (slug === 'bimail') return;
     setIsUpdatingGeneric(true);
     try {
-      const res = await fetch(`/api/admin/approve/${slug}`, {
+      const res = await fetch(`/api/admin/approve/${apiSlug}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: Number(id) }),
       });
@@ -365,7 +374,7 @@ export default function DetailsLaporan({ initialRoleId = null }) {
       openNotif(`Pengajuan ${svc} Berhasil!`, 'success');
       setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
 
-      const r = await fetch(`/api/admin/detail/${slug}?id=${id}`);
+      const r = await fetch(`/api/admin/detail/${apiSlug}?id=${id}`);
       const d = await r.json();
       setDetail(d.item || null);
     } catch (err) {
@@ -414,7 +423,6 @@ export default function DetailsLaporan({ initialRoleId = null }) {
   if (error)     return <div className={styles.errorState}>Error: {error}</div>;
 
   const titleService = META[slug]?.title || slug.toUpperCase();
-  const nonMoveStatus = slug !== 'dmove' ? mapStatus(detail) : null;
 
   // Logout (pakai API + redirect Signin Admin)
   const doLogout = async () => {
@@ -444,507 +452,102 @@ export default function DetailsLaporan({ initialRoleId = null }) {
           <div className={styles.title}>DETAIL LAPORAN • {titleService}</div>
         </div>
 
-        {slug === 'dmove' ? (
-          /* ========================== D'MOVE ========================== */
-          <div className={styles.detailCard} ref={detailRef}>
-            <div className={styles.topRow}>
-              <div className={styles.leftTitle}>
-                <div className={styles.bookingTitle}>{`Booking BI-DRIVE | ${booking?.tujuan}`}</div>
-                <div className={styles.headerMetaWrap}>
-                  <div className={styles.headerDates}>
-                    <div className={styles.metaRow}>
-                      <span className={styles.metaLabel}>TANGGAL PENGAJUAN</span>
-                      <span className={styles.metaValue}>{formatDateTime(booking?.created_at)}</span>
-                    </div>
-                    {Number(booking?.status_id) === 4 && (
-                      <div className={styles.metaRow}>
-                        <span className={styles.metaLabel}>TANGGAL SELESAI</span>
-                        <span className={styles.metaValue}>
-                          {formatDateTime(booking?.finished_at || booking?.end_date || booking?.updated_at)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {(() => {
-                    const info = STATUS_CONFIG[String(booking?.status_id || '1')];
-                    return (
-                      <span className={`${info.className} ${styles.headerStatus}`}>
-                        <span className={info.dot} /> {info.text}
-                      </span>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.detailRow}>
-              <div className={styles.detailColLeft}>
-                <div className={styles.detailLabel}>NAMA PENGAJU</div>
-                <div className={styles.detailValue}>{booking?.user_name}</div>
-
-                <div className={styles.detailLabel}>TUJUAN</div>
-                <div className={styles.detailValue}>{booking?.tujuan}</div>
-
-                <div className={styles.detailLabel}>KETERANGAN</div>
-                <div className={styles.detailValue}>{booking?.keterangan || '-'}</div>
-
-                {booking?.file_link && (
-                  <>
-                    <div className={styles.detailLabel}>FILE LAMPIRAN</div>
-                    <div className={styles.fileBox}>
-                      <FaFilePdf className={styles.fileIcon} />
-                      <a href={booking.file_link} target="_blank" rel="noopener noreferrer" className={styles.fileName}>
-                        Lihat Lampiran
-                      </a>
-                    </div>
-                  </>
-                )}
-
-                {Number(booking?.status_id) === 3 && booking?.rejection_reason && (
-                  <div className={styles.rejectBox}>
-                    <div className={styles.rejectTitle}>Alasan Penolakan</div>
-                    <div className={styles.rejectText}>{booking.rejection_reason}</div>
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.detailColRight}>
-                <div className={styles.detailLabel}>JENIS KENDARAAN</div>
-                <div className={styles.detailValue}>
-                  {booking?.vehicle_types?.map((v) => v.name).join(', ') || '-'}
-                </div>
-
-                <div className={styles.detailLabel}>DURASI PEMESANAN</div>
-                <div className={styles.detailValue}>{formatDuration(booking?.start_date, booking?.end_date)}</div>
-
-                {Number(booking?.status_id) === 4 && (
-                  <>
-                    <div className={styles.detailLabel}>TANGGAL SELESAI</div>
-                    <div className={styles.detailValue}>{formatDateTime(booking?.finished_at || booking?.updated_at)}</div>
-                  </>
-                )}
-
-                <div className={styles.detailLabel}>JUMLAH ORANG</div>
-                <div className={styles.detailValue}>{booking?.jumlah_orang ?? '-'}</div>
-
-                <div className={styles.detailLabel}>JUMLAH KENDARAAN</div>
-                <div className={styles.detailValue}>
-                  {booking?.vehicle_types?.length ? (
-                    <div>
-                      {booking.vehicle_types.map((v, i) => (
-                        <div key={i}>{v.name}: {v.quantity}</div>
-                      ))}
-                    </div>
-                  ) : '-'}
-                </div>
-
-                <div className={styles.detailLabel}>JUMLAH DRIVER</div>
-                <div className={styles.detailValue}>{booking?.jumlah_driver ?? '-'}</div>
-
-                <div className={styles.detailLabel}>VOLUME BARANG</div>
-                <div className={styles.detailValue}>{booking?.volume_kg ? `${booking.volume_kg} Kg` : '-'}</div>
-
-                <div className={styles.detailLabel}>No HP</div>
-                <div className={styles.detailValue}>{booking?.phone}</div>
-              </div>
-            </div>
-
-            {[2, 4].includes(Number(booking?.status_id)) && (
-              <div className={styles.detailRow} style={{ marginTop: 16 }}>
-                <div className={styles.detailColLeft}>
-                  <div className={styles.detailLabel}>DRIVER DITUGASKAN</div>
-                  <div className={styles.detailValue}>
-                    {Array.isArray(booking?.assigned_drivers) && booking.assigned_drivers.length ? (
-                      <ul style={{ paddingLeft: 16, margin: 0 }}>
-                        {booking.assigned_drivers.map((d) => (
-                          <li key={d.id}>
-                            {d.name || d.driver_name || '-'}{d.phone ? ` — ${d.phone}` : ''}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : 'Belum ada data.'}
-                  </div>
-                </div>
-                <div className={styles.detailColRight}>
-                  <div className={styles.detailLabel}>KENDARAAN DITUGASKAN</div>
-                  <div className={styles.detailValue}>
-                    {Array.isArray(booking?.assigned_vehicles) && booking.assigned_vehicles.length ? (
-                      <ul style={{  margin: 0 }}>
-                        {booking.assigned_vehicles.map((v) => (
-                          <li key={v.id}>{getPlate(v)}{v.type_name ? ` — ${v.type_name}` : ''}</li>
-                        ))}
-                      </ul>
-                    ) : 'Belum ada data.'}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {booking?.status_id === 1 && (
-              <div className={styles.detailRow} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <button className={styles.btnTolak} onClick={() => setShowRejectReason(true)} disabled={isUpdating}>
-                  {isUpdating ? 'Memproses...' : 'Tolak'}
-                </button>
-                <button className={styles.btnSetujui} onClick={() => setShowPopup(true)} disabled={isUpdating}>
-                  {isUpdating ? 'Memproses...' : 'Setujui'}
-                </button>
-              </div>
-            )}
-
-            {booking?.status_id === 2 && (
-              <div className={styles.actionBtnRow}>
-                <div className={styles.kirimPesanWrapper}>
-                  <button className={styles.btnKirimPesan} onClick={() => setShowKontakPopup(true)}>
-                    Kirim Pesan
-                  </button>
-                  <p className={styles.kirimPesanNote}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                         strokeWidth="1.5" stroke="currentColor" className={styles.iconInfo} fill="none">
-                      <path strokeLinecap="round" strokeLinejoin="round"
-                            d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                    </svg>
-                    Kirim pesan otomatis kepada driver untuk konfirmasi.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Export PDF */}
-            {Number(getStatusId(slug, booking, detail)) === 4 && (
-              <div className={styles.actionBtnRow}>
-                <button
-                  type="button"
-                  className={styles.btnSetujui}
-                  onClick={handleExportPDF}
-                  disabled={exporting}
-                  style={exporting ? { visibility: "hidden" } : undefined}
-                  data-html2canvas-ignore="true"
-                >
-                  {exporting ? "Menyiapkan PDF…" : "Export to PDF"}
-                </button>
-              </div>
-            )}
+        {/* ==================== PER MODUL ==================== */}
+        {slug === 'bidrive' ? (
+          <div ref={detailRef}>
+            <BiDriveSection
+              styles={styles}
+              booking={booking}
+              isUpdating={isUpdating}
+              exporting={exporting}
+              onRequestReject={() => setShowRejectReason(true)}
+              onRequestApprove={() => setShowPopup(true)}
+              onOpenKontak={() => setShowKontakPopup(true)}
+              onExportPDF={handleExportPDF}
+              STATUS_CONFIG={STATUS_CONFIG}
+              formatDateTime={formatDateTime}
+              formatDateOnly={formatDateOnly}
+              formatDuration={formatDuration}
+              getPlate={getPlate}
+              getStatusId={(b,d) => getStatusId('bidrive', b, d)}
+            />
           </div>
         ) : (
-          /* ========================== Layanan lain ========================== */
-          <div className={styles.detailCard} ref={detailRef}>
-            <div className={styles.topRow}>
-              <div className={styles.leftTitle}>
-                <div className={styles.bookingTitle}>{titleService} • Detail #{id}</div>
-                {nonMoveStatus && (
-                  <span className={`${nonMoveStatus.className} ${styles.headerStatus}`}>
-                    <span className={nonMoveStatus.dot} /> {nonMoveStatus.text}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {!detail ? (
-              <div className={styles.emptyText}>Data belum tersedia.</div>
-            ) : (
-              <>
-                {/* ===== GRID KIRI ===== */}
-                <div className={styles.detailRow}>
-                  <div className={styles.detailColLeft}>
-                    {/* BI.CARE */}
-                    {slug === 'bicare' && (
-                      <>
-                        <div className={styles.detailLabel}>ID</div>
-                        <div className={styles.detailValue}>{detail.id}</div>
-
-                        <div className={styles.detailLabel}>Dokter</div>
-                        <div className={styles.detailValue}>
-                          {detail.doctor_name || `ID ${detail.doctor_id || '-'}`}
-                        </div>
-
-                        <div className={styles.detailLabel}>Nama Pemesan</div>
-                        <div className={styles.detailValue}>{detail.booker_name || '-'}</div>
-
-                        <div className={styles.detailLabel}>NIP</div>
-                        <div className={styles.detailValue}>{detail.nip || '-'}</div>
-
-                        <div className={styles.detailLabel}>No WA</div>
-                        <div className={styles.detailValue}>{detail.wa || '-'}</div>
-
-                        <div className={styles.detailLabel}>Nama Pasien</div>
-                        <div className={styles.detailValue}>{detail.patient_name || '-'}</div>
-
-                        <div className={styles.detailLabel}>Status Pasien</div>
-                        <div className={styles.detailValue}>{detail.patient_status || '-'}</div>
-
-                        <div className={styles.detailLabel}>Jenis Kelamin</div>
-                        <div className={styles.detailValue}>{detail.gender || '-'}</div>
-
-                        <div className={styles.detailLabel}>Tanggal Lahir</div>
-                        <div className={styles.detailValue}>{formatDateOnly(detail.birth_date)}</div>
-
-                        <div className={styles.detailLabel}>Keluhan</div>
-                        <div className={styles.detailValue}>{detail.complaint || '-'}</div>
-                      </>
-                    )}
-
-                    {/* BI.MEET */}
-                    {slug === 'bimeet' && (
-                      <>
-                        <div className={styles.detailLabel}>ID</div>
-                        <div className={styles.detailValue}>{detail.id}</div>
-
-                        <div className={styles.detailLabel}>Ruang</div>
-                        <div className={styles.detailValue}>
-                          {detail.room_name || '-'}{detail.room_floor != null ? ` (Lantai ${detail.room_floor})` : ''}
-                        </div>
-
-                        <div className={styles.detailLabel}>Unit Kerja</div>
-                        <div className={styles.detailValue}>{detail.unit_kerja || '-'}</div>
-
-                        <div className={styles.detailLabel}>Judul/Agenda</div>
-                        <div className={styles.detailValue}>{detail.title || '-'}</div>
-
-                        <div className={styles.detailLabel}>Deskripsi</div>
-                        <div className={styles.detailValue}>{detail.description || '-'}</div>
-
-                        <div className={styles.detailLabel}>PIC</div>
-                        <div className={styles.detailValue}>{detail.pic_name || '-'}</div>
-
-                        <div className={styles.detailLabel}>No Kontak</div>
-                        <div className={styles.detailValue}>{detail.contact_phone || '-'}</div>
-                      </>
-                    )}
-
-                    {/* BI.STAY */}
-                    {slug === 'bistay' && (
-                      <>
-                        <div className={styles.detailLabel}>ID</div>
-                        <div className={styles.detailValue}>{detail.id}</div>
-
-                        <div className={styles.detailLabel}>Nama Pemesan</div>
-                        <div className={styles.detailValue}>{detail.nama_pemesan || '-'}</div>
-
-                        <div className={styles.detailLabel}>NIP</div>
-                        <div className={styles.detailValue}>{detail.nip || '-'}</div>
-
-                        <div className={styles.detailLabel}>No WA</div>
-                        <div className={styles.detailValue}>{detail.no_wa || '-'}</div>
-
-                        <div className={styles.detailLabel}>Status Pegawai (ID)</div>
-                        <div className={styles.detailValue}>{detail.status_pegawai_id ?? '-'}</div>
-
-                        <div className={styles.detailLabel}>Asal KPw</div>
-                        <div className={styles.detailValue}>{detail.asal_kpw || '-'}</div>
-
-                        <div className={styles.detailLabel}>Keterangan</div>
-                        <div className={styles.detailValue}>{detail.keterangan || '-'}</div>
-                      </>
-                    )}
-
-                    {/* BI.DOCS (LEFT) */}
-                    {slug === 'bimail' && (
-                      <>
-                        <div className={styles.detailLabel}>ID</div>
-                        <div className={styles.detailValue}>{detail.id}</div>
-
-                        <div className={styles.detailLabel}>Nomor Surat</div>
-                        <div className={styles.detailValue}>{detail.mail_number || detail.no_surat || '-'}</div>
-
-                        <div className={styles.detailLabel}>Jenis</div>
-                        <div className={styles.detailValue}>
-                          {detail.jenis ?? detail.jenis_id ?? '-'}
-                        </div>
-
-                        <div className={styles.detailLabel}>Tipe Dokumen</div>
-                        <div className={styles.detailValue}>
-                          {detail.mail_type || detail.tipe_dokumen || '-'}
-                        </div>
-
-                        <div className={styles.detailLabel}>Unit Kode</div>
-                        <div className={styles.detailValue}>{detail.unit_code ?? detail.unit_kode ?? '-'}</div>
-
-                        <div className={styles.detailLabel}>Wilayah Kode</div>
-                        <div className={styles.detailValue}>{detail.wilayah_code ?? detail.wilayah_kode ?? '-'}</div>
-
-                        <div className={styles.detailLabel}>Pengirim</div>
-                        <div className={styles.detailValue}>
-                          {detail.from_name || detail.sender_name || detail.sender_email || '-'}
-                        </div>
-
-                        <div className={styles.detailLabel}>Penerima</div>
-                        <div className={styles.detailValue}>
-                          {detail.to_name || detail.recipient_name || detail.recipient_email || '-'}
-                        </div>
-
-                        <div className={styles.detailLabel}>Perihal</div>
-                        <div className={styles.detailValue}>{detail.subject || detail.perihal || '-'}</div>
-                      </>
-                    )}
-
-                    {/* BI.MEAL (LEFT) */}
-                    {slug === 'bimeal' && (
-                      <>
-                        <div className={styles.detailLabel}>ID</div>
-                        <div className={styles.detailValue}>{detail.id}</div>
-
-                        <div className={styles.detailLabel}>Nama PIC</div>
-                        <div className={styles.detailValue}>{detail.nama_pic || '-'}</div>
-
-                        <div className={styles.detailLabel}>NIP PIC</div>
-                        <div className={styles.detailValue}>{detail.nip_pic || '-'}</div>
-
-                        <div className={styles.detailLabel}>No. WA PIC</div>
-                        <div className={styles.detailValue}>{detail.no_wa_pic || '-'}</div>
-
-                        <div className={styles.detailLabel}>Unit Kerja</div>
-                        <div className={styles.detailValue}>{detail.unit_kerja || '-'}</div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* ===== GRID KANAN ===== */}
-                  <div className={styles.detailColRight}>
-                    {slug === 'bicare' && (
-                      <>
-                        <div className={styles.detailLabel}>Tanggal Booking</div>
-                        <div className={styles.detailValue}>
-                          {formatDateOnly(detail.booking_date)} • {String(detail.slot_time || '').slice(0,5)}
-                        </div>
-
-                        <div className={styles.detailLabel}>Status</div>
-                        <div className={styles.detailValue}>{detail.status || '-'}</div>
-
-                        <div className={styles.detailLabel}>Created At</div>
-                        <div className={styles.detailValue}>{formatDateTime(detail.created_at)}</div>
-                      </>
-                    )}
-
-                    {slug === 'bimeet' && (
-                      <>
-                        <div className={styles.detailLabel}>Waktu</div>
-                        <div className={styles.detailValue}>
-                          {formatDateTime(detail.start_datetime)} → {formatDateTime(detail.end_datetime)}
-                        </div>
-
-                        <div className={styles.detailLabel}>Peserta</div>
-                        <div className={styles.detailValue}>{detail.participants ?? '-'}</div>
-
-                        <div className={styles.detailLabel}>Status ID</div>
-                        <div className={styles.detailValue}>{detail.status_id ?? '-'}</div>
-
-                        {detail.reject_reason && (
-                          <>
-                            <div className={styles.detailLabel}>Alasan Penolakan</div>
-                            <div className={styles.detailValue}>{detail.reject_reason}</div>
-                          </>
-                        )}
-
-                        <div className={styles.detailLabel}>Created At</div>
-                        <div className={styles.detailValue}>{formatDateTime(detail.created_at)}</div>
-
-                        <div className={styles.detailLabel}>Updated At</div>
-                        <div className={styles.detailValue}>{formatDateTime(detail.updated_at)}</div>
-                      </>
-                    )}
-
-                    {slug === 'bistay' && (
-                      <>
-                        <div className={styles.detailLabel}>Jadwal</div>
-                        <div className={styles.detailValue}>
-                          {formatDateTime(detail.check_in)} → {formatDateTime(detail.check_out)}
-                        </div>
-
-                        <div className={styles.detailLabel}>Created At</div>
-                        <div className={styles.detailValue}>{formatDateTime(detail.created_at)}</div>
-
-                        <div className={styles.detailLabel}>Updated At</div>
-                        <div className={styles.detailValue}>{formatDateTime(detail.updated_at)}</div>
-                      </>
-                    )}
-
-                    {slug === 'bimail' && (
-                      <>
-                        <div className={styles.detailLabel}>Tanggal Surat</div>
-                        <div className={styles.detailValue}>
-                          {detail.mail_date ? formatDateOnly(detail.mail_date)
-                            : detail.sent_at ? formatDateTime(detail.sent_at)
-                            : '-'}
-                        </div>
-
-                        <div className={styles.detailLabel}>Link Dokumen (SharePoint)</div>
-                        <div className={styles.detailValue}>
-                          {Array.isArray(detail.attachments) && detail.attachments.length ? (
-                            <ul style={{ margin: 0, paddingLeft: 16 }}>
-                              {detail.attachments.map((att, i) => (
-                                <li key={i}>
-                                  {att?.url ? (
-                                    <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}>
-                                      {att.name || 'Buka di SharePoint'}
-                                    </a>
-                                  ) : (att?.name || '-')}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : detail.link_dokumen ? (
-                            <a href={detail.link_dokumen} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}>
-                              Buka di SharePoint
-                            </a>
-                          ) : ('-')}
-                        </div>
-
-                        <div className={styles.detailLabel}>Created At</div>
-                        <div className={styles.detailValue}>
-                          {detail.created_at ? formatDateTime(detail.created_at) : '-'}
-                        </div>
-                      </>
-                    )}
-
-                    {slug === 'bimeal' && (
-                      <>
-                        <div className={styles.detailLabel}>Waktu Pesanan</div>
-                        <div className={styles.detailValue}>{formatDateTime(detail.waktu_pesanan)}</div>
-
-                        <div className={styles.detailLabel}>Status</div>
-                        <div className={styles.detailValue}>
-                          {detail.status_name || (detail.status_id === 1 ? 'Pending' : detail.status_id ?? '-')}
-                        </div>
-                      </>
-                    )}
-
-                    {slug === 'bimeal' && (
-                      <div className={styles.detailRow}>
-                        <div className={styles.detailColLeft}>
-                          <div className={styles.detailLabel}>Pesanan</div>
-                          <div className={styles.detailValue}>
-                            {Array.isArray(detail.items) && detail.items.length ? (
-                              <ul style={{ margin: 0}}>
-                                {detail.items.map((it) => (
-                                  <li key={it.id}>{it.nama_pesanan} ({it.jumlah})</li>
-                                ))}
-                              </ul>
-                            ) : ('-')}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* ===== Action row (selain BI.DOCS) ===== */}
-                {slug !== 'bimail' && isPendingGeneric(slug, detail) && (
-                  <div className={styles.actionBtnRow} style={{ marginTop: 16 }}>
-                    <button className={styles.btnTolak} onClick={() => setShowRejectReason(true)} disabled={isUpdatingGeneric}>
-                      {isUpdatingGeneric ? 'Memproses...' : 'Tolak'}
-                    </button>
-                    <button className={styles.btnSetujui} onClick={handleApproveGeneric} disabled={isUpdatingGeneric}>
-                      {isUpdatingGeneric ? 'Memproses...' : 'Setujui'}
-                    </button>
-                  </div>
-                )}
-              </>
+          <div ref={detailRef}>
+            {slug === 'bicare' && (
+              <BiCareSection
+                styles={styles}
+                id={id}
+                detail={detail}
+                formatDateOnly={formatDateOnly}
+                formatDateTime={formatDateTime}
+                mapStatus={mapStatus}
+                isPendingGeneric={isPendingGeneric}
+                isUpdatingGeneric={isUpdatingGeneric}
+                onRequestReject={() => setShowRejectReason(true)}
+                onApproveGeneric={handleApproveGeneric}
+              />
+            )}
+            {slug === 'bimeet' && (
+              <BiMeetSection
+                styles={styles}
+                id={id}
+                detail={detail}
+                formatDateTime={formatDateTime}
+                mapStatus={mapStatus}
+                isPendingGeneric={isPendingGeneric}
+                isUpdatingGeneric={isUpdatingGeneric}
+                onRequestReject={() => setShowRejectReason(true)}
+                onApproveGeneric={handleApproveGeneric}
+              />
+            )}
+            {slug === 'bistay' && (
+              <BiStaySection
+                styles={styles}
+                id={id}
+                detail={detail}
+                formatDateTime={formatDateTime}
+                mapStatus={mapStatus}
+                isPendingGeneric={isPendingGeneric}
+                isUpdatingGeneric={isUpdatingGeneric}
+                onRequestReject={() => setShowRejectReason(true)}
+                onApproveGeneric={handleApproveGeneric}
+              />
+            )}
+            {slug === 'bimail' && (
+              <BiMailSection
+                styles={styles}
+                id={id}
+                detail={detail}
+                formatDateOnly={formatDateOnly}
+                formatDateTime={formatDateTime}
+                mapStatus={mapStatus}
+              />
+            )}
+            {slug === 'bimeal' && (
+              <BiMealSection
+                styles={styles}
+                id={id}
+                detail={detail}
+                formatDateTime={formatDateTime}
+                mapStatus={mapStatus}
+                isPendingGeneric={isPendingGeneric}
+                isUpdatingGeneric={isUpdatingGeneric}
+                onRequestReject={() => setShowRejectReason(true)}
+                onApproveGeneric={handleApproveGeneric}
+              />
             )}
           </div>
         )}
       </main>
 
       {/* Popups */}
-      <KontakDriverPopup show={showKontakPopup} onClose={() => setShowKontakPopup(false)} drivers={booking?.assigned_drivers || []} booking={booking || {}} />
+      <KontakDriverPopup
+        show={showKontakPopup}
+        onClose={() => setShowKontakPopup(false)}
+        drivers={booking?.assigned_drivers || []}
+        booking={booking || {}}
+      />
 
       <LogoutPopup open={showLogoutPopup} onCancel={() => setShowLogoutPopup(false)} onLogout={doLogout} />
 
@@ -958,7 +561,12 @@ export default function DetailsLaporan({ initialRoleId = null }) {
       />
 
       {/* Step 1: input alasan */}
-      <RejectReasonPopup show={showRejectReason} onClose={() => setShowRejectReason(false)} onNext={handleRejectStep1Done} title={`Alasan Penolakan ${META[slug]?.title || ''}`} />
+      <RejectReasonPopup
+        show={showRejectReason}
+        onClose={() => setShowRejectReason(false)}
+        onNext={handleRejectStep1Done}
+        title={`Alasan Penolakan ${META[slug]?.title || ''}`}
+      />
 
       {/* Step 2: kirim WA + simpan */}
       <RejectVerificationPopup
