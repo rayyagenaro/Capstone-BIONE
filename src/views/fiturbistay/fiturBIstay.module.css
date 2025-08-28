@@ -599,3 +599,11 @@
     font-size: 18px;
   }
 }
+/* === Booked state === */
+.pillBooked {
+  background: #ffe9e9;
+  color: #9a4040;
+  border-color: #f2c5c5;
+  cursor: not-allowed;
+}
+.legendBooked { background: #ffe9e9; border-color: #f2c5c5; }

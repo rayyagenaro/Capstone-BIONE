@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import styles from './fiturBIstay.module.css';
@@ -102,25 +102,27 @@ const isSameDay = (a, b) => {
     a.getDate() === b.getDate()
   );
 };
+const ymd = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
-/* ===== util kalender (seperti BI.CARE, tapi hanya tanggal di bulan aktif) ===== */
+/* ===== util kalender (tanpa spill-over) ===== */
 const weekLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
 /**
- * Menghasilkan matriks minggu untuk bulan aktif.
- * - Grid dimulai dari Senin terdekat sebelum/tanggal 1.
- * - Berhenti setelah melewati tanggal terakhir bulan aktif.
- * - Tidak menambahkan spill-over pekan penuh setelah akhir bulan.
+ * Matriks minggu untuk bulan aktif (mulai Senin), berhenti setelah tanggal terakhir bulan.
  */
 function monthMatrix(currentMonthDate) {
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();
-
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
 
-  // Offset dari Senin (Senin=0)
-  const jsDowFirst = first.getDay(); // 0..6, Minggu=0
+  // Offset Senin
+  const jsDowFirst = first.getDay(); // Minggu=0
   const mondayIndex = (jsDowFirst + 6) % 7;
   const gridStart = new Date(first);
   gridStart.setDate(first.getDate() - mondayIndex);
@@ -128,7 +130,6 @@ function monthMatrix(currentMonthDate) {
   const weeks = [];
   let cursor = new Date(gridStart);
 
-  // Kumpulkan minggu sampai melewati tanggal terakhir bulan aktif
   while (cursor <= last) {
     const days = [];
     for (let d = 0; d < 7; d++) {
@@ -303,11 +304,17 @@ export default function FiturBIstay() {
         throw new Error(err?.error || 'Gagal menyimpan booking.');
       }
 
+      // ⛔️ Tidak ada optimistic update lagi.
+      // Kalender hanya berubah jika status booking sudah "approved" (berdasarkan GET availability).
+
       setShowSuccess(true);
       setFields({
         nama: '', nip: '', wa: '', status: '', asalKPw: '',
         checkIn: null, checkOut: null, ket: '',
       });
+
+      // Refetch untuk menampilkan hasil approved (jika ada yang baru di-approve atau existing).
+      fetchAvailability();
     } catch (err) {
       setSubmitError(err.message);
     } finally {
@@ -330,7 +337,8 @@ export default function FiturBIstay() {
   });
 
   const weeks = useMemo(() => monthMatrix(calMonth), [calMonth]);
-  const monthIndex = calMonth.getMonth(); // bantu filter render
+  const monthIndex = calMonth.getMonth();
+  const yearIndex = calMonth.getFullYear();
   const today = startOfDay(new Date());
 
   const gotoPrevMonth = () => {
@@ -343,6 +351,68 @@ export default function FiturBIstay() {
     d.setMonth(d.getMonth() + 1);
     setCalMonth(d);
   };
+
+  /* ======== BOOKED MAP (approved only) ======== */
+  // Struktur: { 'YYYY-MM-DD': { in: true/false, out: true/false } }
+  const [bookedMap, setBookedMap] = useState({});
+
+  // Endpoint GET availability per bulan (read-only).
+  // Respons yang diharapkan (contoh):
+  // [{ check_in: ISOString, check_out: ISOString, status: "approved"|"pending"|"rejected" }, ...]
+  const AVAIL_URL = `/api/BIstaybook/availability?year=${yearIndex}&month=${String(
+    monthIndex + 1
+  ).padStart(2, '0')}`;
+
+  const fetchAvailability = useCallback(async () => {
+    try {
+      const resp = await fetch(AVAIL_URL, { cache: 'no-store' });
+      if (!resp.ok) throw new Error('availability not ok');
+      const rows = await resp.json();
+
+      const nextMap = {};
+      const addFlag = (d, key) => {
+        const k = ymd(d);
+        if (!nextMap[k]) nextMap[k] = { in: false, out: false };
+        nextMap[k][key] = true;
+      };
+
+      for (const r of rows || []) {
+        // HANYA booking yang sudah approved yang ditandai di kalender
+        const st = String(r.status || '').toLowerCase();
+        if (st !== 'approved') continue;
+
+        const ci = startOfDay(new Date(r.check_in));
+        const co = startOfDay(new Date(r.check_out));
+
+        // Hari check-in
+        addFlag(ci, 'in');
+
+        // Hari di tengah
+        let mid = new Date(ci);
+        mid.setDate(mid.getDate() + 1);
+        while (mid < co) {
+          addFlag(mid, 'in');
+          addFlag(mid, 'out');
+          mid.setDate(mid.getDate() + 1);
+        }
+
+        // Hari check-out
+        addFlag(co, 'out');
+      }
+
+      setBookedMap(nextMap);
+    } catch {
+      // Jika gagal fetch, jangan ubah bookedMap agar UI tetap stabil
+    }
+  }, [AVAIL_URL]);
+
+  // Ambil data saat bulan berubah
+  useEffect(() => {
+    fetchAvailability();
+  }, [fetchAvailability]);
+
+  const isInBooked = (d) => !!bookedMap[ymd(d)]?.in;
+  const isOutBooked = (d) => !!bookedMap[ymd(d)]?.out;
 
   return (
     <div className={styles.background}>
@@ -383,15 +453,17 @@ export default function FiturBIstay() {
                   {week.map((day, di) => {
                     const inThisMonth = day.getMonth() === monthIndex;
 
-                    // Cell kosong untuk hari di luar bulan aktif (tanpa spill-over)
                     if (!inThisMonth) {
                       return <div key={di} className={styles.dayCellEmpty}></div>;
                     }
 
-                    const isPast = startOfDay(day) < today; // buka tiap hari, tanggal lampau didisable
+                    const isPast = startOfDay(day) < today;
                     const dateNum = day.getDate();
                     const isCheckInSel = isSameDay(fields.checkIn, day);
                     const isCheckOutSel = isSameDay(fields.checkOut, day);
+
+                    const inBooked = isInBooked(day);
+                    const outBooked = isOutBooked(day);
 
                     return (
                       <div
@@ -407,25 +479,33 @@ export default function FiturBIstay() {
                           {/* 14:00 Check-In */}
                           <button
                             type="button"
-                            disabled={isPast}
-                            className={`${styles.sessionPill} ${styles.pillCheckIn} ${isCheckInSel ? styles.pillSelected : ''}`}
+                            disabled={isPast || inBooked}
+                            className={
+                              `${styles.sessionPill} ${inBooked ? styles.pillBooked : styles.pillCheckIn} ${isCheckInSel ? styles.pillSelected : ''}`
+                            }
                             onClick={() => handleDateChange(day, 'checkIn')}
                             aria-pressed={isCheckInSel}
-                            title="Set as Check-In (14:00)"
+                            title={inBooked ? 'Sudah dibooking' : 'Set as Check-In (14:00)'}
                           >
-                            14:00 • Check-In
+                            {inBooked ? 'Booked' : '14:00 • Check-In'}
                           </button>
 
                           {/* 12:00 Check-Out */}
                           <button
                             type="button"
-                            disabled={isPast || !fields.checkIn}
-                            className={`${styles.sessionPill} ${styles.pillCheckOut} ${isCheckOutSel ? styles.pillSelected : ''} ${!fields.checkIn ? styles.pillDisabledHint : ''}`}
+                            disabled={isPast || !fields.checkIn || outBooked}
+                            className={
+                              `${styles.sessionPill} ${outBooked ? styles.pillBooked : styles.pillCheckOut} ${isCheckOutSel ? styles.pillSelected : ''} ${!fields.checkIn && !outBooked ? styles.pillDisabledHint : ''}`
+                            }
                             onClick={() => handleDateChange(day, 'checkOut')}
                             aria-pressed={isCheckOutSel}
-                            title={fields.checkIn ? "Set as Check-Out (12:00)" : "Pilih Check-In terlebih dulu"}
+                            title={
+                              outBooked
+                                ? 'Sudah dibooking'
+                                : (fields.checkIn ? 'Set as Check-Out (12:00)' : 'Pilih Check-In terlebih dulu')
+                            }
                           >
-                            12:00 • Check-Out
+                            {outBooked ? 'Booked' : '12:00 • Check-Out'}
                           </button>
                         </div>
                       </div>
@@ -439,6 +519,7 @@ export default function FiturBIstay() {
               <span className={`${styles.legendDot} ${styles.legendIn}`}></span>Check-In 14:00
               <span className={`${styles.legendDot} ${styles.legendOut}`}></span>Check-Out 12:00
               <span className={`${styles.legendDot} ${styles.legendSel}`}></span>Terpilih
+              <span className={`${styles.legendDot} ${styles.legendBooked}`}></span>Booked
             </div>
           </section>
 
@@ -545,7 +626,7 @@ export default function FiturBIstay() {
               {errors.asalKPw && <span className={styles.errorMsg}>{errors.asalKPw}</span>}
             </div>
 
-            {/* DatePicker tetap untuk konsistensi & aksesibilitas */}
+            {/* DatePicker tetap untuk konsistensi */}
             <div className={styles.formGroup}>
               <label htmlFor="checkIn">Tanggal Check In (14:00)</label>
               <DatePicker
