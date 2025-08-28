@@ -8,9 +8,12 @@ import { FaArrowLeft } from 'react-icons/fa';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import idLocale from 'date-fns/locale/id';
+import { FaTrash } from 'react-icons/fa';
+import { NS_RE } from '@/lib/ns-server';
+import { getNsFromReq } from '@/lib/ns-server';
+// import { withNs } from '@/lib/ns';
 
 // ================= helper ns =================
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 const withNs = (url, ns) => {
   if (!ns) return url;
   const sep = url.includes('?') ? '&' : '?';
@@ -19,13 +22,18 @@ const withNs = (url, ns) => {
 
 // ==== helper konversi pesanan ke bentuk objek {item, qty} ====
 const toObjList = (list) => {
-  if (!Array.isArray(list)) return [{ item: '', qty: 1 }];
+  if (!Array.isArray(list)) return [{ item: '', qty: 1, unit: 'pcs' }];
   return list.map((x) =>
     typeof x === 'string'
-      ? { item: x, qty: 1 }
-      : { item: x?.item ?? '', qty: Number(x?.qty) > 0 ? Number(x.qty) : 1 }
+      ? { item: x, qty: 1, unit: 'pcs' }
+      : { 
+          item: x?.item ?? '', 
+          qty: Number(x?.qty) > 0 ? Number(x.qty) : 1,
+          unit: x?.unit || 'pcs'
+        }
   );
 };
+
 
 // dropdown helper
 const useDropdown = (initial = false) => {
@@ -85,14 +93,14 @@ export default function FiturBImeal() {
   const [serverMsg, setServerMsg] = useState('');
 
   const [fields, setFields] = useState({
-    nama: '',
-    nip: '',
+    nama_pic: '',
+    nama_pic_tagihan: '',
     wa: '',
     uker: '',
     tgl: null,
     ket: '',
     lokasi: '',
-    pesanan: [{ item: '', qty: 1 }],
+    pesanan: [{ item: '', qty: 1, unit:'pcs' }],
   });
   const [errors, setErrors] = useState({});
 
@@ -131,6 +139,16 @@ export default function FiturBImeal() {
     });
   };
 
+  // handler unit
+  const handleUnitChange = (idx, value) => {
+    setFields(prev => {
+      const list = toObjList(prev.pesanan);
+      list[idx] = { ...list[idx], unit: value };
+      return { ...prev, pesanan: list };
+    });
+  };
+
+
   const addPesanan = () => {
     setFields(prev => {
       const list = toObjList(prev.pesanan);
@@ -146,10 +164,11 @@ export default function FiturBImeal() {
   };
 
   // validasi sisi-klien
+// validasi sisi-klien
   const validate = () => {
     const e = {};
-    if (!fields.nama.trim()) e.nama = 'Nama wajib diisi';
-    if (!fields.nip.trim()) e.nip = 'NIP wajib diisi';
+    if (!fields.nama_pic.trim()) e.nama_pic = 'Nama wajib diisi';
+    if (!fields.nama_pic_tagihan.trim()) e.nama_pic_tagihan = 'Nama PIC Tagihan wajib diisi';
     if (!fields.wa.trim()) e.wa = 'No WA wajib diisi';
     if (!fields.uker) e.uker = 'Unit Kerja wajib dipilih';
     if (!fields.tgl) e.tgl = 'Tanggal pesanan wajib diisi';
@@ -157,11 +176,26 @@ export default function FiturBImeal() {
     if (!fields.lokasi.trim()) e.lokasi = 'Lokasi pengiriman wajib diisi';
 
     const list = toObjList(fields.pesanan);
-    if (!list.some(p => String(p.item || '').trim())) {
+
+    // cek minimal ada pesanan
+    if (!list.length) {
       e.pesanan = 'Minimal satu pesanan diisi';
     }
+
+    // cek tiap baris
+    list.forEach((p, i) => {
+      if (!p.item.trim()) {
+        e.pesanan = `Pesanan ${i + 1} belum diisi nama`;
+      } else if (!p.qty || p.qty <= 0) {
+        e.pesanan = `Pesanan ${i + 1} jumlah harus lebih dari 0`;
+      } else if (!p.unit || !['pcs', 'dus', 'kotak'].includes(p.unit)) {
+        e.pesanan = `Pesanan ${i + 1} wajib memilih satuan`;
+      }
+    });
+
     return e;
   };
+
 
   // helper konversi Date JS -> ISO string
   const toISOStringLocal = (d) => (d instanceof Date ? d.toISOString() : null);
@@ -207,12 +241,12 @@ export default function FiturBImeal() {
 
       setShowSuccess(true);
       setFields({
-        nama: '',
-        nip: '',
+        nama_pic: '',
+        nama_pic_tagihan: '',
         wa: '',
         uker: '',
         tgl: null,
-        pesanan: [{ item: '', qty: 1 }],
+        pesanan: [{ item: '', qty: 1, unit: 'pcs' }],
         ket: '',
         lokasi: '',
       });
@@ -252,18 +286,18 @@ export default function FiturBImeal() {
           {/* FORM GRID */}
           <form className={styles.formGrid} onSubmit={onSubmit} autoComplete="off" noValidate>
             <div className={styles.formGroup}>
-              <label htmlFor="nama">Nama PIC Pesanan</label>
+              <label htmlFor="nama_pic">Nama Pemesan</label>
               <input
-                id="nama" name="nama" type="text" placeholder="Masukkan Nama Anda"
-                value={fields.nama} onChange={handleChange}
-                className={errors.nama ? styles.errorInput : ''}
-                aria-invalid={!!errors.nama} aria-describedby={errors.nama ? 'err-nama' : undefined}
+                id="nama_pic" name="nama_pic" type="text" placeholder="Masukkan Nama Anda"
+                value={fields.nama_pic} onChange={handleChange}
+                className={errors.nama_pic ? styles.errorInput : ''}
+                aria-invalid={!!errors.nama_pic} aria-describedby={errors.nama_pic ? 'err-nama_pic' : undefined}
               />
-              {errors.nama && <span id="err-nama" className={styles.errorMsg}>{errors.nama}</span>}
+              {errors.nama_pic && <span id="err-nama_pic" className={styles.errorMsg}>{errors.nama_pic}</span>}
             </div>
 
             <div className={styles.formGroup}>
-              <label htmlFor="wa">No WA PIC</label>
+              <label htmlFor="wa">No WA Pemesan</label>
               <input
                 id="wa" name="wa" type="text" placeholder="Masukkan No WA Anda"
                 value={fields.wa} onChange={handleChange}
@@ -275,18 +309,18 @@ export default function FiturBImeal() {
             </div>
 
             <div className={styles.formGroup}>
-              <label htmlFor="nip">NIP PIC</label>
+              <label htmlFor="nama_pic_tagihan">Nama PIC Tagihan</label>
               <input
-                id="nip" name="nip" type="text" placeholder="Masukkan NIP Anda"
-                value={fields.nip} onChange={handleChange}
-                className={errors.nip ? styles.errorInput : ''}
-                aria-invalid={!!errors.nip} aria-describedby={errors.nip ? 'err-nip' : undefined}
+                id="nama_pic_tagihan" name="nama_pic_tagihan" type="text" placeholder="Masukkan Nama PIC Tagihan"
+                value={fields.nama_pic_tagihan} onChange={handleChange}
+                className={errors.nama_pic_tagihan ? styles.errorInput : ''}
+                aria-invalid={!!errors.nama_pic_tagihan} aria-describedby={errors.nama_pic_tagihan ? 'err-nama_pic_tagihan' : undefined}
               />
-              {errors.nip && <span id="err-nip" className={styles.errorMsg}>{errors.nip}</span>}
+              {errors.nama_pic_tagihan && <span id="err-nama_pic_tagihan" className={styles.errorMsg}>{errors.nama_pic_tagihan}</span>}
             </div>
 
             <div className={styles.formGroup}>
-              <label htmlFor="tgl">Waktu Pesanan</label>
+              <label htmlFor="tgl">Waktu Antar</label>
               <DatePicker
                 id="tgl"
                 selected={fields.tgl}
@@ -328,9 +362,9 @@ export default function FiturBImeal() {
               {errors.lokasi && <span id="err-lokasi" className={styles.errorMsg}>{errors.lokasi}</span>}
             </div>
             <div className={`${styles.formGroup} ${styles.colBig}`}>
-              <label htmlFor="ket">Keterangan</label>
+              <label htmlFor="ket">Agenda</label>
               <textarea
-                id="ket" name="ket" type="text" placeholder="Keterangan (Agenda/Detail Pesanan)"
+                id="ket" name="ket" type="text" placeholder="Agenda"
                 value={fields.ket} onChange={handleChange}
                 className={errors.ket ? styles.errorInput : ''}
                 aria-invalid={!!errors.ket} aria-describedby={errors.ket ? 'err-ket' : undefined}
@@ -338,36 +372,57 @@ export default function FiturBImeal() {
               {errors.ket && <span id="err-ket" className={styles.errorMsg}>{errors.ket}</span>}
             </div>
 
-            {/* Pesanan + Jumlah */}
+            {/* Pesanan + Jumlah + Satuan */}
             <div className={`${styles.formGroup} ${styles.colFull} ${styles.orderGroup}`}>
-              <label>Pesanan</label>
 
               <div className={styles.orderList}>
                 {toObjList(fields.pesanan).map((row, idx) => (
                   <div className={styles.orderRow} key={idx}>
                     {/* Nama pesanan */}
-                    <input
-                      type="text"
-                      id={`pesanan-${idx}`}
-                      name={`pesanan-${idx}`}
-                      placeholder={`Pesanan ${idx + 1}`}
-                      value={row.item}
-                      onChange={(e) => handlePesananChange(idx, e.target.value)}
-                      className={errors.pesanan ? styles.errorInput : ''}
-                    />
+                    <div className={styles.orderCell}>
+                      <label htmlFor={`pesanan-${idx}`}>Pesanan</label>
+                      <input
+                        type="text"
+                        id={`pesanan-${idx}`}
+                        name={`pesanan-${idx}`}
+                        placeholder={`Pesanan ${idx + 1}`}
+                        value={row.item}
+                        onChange={(e) => handlePesananChange(idx, e.target.value)}
+                        className={errors.pesanan ? styles.errorInput : ''}
+                      />
+                    </div>
 
-                    {/* Jumlah kecil */}
-                    <input
-                      type="number"
-                      min={1}
-                      step={1}
-                      id={`qty-${idx}`}
-                      name={`qty-${idx}`}
-                      placeholder="Qty"
-                      value={row.qty}
-                      onChange={(e) => handleQtyChange(idx, e.target.value)}
-                      className={`${styles.qtyInput} ${errors.pesanan ? styles.errorInput : ''}`}
-                    />
+                    {/* Jumlah */}
+                    <div className={styles.orderCell}>
+                      <label htmlFor={`qty-${idx}`}>Jumlah</label>
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        id={`qty-${idx}`}
+                        name={`qty-${idx}`}
+                        placeholder="Qty"
+                        value={row.qty}
+                        onChange={(e) => handleQtyChange(idx, e.target.value)}
+                        className={`${styles.qtyInput} ${errors.pesanan ? styles.errorInput : ''}`}
+                      />
+                    </div>
+
+                    {/* Satuan */}
+                    <div className={styles.orderCell}>
+                      <label htmlFor={`unit-${idx}`}>Satuan</label>
+                      <select
+                        id={`unit-${idx}`}
+                        name={`unit-${idx}`}
+                        value={row.unit || 'pcs'}
+                        onChange={(e) => handleUnitChange(idx, e.target.value)}
+                        className={styles.unitSelect}
+                      >
+                        <option value="pcs">pcs</option>
+                        <option value="dus">dus</option>
+                        <option value="kotak">kotak</option>
+                      </select>
+                    </div>
 
                     {/* Hapus baris */}
                     <button
@@ -377,7 +432,7 @@ export default function FiturBImeal() {
                       aria-label={`Hapus pesanan ${idx + 1}`}
                       title="Hapus"
                     >
-                      ✕
+                      <FaTrash />
                     </button>
                   </div>
                 ))}
@@ -391,7 +446,7 @@ export default function FiturBImeal() {
 
               {errors.pesanan && <span className={styles.errorMsg}>{errors.pesanan}</span>}
             </div>
-            
+
 
             {serverMsg && (
               <div className={`${styles.colFull} ${styles.serverMsg}`}>
@@ -427,7 +482,7 @@ export default function FiturBImeal() {
 // SSR guard (no flicker)
 export async function getServerSideProps(ctx) {
   const token = ctx.req.cookies?.user_session || null;
-  const ns = typeof ctx.query?.ns === 'string' && NS_RE.test(ctx.query.ns) ? ctx.query.ns : '';
+  const ns = getNsFromReq(ctx.req);
   if (!token) {
     return {
       redirect: {

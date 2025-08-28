@@ -318,19 +318,28 @@ export default function StatusBooking() {
           const parts = [nomor && `Nomor: ${nomor}`, perihal && `Perihal: ${perihal}`, route].filter(Boolean);
           return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
         }
+
         case 'bimeal': {
-          const unit = booking._raw_bimeal?.unit_kerja;
-          const count = booking._raw_bimeal?.items?.length || 0;
-          const total = booking._raw_bimeal?.total_qty || 0;
-          const ket = booking._raw_bimeal?.keterangan;
+          const unit   = booking.unit_kerja || booking._raw_bimeal?.unit_kerja;
+          const count  = booking.items?.length || booking._raw_bimeal?.items?.length || 0;
+          const total  = (booking.items || booking._raw_bimeal?.items || [])
+                          .reduce((sum, it) => sum + (it.qty || 0), 0) || 0;
+          const ket    = booking.keterangan || booking._raw_bimeal?.keterangan;
+          const lokasi = booking.lokasi_pengiriman || booking._raw_bimeal?.lokasi_pengiriman;
+
           const parts = [
             unit && `Unit: ${unit}`,
             count ? `Item: ${count}` : null,
             total ? `Total qty: ${total}` : null,
             ket && `Keterangan: ${ket}`,
+            lokasi && `Lokasi Antar: ${lokasi}`,
           ].filter(Boolean);
-          return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
+
+          return parts.length ? (
+            <div className={styles.cardVehicles}>{parts.join(' • ')}</div>
+          ) : null;
         }
+
         case 'bimeet': {
           const rn = booking.room_name;
           const part = booking.participants;
@@ -342,6 +351,7 @@ export default function StatusBooking() {
           ].filter(Boolean);
           return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
         }
+
         case 'bistay': {
           const s = booking._raw_bistay;
           const parts = [
@@ -484,16 +494,18 @@ export default function StatusBooking() {
             {/* BI.Meal detail */}
             {featureKey === 'bimeal' && booking._raw_bimeal && (
               <>
-                <p><strong>Nama PIC:</strong> {booking._raw_bimeal.nama_pic}</p>
-                <p><strong>NIP PIC:</strong> {booking._raw_bimeal.nip_pic}</p>
+                <p><strong>Nama Pemesan:</strong> {booking._raw_bimeal.nama_pic}</p>
+                <p><strong>Nama PIC Tagihan:</strong> {booking._raw_bimeal.nama_pic_tagihan}</p>
                 <p><strong>No. WA PIC:</strong> {booking._raw_bimeal.no_wa_pic}</p>
                 <p><strong>Unit Kerja:</strong> {booking._raw_bimeal.unit_kerja || '-'}</p>
-                <p><strong>Waktu Pesanan:</strong> {formatDate(booking._raw_bimeal.waktu_pesanan || booking.start_date)}</p>
+                <p><strong>Waktu Antar:</strong> {formatDate(booking._raw_bimeal.waktu_pesanan || booking.start_date)}</p>
+                <p><strong>Lokasi Antar:</strong> {booking._raw_bimeal.lokasi_pengiriman || '-'}</p>
+                <p><strong>Keterangan:</strong> {booking._raw_bimeal.keterangan || '-'}</p>
                 <p><strong>Pesanan:</strong></p>
                 {Array.isArray(booking._raw_bimeal.items) && booking._raw_bimeal.items.length ? (
                   <ul className={styles.assignedList}>
                     {booking._raw_bimeal.items.map((it, idx) => (
-                      <li key={idx}>{it.item} — {it.qty}</li>
+                      <li key={idx}>{it.item} — {it.qty} {it.unit}</li>
                     ))}
                   </ul>
                 ) : (

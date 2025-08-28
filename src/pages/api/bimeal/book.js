@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       if (listForUserId) {
         [rows] = await conn.query(
           `
-          SELECT b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
+          SELECT b.id, b.user_id, b.nama_pic, b.nama_pic_tagihan, b.no_wa_pic, b.unit_kerja,
                  b.waktu_pesanan, b.keterangan, b.lokasi_pengiriman, b.status_id, b.created_at
           FROM bimeal_bookings b
           WHERE b.user_id = ?
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       } else {
         [rows] = await conn.query(
           `
-          SELECT b.id, b.user_id, b.nama_pic, b.nip_pic, b.no_wa_pic, b.unit_kerja,
+          SELECT b.id, b.user_id, b.nama_pic, b.nama_pic_tagihan, b.no_wa_pic, b.unit_kerja,
                  b.waktu_pesanan, b.keterangan, b.lokasi_pengiriman, b.status_id, b.created_at
           FROM bimeal_bookings b
           ORDER BY b.created_at DESC
@@ -80,15 +80,19 @@ export default async function handler(req, res) {
 
       const ids = bookings.map((r) => r.id);
       const [items] = await conn.query(
-        `SELECT booking_id, nama_pesanan, jumlah
-         FROM bimeal_booking_items
-         WHERE booking_id IN (?)`,
+        `SELECT booking_id, nama_pesanan, jumlah, satuan
+        FROM bimeal_booking_items
+        WHERE booking_id IN (?)`,
         [ids]
       );
 
       const itemsMap = {};
       for (const it of Array.isArray(items) ? items : []) {
-        (itemsMap[it.booking_id] ||= []).push({ item: it.nama_pesanan, qty: it.jumlah });
+        (itemsMap[it.booking_id] ||= []).push({
+          item: it.nama_pesanan,
+          qty: it.jumlah,
+          unit: it.satuan || 'pcs',
+        });
       }
 
       const result = bookings.map((b) => ({ ...b, items: itemsMap[b.id] || [] }));
@@ -118,8 +122,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Body harus JSON' });
     }
 
-    const nama = String(body?.nama || '').trim();
-    const nip = String(body?.nip || '').trim();
+    const nama_pic = String(body?.nama_pic || '').trim();
+    const nama_pic_tagihan = String(body?.nama_pic_tagihan || '').trim();
     const wa = String(body?.wa || '').trim();
     const uker = String(body?.uker || '').trim();
     const tgl = body?.tgl ? new Date(body.tgl) : null;
@@ -127,7 +131,7 @@ export default async function handler(req, res) {
     const lokasi = String(body?.lokasi || '').trim();
     const ket = String(body?.ket || '').trim();
 
-    if (!nama || !nip || !wa || !uker || !tgl || !lokasi || !ket || Number.isNaN(tgl.getTime()) || !pesanan.length) {
+    if (!nama_pic || !nama_pic_tagihan || !wa || !uker || !tgl || !lokasi || !ket || Number.isNaN(tgl.getTime()) || !pesanan.length) {
       return res.status(422).json({ error: 'VALIDATION_ERROR' });
     }
 
@@ -140,19 +144,20 @@ export default async function handler(req, res) {
 
       const [result] = await conn.query(
         `INSERT INTO bimeal_bookings
-           (user_id, nama_pic, nip_pic, no_wa_pic, unit_kerja, waktu_pesanan, status_id, keterangan, lokasi_pengiriman)
+           (user_id, nama_pic, nama_pic_tagihan, no_wa_pic, unit_kerja, waktu_pesanan, status_id, keterangan, lokasi_pengiriman)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [userId, nama, nip, wa, uker, waktu_pesanan, PENDING_STATUS_ID, body?.keterangan, body?.lokasi_pengiriman]
+        [userId, nama_pic, nama_pic_tagihan, wa, uker, waktu_pesanan, PENDING_STATUS_ID, ket, lokasi]
       );
       const bookingId = result.insertId;
 
       if (pesanan.length) {
-        const values = pesanan.map((p) => [bookingId, p.item, p.qty]);
+        const values = pesanan.map((p) => [bookingId, p.item, p.qty, p.unit]);
         await conn.query(
-          `INSERT INTO bimeal_booking_items (booking_id, nama_pesanan, jumlah) VALUES ?`,
+          `INSERT INTO bimeal_booking_items (booking_id, nama_pesanan, jumlah, satuan) VALUES ?`,
           [values]
         );
       }
+
 
       await conn.commit();
       return res.status(201).json({ ok: true, booking_id: bookingId, status_id: PENDING_STATUS_ID });
