@@ -92,6 +92,181 @@
   align-items: center;
 }
 
+/* ====== KALENDER ====== */
+.calendarCard {
+  border: 1px solid #e8ecf6;
+  border-radius: 16px;
+  background: #f9fbff;
+  padding: 16px 18px 18px;
+  margin: 6px 0 22px;
+  box-shadow: 0 2px 10px rgba(47,77,142,0.06);
+}
+
+.calHeader {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.calNavBtn {
+  background: #ffffff;
+  border: 1px solid #dfe6f6;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 8px 0;
+  color: #2f4d8e;
+  transition: background .15s, box-shadow .15s;
+}
+
+.calNavBtn:hover {
+  background: #eef3ff;
+  box-shadow: 0 1px 6px rgba(47,77,142,0.12);
+}
+
+.calTitle {
+  text-align: center;
+  font-weight: 800;
+  color: #243b6a;
+  font-size: 18px;
+}
+
+.weekHeader {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin: 8px 0 6px;
+}
+
+.weekHeaderCell {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6a7190;
+}
+
+.monthGrid {
+  display: grid;
+  grid-template-rows: repeat(6, auto);
+  gap: 10px;
+}
+
+.weekRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.dayCell {
+  background: #ffffff;
+  border: 1px solid #e7ecf7;
+  border-radius: 14px;
+  min-height: 96px;
+  padding: 8px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 1px 6px rgba(47,77,142,0.05);
+}
+
+.dayCell[aria-disabled="true"] {
+  opacity: 0.6;
+}
+
+/* Cell kosong untuk hari di luar bulan aktif */
+.dayCellEmpty {
+  background: transparent;
+  border: none;
+  min-height: 96px;
+}
+
+.dayCellMuted {
+  background: #fbfcff;
+  border-style: dashed;
+  border-color: #e9eefb;
+}
+
+.dayNumberWrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.dayNumber {
+  font-weight: 800;
+  color: #2a3f6d;
+  font-size: 14px;
+}
+
+.sessionCol {
+  display: grid;
+  grid-auto-rows: min-content;
+  gap: 6px;
+}
+
+.sessionPill {
+  width: 100%;
+  border-radius: 10px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s, transform .06s;
+  text-align: center;
+}
+
+.sessionPill:active { transform: scale(0.98); }
+
+.pillCheckIn {
+  background: #eaf1ff;
+  color: #2f4d8e;
+  border-color: #d7e3ff;
+}
+
+.pillCheckOut {
+  background: #eafaf0;
+  color: #1a7f46;
+  border-color: #ccefdc;
+}
+
+.pillSelected {
+  background: #2f4d8e !important;
+  color: #fff !important;
+  border-color: #243b6a !important;
+  box-shadow: 0 2px 10px rgba(47,77,142,0.18);
+}
+
+.pillDisabledHint {
+  opacity: .8;
+}
+
+.calLegend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: #5f6b92;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.legendDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-right: 6px;
+  border: 1px solid #cfd8f5;
+}
+
+.legendIn { background: #eaf1ff; }
+.legendOut { background: #eafaf0; border-color: #ccefdc; }
+.legendSel { background: #2f4d8e; border-color: #2f4d8e; }
+
 /* Form grid */
 .formGrid {
   display: grid;
@@ -289,12 +464,8 @@
 }
 
 @keyframes popupfade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .popupBox {
@@ -311,27 +482,12 @@
 }
 
 @keyframes fadeinpop {
-  from {
-    transform: scale(0.92);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
-.popupIcon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 13px;
-  margin-top: 2px;
-}
-
-.popupIcon svg {
-  filter: drop-shadow(0 2px 12px #ffe4807a);
-}
+.popupIcon { display: flex; justify-content: center; align-items: center; margin-bottom: 13px; margin-top: 2px; }
+.popupIcon svg { filter: drop-shadow(0 2px 12px #ffe4807a); }
 
 .popupMsg {
   font-size: 1.13rem;
@@ -353,10 +509,7 @@
   cursor: pointer;
   font-weight: 600;
 }
-
-.popupClose:hover {
-  color: #f05a5a;
-}
+.popupClose:hover { color: #f05a5a; }
 
 /* ===== Popup SOP (pre-form) ===== */
 .sopOverlay {
@@ -392,29 +545,13 @@
   cursor: pointer;
 }
 
-.sopClose:hover {
-  color: #e14d4d;
-}
+.sopClose:hover { color: #e14d4d; }
 
-.sopWarnIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-}
+.sopWarnIcon { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
 
-.sopTitle {
-  font-size: 18px;
-  font-weight: 700;
-  color: #233969;
-  margin-bottom: 6px;
-}
+.sopTitle { font-size: 18px; font-weight: 700; color: #233969; margin-bottom: 6px; }
 
-.sopSubtitle {
-  font-size: 14px;
-  color: #5a607b;
-  margin-bottom: 16px;
-}
+.sopSubtitle { font-size: 14px; color: #5a607b; margin-bottom: 16px; }
 
 .sopLinkBtn {
   display: inline-block;
@@ -433,11 +570,7 @@
   box-shadow: 0 3px 12px rgba(47, 77, 142, 0.15);
 }
 
-.sopHint {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #7b819b;
-}
+.sopHint { margin-top: 8px; font-size: 12px; color: #7b819b; }
 
 /* Responsive */
 @media (max-width: 720px) {
@@ -450,6 +583,10 @@
     border-radius: 10px;
     margin: 12px 0;
   }
+
+  .calendarCard { padding: 12px; }
+  .dayCell, .dayCellEmpty { min-height: 88px; }
+  .sessionPill { font-size: 12px; padding: 6px 8px; }
 
   .formGrid {
     grid-template-columns: 1fr;

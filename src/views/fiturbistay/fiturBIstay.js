@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import styles from './fiturBIstay.module.css';
@@ -94,6 +94,56 @@ const startOfDay = (d) => {
   x.setHours(0, 0, 0, 0);
   return x;
 };
+const isSameDay = (a, b) => {
+  if (!a || !b) return false;
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+};
+
+/* ===== util kalender (seperti BI.CARE, tapi hanya tanggal di bulan aktif) ===== */
+const weekLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+/**
+ * Menghasilkan matriks minggu untuk bulan aktif.
+ * - Grid dimulai dari Senin terdekat sebelum/tanggal 1.
+ * - Berhenti setelah melewati tanggal terakhir bulan aktif.
+ * - Tidak menambahkan spill-over pekan penuh setelah akhir bulan.
+ */
+function monthMatrix(currentMonthDate) {
+  const year = currentMonthDate.getFullYear();
+  const month = currentMonthDate.getMonth();
+
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+
+  // Offset dari Senin (Senin=0)
+  const jsDowFirst = first.getDay(); // 0..6, Minggu=0
+  const mondayIndex = (jsDowFirst + 6) % 7;
+  const gridStart = new Date(first);
+  gridStart.setDate(first.getDate() - mondayIndex);
+
+  const weeks = [];
+  let cursor = new Date(gridStart);
+
+  // Kumpulkan minggu sampai melewati tanggal terakhir bulan aktif
+  while (cursor <= last) {
+    const days = [];
+    for (let d = 0; d < 7; d++) {
+      days.push(new Date(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    weeks.push(days);
+  }
+  return weeks;
+}
+
+function monthTitle(d) {
+  const format = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' });
+  return format.format(d);
+}
 
 /* ===================== Page ===================== */
 
@@ -160,7 +210,6 @@ export default function FiturBIstay() {
       const ci = atTime(date, 14, 0); // 14:00
       setFields((prev) => ({ ...prev, checkIn: ci }));
       if (errors.checkIn) setErrors((p) => ({ ...p, checkIn: null }));
-      // Jika checkOut ada & tidak valid (<= checkIn), hapus error saja; user bebas pilih ulang
       if (fields.checkOut && fields.checkOut <= ci) {
         setErrors((p) => ({ ...p, checkOut: 'Check out harus setelah check in.' }));
       }
@@ -273,6 +322,28 @@ export default function FiturBIstay() {
     router.replace('/Signin/hal-sign');
   };
 
+  /* ====== STATE & RENDER KALENDER ====== */
+  const [calMonth, setCalMonth] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d;
+  });
+
+  const weeks = useMemo(() => monthMatrix(calMonth), [calMonth]);
+  const monthIndex = calMonth.getMonth(); // bantu filter render
+  const today = startOfDay(new Date());
+
+  const gotoPrevMonth = () => {
+    const d = new Date(calMonth);
+    d.setMonth(d.getMonth() - 1);
+    setCalMonth(d);
+  };
+  const gotoNextMonth = () => {
+    const d = new Date(calMonth);
+    d.setMonth(d.getMonth() + 1);
+    setCalMonth(d);
+  };
+
   return (
     <div className={styles.background}>
       <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
@@ -292,7 +363,86 @@ export default function FiturBIstay() {
             <div />
           </div>
 
-          {/* Form */}
+          {/* ====== KALENDER BESAR ====== */}
+          <section className={styles.calendarCard} aria-label="Kalender Booking BI.STAY">
+            <div className={styles.calHeader}>
+              <button type="button" className={styles.calNavBtn} onClick={gotoPrevMonth} aria-label="Bulan sebelumnya">‹</button>
+              <div className={styles.calTitle}>{monthTitle(calMonth)}</div>
+              <button type="button" className={styles.calNavBtn} onClick={gotoNextMonth} aria-label="Bulan berikutnya">›</button>
+            </div>
+
+            <div className={styles.weekHeader}>
+              {weekLabels.map((w) => (
+                <div key={w} className={styles.weekHeaderCell}>{w}</div>
+              ))}
+            </div>
+
+            <div className={styles.monthGrid}>
+              {weeks.map((week, wi) => (
+                <div key={wi} className={styles.weekRow}>
+                  {week.map((day, di) => {
+                    const inThisMonth = day.getMonth() === monthIndex;
+
+                    // Cell kosong untuk hari di luar bulan aktif (tanpa spill-over)
+                    if (!inThisMonth) {
+                      return <div key={di} className={styles.dayCellEmpty}></div>;
+                    }
+
+                    const isPast = startOfDay(day) < today; // buka tiap hari, tanggal lampau didisable
+                    const dateNum = day.getDate();
+                    const isCheckInSel = isSameDay(fields.checkIn, day);
+                    const isCheckOutSel = isSameDay(fields.checkOut, day);
+
+                    return (
+                      <div
+                        key={di}
+                        className={styles.dayCell}
+                        aria-disabled={isPast}
+                      >
+                        <div className={styles.dayNumberWrap}>
+                          <span className={styles.dayNumber}>{dateNum}</span>
+                        </div>
+
+                        <div className={styles.sessionCol}>
+                          {/* 14:00 Check-In */}
+                          <button
+                            type="button"
+                            disabled={isPast}
+                            className={`${styles.sessionPill} ${styles.pillCheckIn} ${isCheckInSel ? styles.pillSelected : ''}`}
+                            onClick={() => handleDateChange(day, 'checkIn')}
+                            aria-pressed={isCheckInSel}
+                            title="Set as Check-In (14:00)"
+                          >
+                            14:00 • Check-In
+                          </button>
+
+                          {/* 12:00 Check-Out */}
+                          <button
+                            type="button"
+                            disabled={isPast || !fields.checkIn}
+                            className={`${styles.sessionPill} ${styles.pillCheckOut} ${isCheckOutSel ? styles.pillSelected : ''} ${!fields.checkIn ? styles.pillDisabledHint : ''}`}
+                            onClick={() => handleDateChange(day, 'checkOut')}
+                            aria-pressed={isCheckOutSel}
+                            title={fields.checkIn ? "Set as Check-Out (12:00)" : "Pilih Check-In terlebih dulu"}
+                          >
+                            12:00 • Check-Out
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.calLegend}>
+              <span className={`${styles.legendDot} ${styles.legendIn}`}></span>Check-In 14:00
+              <span className={`${styles.legendDot} ${styles.legendOut}`}></span>Check-Out 12:00
+              <span className={`${styles.legendDot} ${styles.legendSel}`}></span>Terpilih
+            </div>
+          </section>
+
+          {/* ====== FORM (tetap) ====== */}
           <form className={styles.formGrid} onSubmit={onSubmit} autoComplete="off">
             <div className={`${styles.formGroup} ${styles.colFull}`}>
               <label htmlFor="nama">Nama Pemesan</label>
@@ -395,6 +545,7 @@ export default function FiturBIstay() {
               {errors.asalKPw && <span className={styles.errorMsg}>{errors.asalKPw}</span>}
             </div>
 
+            {/* DatePicker tetap untuk konsistensi & aksesibilitas */}
             <div className={styles.formGroup}>
               <label htmlFor="checkIn">Tanggal Check In (14:00)</label>
               <DatePicker
@@ -402,7 +553,6 @@ export default function FiturBIstay() {
                 selected={fields.checkIn}
                 onChange={(d) => handleDateChange(d, 'checkIn')}
                 dateFormat="dd MMMM yyyy"
-                // >>> Tidak dibatasi tanggalnya
                 locale={idLocale}
                 placeholderText="Pilih Tanggal"
               />
@@ -416,7 +566,6 @@ export default function FiturBIstay() {
                 selected={fields.checkOut}
                 onChange={(d) => handleDateChange(d, 'checkOut')}
                 dateFormat="dd MMMM yyyy"
-                // >>> Tidak ada min/max tanggal
                 locale={idLocale}
                 placeholderText="Pilih Tanggal"
                 disabled={!fields.checkIn}
