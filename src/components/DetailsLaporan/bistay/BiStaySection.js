@@ -1,13 +1,28 @@
 import React from 'react';
 
+// statusPegawaiList adalah prop baru yang berisi array data status
+// Contoh: [{ id: 1, status: 'Pegawai' }, { id: 2, status: 'Pensiun' }]
 export default function BiStaySection({
   styles, id, detail,
   formatDateTime, mapStatus,
   isPendingGeneric, isUpdatingGeneric,
   onRequestReject, onApproveGeneric,
+  statusPegawaiList, // <-- PROPS BARU: Daftar status pegawai
 }) {
   const status = mapStatus(detail);
   const slug = 'bistay';
+
+  // <-- LOGIKA BARU: Fungsi untuk mencari nama status berdasarkan ID
+  const getStatusPegawaiText = (statusId) => {
+    // Jika tidak ada list status atau ID, kembalikan strip
+    if (!statusPegawaiList || !statusId) return '-';
+    
+    // Cari status di dalam array berdasarkan ID
+    const foundStatus = statusPegawaiList.find(s => s.id === statusId);
+    
+    // Jika ditemukan, kembalikan teks statusnya. Jika tidak, tampilkan pesan fallback.
+    return foundStatus ? foundStatus.status : `ID (${statusId}) tidak ditemukan`;
+  };
 
   return (
     <div className={styles.detailCard}>
@@ -32,14 +47,15 @@ export default function BiStaySection({
               <L styles={styles} label="Nama Pemesan" v={detail.nama_pemesan || '-'} />
               <L styles={styles} label="NIP" v={detail.nip || '-'} />
               <L styles={styles} label="No WA" v={detail.no_wa || '-'} />
-              <L styles={styles} label="Status Pegawai (ID)" v={detail.status_pegawai_id ?? '-'} />
+              {/* <-- PERUBAHAN DI SINI --> */}
+              <L styles={styles} label="Status Pegawai" v={getStatusPegawaiText(detail.status_pegawai_id)} />
               <L styles={styles} label="Asal KPw" v={detail.asal_kpw || '-'} />
               <L styles={styles} label="Keterangan" v={detail.keterangan || '-'} />
             </div>
 
             <div className={styles.detailColRight}>
               <L styles={styles} label="Jadwal"
-                 v={`${formatDateTime(detail.check_in)} → ${formatDateTime(detail.check_out)}`} />
+                v={`${formatDateTime(detail.check_in)} → ${formatDateTime(detail.check_out)}`} />
               <L styles={styles} label="Created At" v={formatDateTime(detail.created_at)} />
               <L styles={styles} label="Updated At" v={formatDateTime(detail.updated_at)} />
             </div>

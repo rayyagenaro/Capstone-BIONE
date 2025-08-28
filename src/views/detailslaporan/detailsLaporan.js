@@ -63,6 +63,11 @@ const STATUS_CONFIG = {
   '4': { text: 'Finished',  className: styles.statusFinished, dot: styles.dotFinished },
 };
 
+const statusPegawaiData = [
+  { id: 1, status: 'Pegawai' },
+  { id: 2, status: 'Pensiun' },
+];
+
 /* ===== Meta judul ===== */
 const META = {
   bidrive: { title: 'BI-DRIVE' },
@@ -512,6 +517,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
                 isUpdatingGeneric={isUpdatingGeneric}
                 onRequestReject={() => setShowRejectReason(true)}
                 onApproveGeneric={handleApproveGeneric}
+                statusPegawaiList={statusPegawaiData}
               />
             )}
             {slug === 'bimail' && (
