@@ -38,24 +38,15 @@ const SuccessPopup = ({ onClose }) => (
   </div>
 );
 
-/* ---------------- Popup SOP (selalu muncul saat masuk halaman) ---------------- */
+/* ---------------- Popup Terms & Conditions (tanpa tombol X) ---------------- */
 
-const SOPPopup = ({ onClose, onOpenLink }) => {
-  const SOP_URL =
-    'https://docs.google.com/document/d/1McbCcASEltz4xX5lb49wRV1jx6hYCkya1a9ay1QAhkM/edit?usp=sharing';
-
-  const handleOpenSOP = () => {
-    onOpenLink?.();
-    window.open(SOP_URL, '_blank', 'noopener,noreferrer');
-  };
+const TermsPopup = ({ onAccept }) => {
+  const [agreed, setAgreed] = useState(false);
 
   return (
     <div className={styles.sopOverlay} role="dialog" aria-modal="true">
       <div className={styles.sopBox}>
-        <button className={styles.sopClose} onClick={onClose} aria-label="Tutup">
-          ×
-        </button>
-
+        {/* Hilangkan tombol silang agar hanya bisa lanjut via checkbox + tombol */}
         <div className={styles.sopWarnIcon} aria-hidden="true">
           <svg viewBox="0 0 48 48" width="64" height="64">
             <path d="M24 6l18 32H6L24 6z" fill="#fff" stroke="#e14d4d" strokeWidth="2.5" />
@@ -65,18 +56,95 @@ const SOPPopup = ({ onClose, onOpenLink }) => {
         </div>
 
         <div className={styles.sopTitle}>
-          Harap Membaca dan Mengakses <b>SOP Booking Wisma BI</b> 
+          <b>Terms &amp; Conditions</b> – Booking Wisma Giri BI
         </div>
         <div className={styles.sopSubtitle}>
-          Silakan buka tautan di bawah ini. Setelah Anda kembali ke tab ini, form booking akan otomatis
-          tersedia.
+          Harap baca ketentuan berikut sebelum melanjutkan pengisian form.
         </div>
 
-        <button className={styles.sopLinkBtn} onClick={handleOpenSOP}>
-          Link SOP Booking Wisma BI
-        </button>
+        {/* Konten Terms scrollable */}
+        <div className={styles.termsScroll} role="document" aria-label="Terms & Conditions">
+          <h3 className={styles.termsHeading}>PEMINJAMAN RUMAH PERISTIRAHATAN WISMA GIRI BANK INDONESIA</h3>
 
-        <div className={styles.sopHint}>(Tautan akan Terbuka di Tab Baru)</div>
+          <p className={styles.termsSubhead}><b>a. Alamat</b></p>
+          <p>Wisma Giri, Jl. Wilis No. 5 Tretes, Pasuruan, Jawa Timur.</p>
+
+          <p className={styles.termsSubhead}><b>b. Keterangan</b></p>
+          <ul className={styles.termsList}>
+            <li>Pegawai: <b>Senin s.d Minggu</b></li>
+            <li>Pensiun: <b>Senin s.d Jumat</b></li>
+            <li><b>Check In 14:00</b> — <b>Check Out 12:00 WIB</b></li>
+            <li><b>Maksimal booking 3H2M</b> (3 hari 2 malam)</li>
+            <li><b>Rp200.000 / hari</b></li>
+          </ul>
+
+          <p className={styles.termsSubhead}><b>c. Transfer No. Rekening</b></p>
+          <p>
+            <b>Bank Indonesia</b> – <b>491605730001</b> – <b>Setoran AR SB SB</b><br />
+            <span className={styles.termsNote}>
+              (Harap menginformasikan bukti transfer ke PIC, paling lambat sebelum masuk ke Wisma Giri)
+            </span>
+          </p>
+
+          <p className={styles.termsSubhead}><b>d. PIC</b></p>
+          <ul className={styles.termsList}>
+            <li>Bagus Setyo Budi: <b>0813-3033-0551</b></li>
+            <li>Yani Sudjianto: <b>0812-3006-9256</b></li>
+            <li>Indri Suci Indartik: <b>0823-350-244-93</b></li>
+          </ul>
+
+          <p className={styles.termsSubhead}><b>e. CATATAN PENTING</b></p>
+          <p className={styles.termsNote}>
+            Nama pendaftar harus sama dengan nama rekening pembayaran. Contoh: <br />
+            – Pendaftar atas nama: <b>Suketi</b><br />
+            – Nama rekening atas nama: <b>Suketi</b>
+          </p>
+
+          <p><i>Baca Informasi <b>TATA TERTIB</b> di halaman selanjutnya.</i></p>
+
+          <hr className={styles.termsDivider} />
+
+          <h3 className={styles.termsHeading}>TATA TERTIB PENGGUNAAN “WISMA GIRI”</h3>
+          <p>Kepada Yth. Pengunjung/Penyewa Wisma Giri, bersama ini disampaikan tata tertib pemakaian Wisma Giri adalah sebagai berikut:</p>
+
+          <ol className={styles.termsList}>
+            <li>1. Pengunjung/penyewa Wisma Giri adalah Pegawai Organik dan Pensiunan Bank Indonesia.</li>
+            <li>2. Pengunjung/penyewa harus menjaga kebersihan, keamanan, dan kerapihan Wisma Giri.</li>
+            <li>3. Pengunjung/penyewa dilarang membawa/merusak barang-barang milik Wisma Giri tanpa izin dari Tim Manajemen Intern (TMI).</li>
+            <li>4. Pengunjung/penyewa yang terbukti melakukan kerusakan barang milik Wisma Giri wajib untuk mengganti/memperbaiki.</li>
+            <li>5. Biaya partisipasi <b>Rp200.000,00/hari</b> untuk 1 villa.</li>
+            <li>6. Pegawai Organik/Pensiunan hanya dapat memesan <b>1x dalam 1 tahun</b>.</li>
+            <li>7. <b>Check In</b>: pkl <b>14.00 WIB</b> — <b>Check Out</b>: pkl <b>12.00 WIB</b>.</li>
+            <li>8. Maksimal penggunaan <b>3 Hari 2 Malam</b>.</li>
+            <li>9. Jumlah penghuni maksimal <b>16 orang</b> (1 Pegawai/Pensiunan dan 15 Pengikut).</li>
+            <li>10. Pembayaran dilakukan melalui transfer ke rekening Fungsi Logistik (akan disampaikan selanjutnya). <b>Bukti pembayaran</b> wajib disampaikan sebelum masuk ke rumah peristirahatan.</li>
+            <li>11. Pemesanan dapat dilakukan melalui Fungsi Logistik Kantor Perwakilan Bank Indonesia Provinsi Jawa Timur menggunakan Google Form yang ditetapkan.</li>
+            <li>12. <b>TMI berwenang</b> melakukan penjadwalan pemesanan jika Wisma Giri akan digunakan untuk kepentingan lembaga.</li>
+          </ol>
+        </div>
+
+        {/* Checkbox & tombol lanjut */}
+        <label className={styles.termsAgreeRow}>
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            aria-label="Saya setuju dengan Terms & Conditions"
+          />
+          <span>Saya telah membaca dan menyetujui Terms &amp; Conditions.</span>
+        </label>
+
+        <div className={styles.termsActionRow}>
+          <button
+            type="button"
+            className={styles.termsProceedBtn}
+            disabled={!agreed}
+            onClick={onAccept}
+            aria-disabled={!agreed}
+          >
+            Lanjut Isi Form Booking
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -112,16 +180,12 @@ const ymd = (d) => {
 /* ===== util kalender (tanpa spill-over) ===== */
 const weekLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
-/**
- * Matriks minggu untuk bulan aktif (mulai Senin), berhenti setelah tanggal terakhir bulan.
- */
 function monthMatrix(currentMonthDate) {
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
 
-  // Offset Senin
   const jsDowFirst = first.getDay(); // Minggu=0
   const mondayIndex = (jsDowFirst + 6) % 7;
   const gridStart = new Date(first);
@@ -168,19 +232,9 @@ export default function FiturBIstay() {
     return () => { active = false; };
   }, [router]);
 
-  /* ---------- SOP gate ---------- */
+  /* ---------- Terms gate ---------- */
   const [showSOP, setShowSOP] = useState(true);
-  const sopLinkClickedRef = useRef(false);
-  useEffect(() => {
-    const onFocus = () => {
-      if (sopLinkClickedRef.current) {
-        setShowSOP(false);
-        sopLinkClickedRef.current = false;
-      }
-    };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, []);
+  const handleAcceptTerms = () => setShowSOP(false);
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -205,10 +259,10 @@ export default function FiturBIstay() {
     if (errors[name]) setErrors((p) => ({ ...p, [name]: null }));
   };
 
-  // Date only (jam check-in/out otomatis) — TIDAK ada batasan durasi
+  // Date only (jam check-in/out otomatis)
   const handleDateChange = (date, key) => {
     if (key === 'checkIn') {
-      const ci = atTime(date, 14, 0); // 14:00
+      const ci = atTime(date, 14, 0);
       setFields((prev) => ({ ...prev, checkIn: ci }));
       if (errors.checkIn) setErrors((p) => ({ ...p, checkIn: null }));
       if (fields.checkOut && fields.checkOut <= ci) {
@@ -218,7 +272,7 @@ export default function FiturBIstay() {
     }
 
     if (key === 'checkOut') {
-      const co = atTime(date, 12, 0); // 12:00
+      const co = atTime(date, 12, 0);
       setFields((prev) => ({ ...prev, checkOut: co }));
       if (!fields.checkIn) {
         setErrors((p) => ({ ...p, checkOut: 'Pilih tanggal check-in terlebih dulu.' }));
@@ -304,17 +358,11 @@ export default function FiturBIstay() {
         throw new Error(err?.error || 'Gagal menyimpan booking.');
       }
 
-      // ⛔️ Tidak ada optimistic update lagi.
-      // Kalender hanya berubah jika status booking sudah "approved" (berdasarkan GET availability).
-
       setShowSuccess(true);
       setFields({
         nama: '', nip: '', wa: '', status: '', asalKPw: '',
         checkIn: null, checkOut: null, ket: '',
       });
-
-      // Refetch untuk menampilkan hasil approved (jika ada yang baru di-approve atau existing).
-      fetchAvailability();
     } catch (err) {
       setSubmitError(err.message);
     } finally {
@@ -353,12 +401,7 @@ export default function FiturBIstay() {
   };
 
   /* ======== BOOKED MAP (approved only) ======== */
-  // Struktur: { 'YYYY-MM-DD': { in: true/false, out: true/false } }
   const [bookedMap, setBookedMap] = useState({});
-
-  // Endpoint GET availability per bulan (read-only).
-  // Respons yang diharapkan (contoh):
-  // [{ check_in: ISOString, check_out: ISOString, status: "approved"|"pending"|"rejected" }, ...]
   const AVAIL_URL = `/api/BIstaybook/availability?year=${yearIndex}&month=${String(
     monthIndex + 1
   ).padStart(2, '0')}`;
@@ -377,17 +420,14 @@ export default function FiturBIstay() {
       };
 
       for (const r of rows || []) {
-        // HANYA booking yang sudah approved yang ditandai di kalender
         const st = String(r.status || '').toLowerCase();
         if (st !== 'approved') continue;
 
         const ci = startOfDay(new Date(r.check_in));
         const co = startOfDay(new Date(r.check_out));
 
-        // Hari check-in
         addFlag(ci, 'in');
 
-        // Hari di tengah
         let mid = new Date(ci);
         mid.setDate(mid.getDate() + 1);
         while (mid < co) {
@@ -396,20 +436,16 @@ export default function FiturBIstay() {
           mid.setDate(mid.getDate() + 1);
         }
 
-        // Hari check-out
         addFlag(co, 'out');
       }
 
       setBookedMap(nextMap);
     } catch {
-      // Jika gagal fetch, jangan ubah bookedMap agar UI tetap stabil
+      // abaikan error fetch
     }
   }, [AVAIL_URL]);
 
-  // Ambil data saat bulan berubah
-  useEffect(() => {
-    fetchAvailability();
-  }, [fetchAvailability]);
+  useEffect(() => { fetchAvailability(); }, [fetchAvailability]);
 
   const isInBooked = (d) => !!bookedMap[ymd(d)]?.in;
   const isOutBooked = (d) => !!bookedMap[ymd(d)]?.out;
@@ -433,7 +469,7 @@ export default function FiturBIstay() {
             <div />
           </div>
 
-          {/* ====== KALENDER BESAR ====== */}
+          {/* ====== KALENDER ====== */}
           <section className={styles.calendarCard} aria-label="Kalender Booking BI.STAY">
             <div className={styles.calHeader}>
               <button type="button" className={styles.calNavBtn} onClick={gotoPrevMonth} aria-label="Bulan sebelumnya">‹</button>
@@ -466,44 +502,28 @@ export default function FiturBIstay() {
                     const outBooked = isOutBooked(day);
 
                     return (
-                      <div
-                        key={di}
-                        className={styles.dayCell}
-                        aria-disabled={isPast}
-                      >
+                      <div key={di} className={styles.dayCell} aria-disabled={isPast}>
                         <div className={styles.dayNumberWrap}>
                           <span className={styles.dayNumber}>{dateNum}</span>
                         </div>
 
                         <div className={styles.sessionCol}>
-                          {/* 14:00 Check-In */}
                           <button
                             type="button"
                             disabled={isPast || inBooked}
-                            className={
-                              `${styles.sessionPill} ${inBooked ? styles.pillBooked : styles.pillCheckIn} ${isCheckInSel ? styles.pillSelected : ''}`
-                            }
+                            className={`${styles.sessionPill} ${inBooked ? styles.pillBooked : styles.pillCheckIn} ${isCheckInSel ? styles.pillSelected : ''}`}
                             onClick={() => handleDateChange(day, 'checkIn')}
                             aria-pressed={isCheckInSel}
-                            title={inBooked ? 'Sudah dibooking' : 'Set as Check-In (14:00)'}
                           >
                             {inBooked ? 'Booked' : '14:00 • Check-In'}
                           </button>
 
-                          {/* 12:00 Check-Out */}
                           <button
                             type="button"
                             disabled={isPast || !fields.checkIn || outBooked}
-                            className={
-                              `${styles.sessionPill} ${outBooked ? styles.pillBooked : styles.pillCheckOut} ${isCheckOutSel ? styles.pillSelected : ''} ${!fields.checkIn && !outBooked ? styles.pillDisabledHint : ''}`
-                            }
+                            className={`${styles.sessionPill} ${outBooked ? styles.pillBooked : styles.pillCheckOut} ${isCheckOutSel ? styles.pillSelected : ''} ${!fields.checkIn && !outBooked ? styles.pillDisabledHint : ''}`}
                             onClick={() => handleDateChange(day, 'checkOut')}
                             aria-pressed={isCheckOutSel}
-                            title={
-                              outBooked
-                                ? 'Sudah dibooking'
-                                : (fields.checkIn ? 'Set as Check-Out (12:00)' : 'Pilih Check-In terlebih dulu')
-                            }
                           >
                             {outBooked ? 'Booked' : '12:00 • Check-Out'}
                           </button>
@@ -626,7 +646,6 @@ export default function FiturBIstay() {
               {errors.asalKPw && <span className={styles.errorMsg}>{errors.asalKPw}</span>}
             </div>
 
-            {/* DatePicker tetap untuk konsistensi */}
             <div className={styles.formGroup}>
               <label htmlFor="checkIn">Tanggal Check In (14:00)</label>
               <DatePicker
@@ -673,11 +692,9 @@ export default function FiturBIstay() {
 
         {showSuccess && <SuccessPopup onClose={closeSuccess} />}
 
+        {/* Popup Terms (tanpa tombol X) */}
         {showSOP && (
-          <SOPPopup
-            onClose={() => setShowSOP(false)}
-            onOpenLink={() => { sopLinkClickedRef.current = true; }}
-          />
+          <TermsPopup onAccept={handleAcceptTerms} />
         )}
       </main>
 
