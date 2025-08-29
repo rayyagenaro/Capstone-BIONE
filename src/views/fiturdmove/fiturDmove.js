@@ -35,6 +35,13 @@ const SuccessPopup = ({ onClose }) => (
     </div>
 );
 
+// --- helper: format ke MySQL DATETIME (YYYY-MM-DD HH:mm:ss) ---
+const toMySQLDateTime = (date) => {
+    const d = new Date(date);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+
 // --- KOMPONEN UTAMA ---
 export default function FiturDmove() {
     const [availabilityData, setAvailabilityData] = useState(null);
@@ -167,7 +174,6 @@ export default function FiturDmove() {
         if (!fields.file_link.trim()) {
             err.file_link = 'Link file wajib diisi';
         } else {
-            // opsional: cek pola URL sederhana
             const simpleUrl = /^(https?:\/\/|www\.)/i;
             if (!simpleUrl.test(fields.file_link.trim())) {
                 err.file_link = 'Masukkan tautan yang valid (awali dengan http(s):// atau www.)';
@@ -206,8 +212,9 @@ export default function FiturDmove() {
                 jumlah_orang: parseInt(fields.jumlahOrang, 10) || null,
                 jumlah_kendaraan: fields.jumlahKendaraan,
                 volume_kg: parseInt(fields.volumeBarang, 10) || null,
-                start_date: fields.startDate.toISOString(),
-                end_date: fields.endDate.toISOString(),
+                // >>>> hanya ini yang diubah: kirim format MySQL
+                start_date: toMySQLDateTime(fields.startDate),
+                end_date: toMySQLDateTime(fields.endDate),
                 phone: fields.noHp,
                 keterangan: fields.keterangan,
                 file_link: fields.file_link,
@@ -421,14 +428,11 @@ export default function FiturDmove() {
                                 {errors.noHp && <span className={styles.errorMsg}>{errors.noHp}</span>}
                             </div>
 
-                            {/* LINK FILE WAJIB + BINTANG MERAH */}
+                            {/* LINK FILE WAJIB + BINTANG MERAH (tanpa tautan 'Upload di Sini') */}
                             <div className={styles.formGroup}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <label htmlFor="file_link">
-                                        Link File <span aria-hidden="true" style={{ color: 'red' }}>*</span>
-                                    </label>
-                                    <a href="https://onedrive.live.com" target="_blank" rel="noopener noreferrer" style={{ color: "#2667c7", fontWeight: 500, fontSize: 15 }}>Upload di Sini</a>
-                                </div>
+                                <label htmlFor="file_link">
+                                    Link File <span aria-hidden="true" style={{ color: 'red' }}>*</span>
+                                </label>
                                 <input
                                     id="file_link"
                                     name="file_link"
