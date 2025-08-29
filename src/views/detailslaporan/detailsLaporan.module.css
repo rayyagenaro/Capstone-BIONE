@@ -691,3 +691,50 @@
 @keyframes dl-spin {
   to { transform: rotate(360deg); }
 }
+
+/* === BI.DRIVE - Samakan ukuran & gaya tombol di bar aksi === */
+.actionBtnRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* 2 kolom sama lebar */
+  gap: 18px;
+  align-items: start;
+  justify-items: stretch;
+}
+
+.kirimPesanWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;             /* tombol ikut melebar penuh kolom */
+}
+
+.actionBtnRow .btnKirimPesan,
+.actionBtnRow .btnSetujui {
+  width: 100%;                      /* full-lebar kolom (bikin proporsional) */
+  min-height: 52px;
+  border-radius: 24px;              /* samakan radius */
+  padding: 0 28px;                  /* tinggi diatur via min-height */
+  font-size: 18px;
+  font-weight: 700;
+  background: #2F4D8E;              /* samakan warna dengan .btnSetujui */
+  color: #fff;
+  border: none;
+  box-shadow: 0 3px 12px 0 rgba(47,77,142,.14);
+  cursor: pointer;
+  transition: background .17s, transform .02s;
+}
+
+.actionBtnRow .btnKirimPesan:hover,
+.actionBtnRow .btnSetujui:hover {
+  background: #253e70;
+}
+
+.kirimPesanNote {
+  margin-top: 8px;
+  text-align: center;
+  max-width: unset;                  /* biar ikut lebar kolom */
+}
+
+/* Responsif: tumpuk vertikal di layar sempit */
+@media (max-width: 900px) {
+  .actionBtnRow { grid-template-columns: 1fr; }
+}

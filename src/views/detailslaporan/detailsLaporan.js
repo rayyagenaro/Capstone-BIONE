@@ -139,6 +139,54 @@ ${reason}
 Silakan lakukan perbaikan/pengajuan ulang. Terima kasih.`;
 };
 
+/* ===== Helper numeric id + set available ===== */
+const numericIdOf = (id) => {
+  const m = String(id ?? '').match(/(\d+)$/);
+  return m ? Number(m[1]) : NaN;
+};
+async function setDriversAvailable(driverIds, availableStatusId = 1) {
+  if (!Array.isArray(driverIds) || driverIds.length === 0) return { ok: true, affected: 0 };
+  const calls = driverIds.map((id) =>
+    fetch('/api/updateDriversStatus', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ driverId: id, newStatusId: availableStatusId }),
+      keepalive: true,
+    }).then(async (r) => {
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error || `Gagal update driver ${id}`);
+      }
+      return true;
+    })
+  );
+  const results = await Promise.allSettled(calls);
+  const failed = results.filter(r => r.status === 'rejected');
+  if (failed.length) throw new Error(failed[0].reason?.message || 'Gagal update sebagian driver');
+  return { ok: true, affected: results.length };
+}
+async function setVehiclesAvailable(vehicleIds, availableStatusId = 1) {
+  if (!Array.isArray(vehicleIds) || vehicleIds.length === 0) return { ok: true, affected: 0 };
+  const calls = vehicleIds.map((id) =>
+    fetch('/api/updateVehiclesStatus', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vehicleId: id, newStatusId: availableStatusId }),
+      keepalive: true,
+    }).then(async (r) => {
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error || `Gagal update vehicle ${id}`);
+      }
+      return true;
+    })
+  );
+  const results = await Promise.allSettled(calls);
+  const failed = results.filter(r => r.status === 'rejected');
+  if (failed.length) throw new Error(failed[0].reason?.message || 'Gagal update sebagian kendaraan');
+  return { ok: true, affected: results.length };
+}
+
 /* ============================== COMPONENT ============================== */
 export default function DetailsLaporanView({ initialRoleId = null }) {
   const router = useRouter();
@@ -203,6 +251,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
 
   const [showKontakPopup, setShowKontakPopup] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [finishing, setFinishing] = useState(false);
 
   const detailRef = useRef(null);
 
@@ -286,7 +335,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
       const assignJson = await resAssign.json().catch(() => ({}));
       if (!resAssign.ok || assignJson?.error) throw new Error(assignJson?.error || 'Gagal menyimpan penugasan.');
 
-      // Update status driver/vehicle (tetap sesuai logic lama)
+      // Update status driver/vehicle
       await Promise.all(
         vehicleIds.map(async (vehId) => {
           const r = await fetch('/api/updateVehiclesStatus', {
@@ -423,6 +472,67 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
     }
   };
 
+  // ===== Finish booking BI-DRIVE (optimistic + soft-timeout) =====
+  const handleFinishBidrive = async () => {
+    if (slug !== 'bidrive' || !booking || Number(booking.status_id) !== 2) return;
+
+    const bid = numericIdOf(id);
+    if (!Number.isFinite(bid)) { openNotif('ID booking tidak valid.', 'error'); return; }
+
+    setFinishing(true);
+
+    // ambil ID yang ditugaskan
+    const driverIds  = (booking.assigned_drivers  || []).map(d => d.id).filter(Boolean);
+    const vehicleIds = (booking.assigned_vehicles || []).map(v => v.id).filter(Boolean);
+
+    // 1) Optimistic UI — tandai selesai dulu
+    const nowIso = new Date().toISOString();
+    setBooking(prev => prev ? { ...prev, status_id: 4, finished_at: nowIso } : prev);
+
+    try {
+      // 2) Kirim semua request paralel, batasi waktu tunggu supaya UI tidak “nyangkut”
+      const reqs = [
+        fetch('/api/booking', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: bid, newStatusId: 4, ns }),
+          keepalive: true,
+          credentials: 'include',
+        }),
+        ...driverIds.map(did =>
+          fetch('/api/updateDriversStatus', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ driverId: Number(did), newStatusId: 1 }),
+            keepalive: true,
+          })
+        ),
+        ...vehicleIds.map(vid =>
+          fetch('/api/updateVehiclesStatus', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vehicleId: Number(vid), newStatusId: 1 }),
+            keepalive: true,
+          })
+        )
+      ];
+
+      await Promise.race([
+        Promise.allSettled(reqs),
+        new Promise((resolve) => setTimeout(resolve, 1800)) // soft-timeout
+      ]);
+
+      openNotif('Booking BI-DRIVE berhasil ditandai selesai.', 'success');
+      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1000);
+    } catch (e) {
+      // rollback kecil jika benar-benar gagal
+      setBooking(prev => prev ? { ...prev, status_id: 2 } : prev);
+      openNotif(e.message || 'Gagal finish booking.', 'error');
+    } finally {
+      setFinishing(false);
+    }
+  };
+
   /* ===== UI guard ===== */
   if (isLoading) return (
     <div className={styles.loadingState} role="status" aria-live="polite">
@@ -430,8 +540,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
       <p className={styles.loadingText}>Memuat detail laporan…</p>
     </div>
   );
-  
-  if (error)     return <div className={styles.errorState}>Error: {error}</div>;
+  if (error) return <div className={styles.errorState}>Error: {error}</div>;
 
   const titleService = META[slug]?.title || slug.toUpperCase();
 
@@ -471,10 +580,12 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
               booking={booking}
               isUpdating={isUpdating}
               exporting={exporting}
+              finishing={finishing}
               onRequestReject={() => setShowRejectReason(true)}
               onRequestApprove={() => setShowPopup(true)}
               onOpenKontak={() => setShowKontakPopup(true)}
               onExportPDF={handleExportPDF}
+              onFinishBooking={handleFinishBidrive}
               STATUS_CONFIG={STATUS_CONFIG}
               formatDateTime={formatDateTime}
               formatDateOnly={formatDateOnly}
