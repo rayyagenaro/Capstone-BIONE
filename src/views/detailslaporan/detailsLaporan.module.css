@@ -663,3 +663,31 @@
   line-height: 1.45;
   white-space: pre-wrap;
 }
+
+.loadingState {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: #334155; /* slate-700 */
+}
+
+.loaderRing {
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  border: 4px solid rgba(51, 65, 85, .2); /* slate-700 @ 20% */
+  border-top-color: #2563eb; /* brand/primary */
+  animation: dl-spin .8s linear infinite;
+}
+
+.loadingText {
+  font-size: 14px;
+  opacity: .85;
+}
+
+@keyframes dl-spin {
+  to { transform: rotate(360deg); }
+}

@@ -424,7 +424,13 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
   };
 
   /* ===== UI guard ===== */
-  if (isLoading) return <div className={styles.loadingState}>Memuat detail laporan...</div>;
+  if (isLoading) return (
+    <div className={styles.loadingState} role="status" aria-live="polite">
+      <span className={styles.loaderRing} aria-hidden="true" />
+      <p className={styles.loadingText}>Memuat detail laporan…</p>
+    </div>
+  );
+  
   if (error)     return <div className={styles.errorState}>Error: {error}</div>;
 
   const titleService = META[slug]?.title || slug.toUpperCase();
