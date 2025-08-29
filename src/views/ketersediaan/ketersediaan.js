@@ -20,6 +20,10 @@ import RoomsSection from '@/components/ketersediaan/meet/RoomsSection';
 import DocsUnitsSection from '@/components/ketersediaan/docs/DocsUnitsSection';
 import DocsJenisSection from '@/components/ketersediaan/docs/DocsJenisSection';
 
+// MEET calendar & rules component
+import MeetCalendarAdmin from '@/components/ketersediaan/meet/MeetCalendarAdmin';
+import RulesMeetSection from '@/components/ketersediaan/meet/RulesMeetSection';
+
 /* ====== util ====== */
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 const meetStatusToMap = (arr) => { const m = {}; for (const s of arr) m[s.id] = s.name; return m; };
@@ -73,7 +77,7 @@ export default function KetersediaanPage({ initialRoleId = null }) {
   const [mainTab, setMainTab]   = useState('drive');    // 'drive' | 'care' | 'meet' | 'docs'
   const [subDrive, setSubDrive] = useState('drivers');  // 'drivers'|'vehicles'
   const [subCare, setSubCare]   = useState('doctors');  // 'doctors'|'rules'|'calendar'
-  const [subMeet, setSubMeet]   = useState('rooms');    // 'rooms'
+  const [subMeet, setSubMeet]   = useState('rooms');    // 'rooms'|'rules'|'calendar'
   const [subDocs, setSubDocs]   = useState('units');    // 'units'|'jenis'
 
   // Data
@@ -84,6 +88,7 @@ export default function KetersediaanPage({ initialRoleId = null }) {
   const [careRules, setCareRules] = useState([]);
   const [meetRooms, setMeetRooms] = useState([]);
   const [meetStatus, setMeetStatus] = useState([]);
+  const [meetRules, setMeetRules] = useState([]);
   const [docsUnits, setDocsUnits] = useState([]); // {id, code, name}
   const [docsJenis, setDocsJenis] = useState([]); // {id, kode, nama}
 
@@ -98,7 +103,10 @@ export default function KetersediaanPage({ initialRoleId = null }) {
   const [editMode, setEditMode]   = useState(false);
   const [modalType, setModalType] = useState('drivers');
   const [formData, setFormData]   = useState(initialDriver);
+
+  // Picker state
   const [currentDoctorId, setCurrentDoctorId] = useState(null);
+  const [currentRoomId,   setCurrentRoomId]   = useState(null);
 
   // === UI dropdown kustom (Pilih Dokter) ===
   const [isDocOpen, setIsDocOpen] = useState(false);
@@ -106,6 +114,20 @@ export default function KetersediaanPage({ initialRoleId = null }) {
   useEffect(() => {
     const handleClickOutside = (e) => { if (docSelRef.current && !docSelRef.current.contains(e.target)) setIsDocOpen(false); };
     const handleEsc = (e) => { if (e.key === 'Escape') setIsDocOpen(false); };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, []);
+
+  // === UI dropdown kustom (Pilih Room) ===
+  const [isRoomOpen, setIsRoomOpen] = useState(false);
+  const roomSelRef = useRef(null);
+  useEffect(() => {
+    const handleClickOutside = (e) => { if (roomSelRef.current && !roomSelRef.current.contains(e.target)) setIsRoomOpen(false); };
+    const handleEsc = (e) => { if (e.key === 'Escape') setIsRoomOpen(false); };
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEsc);
     return () => {
@@ -147,11 +169,11 @@ export default function KetersediaanPage({ initialRoleId = null }) {
 
   /* -------- Pagination (disimpan per-sub tabel) -------- */
   const [page, setPage] = useState({
-    drivers: 1, vehicles: 1, care_doctors: 1, care_rules: 1, meet_rooms: 1,
+    drivers: 1, vehicles: 1, care_doctors: 1, care_rules: 1, meet_rooms: 1, meet_rules: 1,
     docs_units: 1, docs_jenis: 1
   });
   const [perPage, setPerPage] = useState({
-    drivers: 10, vehicles: 10, care_doctors: 10, care_rules: 10, meet_rooms: 10,
+    drivers: 10, vehicles: 10, care_doctors: 10, care_rules: 10, meet_rooms: 10, meet_rules: 10,
     docs_units: 10, docs_jenis: 10
   });
   const tableTopRef = useRef(null);
@@ -165,7 +187,7 @@ export default function KetersediaanPage({ initialRoleId = null }) {
       const [
         driversRes, vehiclesRes,
         careDocRes, careRulesRes,
-        roomsRes, statusRes,
+        roomsRes, statusRes, meetRulesRes,
         docsUnitsRes, docsJenisRes
       ] = await Promise.all([
         fetch('/api/ketersediaanAdmin?type=drivers'),
@@ -174,6 +196,7 @@ export default function KetersediaanPage({ initialRoleId = null }) {
         fetch('/api/ketersediaanAdmin?type=bicare_rules'),
         fetch('/api/ketersediaanAdmin?type=bimeet_rooms'),
         fetch('/api/ketersediaanAdmin?type=bimeet_room_status'),
+        fetch('/api/ketersediaanAdmin?type=bimeet_rules'),
         fetch('/api/ketersediaanAdmin?type=bimail_units'),
         fetch('/api/ketersediaanAdmin?type=bimail_jenis'),
       ]);
@@ -181,12 +204,12 @@ export default function KetersediaanPage({ initialRoleId = null }) {
       const [
         driversJson, vehiclesJson,
         careDocJson, careRulesJson,
-        roomsJson, statusJson,
+        roomsJson, statusJson, meetRulesJson,
         docsUnitsJson, docsJenisJson
       ] = await Promise.all([
         driversRes.json(), vehiclesRes.json(),
         careDocRes.json(), careRulesRes.json(),
-        roomsRes.json(), statusRes.json(),
+        roomsRes.json(), statusRes.json(), meetRulesRes.json(),
         docsUnitsRes.json(), docsJenisRes.json()
       ]);
 
@@ -198,8 +221,14 @@ export default function KetersediaanPage({ initialRoleId = null }) {
       setCurrentDoctorId(prev => (prev && docs.some(d => d.id === prev)) ? prev : (docs[0]?.id ?? null));
 
       setCareRules(careRulesJson.data || []);
-      setMeetRooms(roomsJson.data || []);
+
+      const rms = roomsJson.data || [];
+      setMeetRooms(rms);
+      setCurrentRoomId(prev => (prev && rms.some(r => r.id === prev)) ? prev : (rms[0]?.id ?? null));
+
       setMeetStatus(statusJson.data || []);
+
+      setMeetRules(meetRulesJson.data || []);
 
       setDocsUnits(docsUnitsJson.data || []); // {id, code, name}
       setDocsJenis(docsJenisJson.data || []); // {id, kode, nama}
@@ -231,6 +260,13 @@ export default function KetersediaanPage({ initialRoleId = null }) {
     } else if (type === 'bimeet_rooms') {
       const statusOptions = meetStatus;
       setFormData(data ? { ...data, statusOptions } : { ...initialRoom, statusOptions });
+    } else if (type === 'bimeet_rules') {
+      const roomOptions = meetRooms;
+      setFormData(
+        data
+          ? { ...data, roomOptions }
+          : { id: null, room_id: '', weekday: 'MON', start_time: '08:00', end_time: '17:00', sessions_per_day: 3, is_active: 1, roomOptions }
+      );
     } else if (type === 'bimail_units') {
       setFormData(data ? { ...data } : { id: null, code: '', name: '' });
     } else if (type === 'bimail_jenis') {
@@ -275,17 +311,17 @@ export default function KetersediaanPage({ initialRoleId = null }) {
   const activeList = useMemo(() => {
     if (mainTab === 'drive') return subDrive === 'drivers' ? drivers : vehicles;
     if (mainTab === 'care')  return subCare === 'doctors' ? careDoctors : (subCare === 'rules' ? careRules : []);
-    if (mainTab === 'meet')  return subMeet === 'rooms' ? meetRooms : [];
+    if (mainTab === 'meet')  return subMeet === 'rooms' ? meetRooms : (subMeet === 'rules' ? meetRules : []);
     if (mainTab === 'docs')  return subDocs === 'units' ? docsUnitsPrepared : docsJenisPrepared;
     return [];
   }, [mainTab, subDrive, subCare, subMeet, subDocs,
-      drivers, vehicles, careDoctors, careRules, meetRooms,
+      drivers, vehicles, careDoctors, careRules, meetRooms, meetRules,
       docsUnitsPrepared, docsJenisPrepared]);
 
   const key =
     mainTab === 'drive' ? (subDrive === 'drivers' ? 'drivers' : 'vehicles')
     : mainTab === 'care' ? (subCare === 'doctors' ? 'care_doctors' : 'care_rules')
-    : mainTab === 'meet' ? 'meet_rooms'
+    : mainTab === 'meet' ? (subMeet === 'rooms' ? 'meet_rooms' : 'meet_rules')
     : /* docs */ (subDocs === 'units' ? 'docs_units' : 'docs_jenis');
 
   const currentPage  = page[key] || 1;
@@ -358,6 +394,8 @@ export default function KetersediaanPage({ initialRoleId = null }) {
           {mainTab === 'meet' && (
             <div className={styles.subTabs}>
               <button className={`${styles.subTabBtn} ${subMeet === 'rooms' ? styles.subTabActive : ''}`} onClick={() => setSubMeet('rooms')}>Rooms</button>
+              <button className={`${styles.subTabBtn} ${subMeet === 'rules' ? styles.subTabActive : ''}`} onClick={() => setSubMeet('rules')}>Aturan</button>
+              <button className={`${styles.subTabBtn} ${subMeet === 'calendar' ? styles.subTabActive : ''}`} onClick={() => setSubMeet('calendar')}>Kalender</button>
             </div>
           )}
 
@@ -396,7 +434,6 @@ export default function KetersediaanPage({ initialRoleId = null }) {
                         })()}
                       </span>
                       <span className={styles.selectCaret}>
-                        {/* boleh ganti FaChevronDown dengan karakter ▼ kalau tak pakai react-icons */}
                         <FaChevronDown />
                       </span>
                     </button>
@@ -410,9 +447,7 @@ export default function KetersediaanPage({ initialRoleId = null }) {
                               key={d.id}
                               role="option"
                               aria-selected={active}
-                              className={`${styles.selectOption} ${
-                                active ? styles.selectOptionActive : ''
-                              }`}
+                              className={`${styles.selectOption} ${active ? styles.selectOptionActive : ''}`}
                               onClick={() => {
                                 setCurrentDoctorId(d.id);
                                 setIsDocOpen(false);
@@ -434,6 +469,80 @@ export default function KetersediaanPage({ initialRoleId = null }) {
                   Slot yang sudah dibooking pengguna tidak dapat dibuka dari sini.
                 </p>
               </div>
+            )}
+
+            {/* MEET → Kalender */}
+            {mainTab === 'meet' && subMeet === 'calendar' && (
+              <div className={styles.calendarBlock}>
+                {/* Dropdown kustom: Pilih Room */}
+                <div className={styles.selectRow} style={{ justifyContent:'flex-end' }}>
+                  <span className={styles.selectLabel}>Pilih Room:</span>
+                  <div className={styles.selectWrap} ref={roomSelRef}>
+                    <button
+                      type="button"
+                      className={styles.selectBtn}
+                      onClick={() => setIsRoomOpen((o) => !o)}
+                      disabled={loading || (meetRooms?.length ?? 0) === 0}
+                      aria-haspopup="listbox"
+                      aria-expanded={isRoomOpen}
+                    >
+                      <span className={styles.selectText}>
+                        {(() => {
+                          if (loading) return 'Memuat…';
+                          if (!meetRooms || meetRooms.length === 0) return 'Tidak ada room';
+                          const picked =
+                            meetRooms.find((r) => r.id === currentRoomId) || meetRooms[0];
+                          return picked?.name || 'Pilih Room';
+                        })()}
+                      </span>
+                      <span className={styles.selectCaret}>
+                        <FaChevronDown />
+                      </span>
+                    </button>
+
+                    {isRoomOpen && meetRooms && meetRooms.length > 0 && (
+                      <div className={styles.selectPopover} role="listbox" tabIndex={-1}>
+                        {meetRooms.map((r) => {
+                          const active = r.id === currentRoomId;
+                          return (
+                            <div
+                              key={r.id}
+                              role="option"
+                              aria-selected={active}
+                              className={`${styles.selectOption} ${active ? styles.selectOptionActive : ''}`}
+                              onClick={() => {
+                                setCurrentRoomId(r.id);
+                                setIsRoomOpen(false);
+                              }}
+                            >
+                              {r.name}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <MeetCalendarAdmin roomId={currentRoomId || (meetRooms[0]?.id ?? 1)} styles={styles} />
+
+                <p className={styles.calendarHintAdmin}>
+                  Klik slot untuk menutup (blok admin) atau membuka. Slot yang sudah dibooking pengguna tidak dapat dibuka dari sini.
+                </p>
+              </div>
+            )}
+
+            {/* MEET → Rules */}
+            {mainTab === 'meet' && subMeet === 'rules' && (
+              <RulesMeetSection
+                styles={styles}
+                loading={loading}
+                rows={pageRows}
+                rooms={meetRooms}
+                onAdd={() => handleOpenModal('bimeet_rules')}
+                onEdit={(row) => handleOpenModal('bimeet_rules', row)}
+                onDelete={(id) => handleDelete('bimeet_rules', id)}
+              />
             )}
 
             {/* DRIVE: Drivers */}
@@ -533,7 +642,7 @@ export default function KetersediaanPage({ initialRoleId = null }) {
             )}
 
             {/* Pagination */}
-            {!(mainTab === 'care' && subCare === 'calendar') && activeList.length > 0 && (
+            {!( (mainTab === 'care' && subCare === 'calendar') || (mainTab === 'meet' && subMeet === 'calendar') ) && activeList.length > 0 && (
               <div className={styles.paginateArea}>
                 <div className={styles.paginateControls}>
                   <div className={styles.resultsText}>
@@ -574,7 +683,7 @@ export default function KetersediaanPage({ initialRoleId = null }) {
   );
 }
 
-/* ====== Modal serbaguna (tetap sama) ====== */
+/* ====== Modal serbaguna (tetap sama + bimeet_rules) ====== */
 function Modal({ editMode, modalType, formData, handleChange, handleCloseModal, handleSubmit, styles }) {
   const VEHICLE_TYPE_OPTIONS = [
     { id: 1, name: 'Mobil SUV' }, { id: 2, name: 'Mobil MPV' }, { id: 3, name: 'Minibus' },
@@ -590,6 +699,7 @@ function Modal({ editMode, modalType, formData, handleChange, handleCloseModal, 
     bicare_doctors: 'Dokter',
     bicare_rules: 'Aturan',
     bimeet_rooms: 'Room',
+    bimeet_rules: 'Aturan Room',
     bimail_units: 'Unit Kerja',
     bimail_jenis: 'Jenis Dokumen'
   };
@@ -685,6 +795,39 @@ function Modal({ editMode, modalType, formData, handleChange, handleCloseModal, 
                 <select name="status_id" value={formData.status_id ?? ''} onChange={handleChange} required className={styles.input}>
                   <option value="">Pilih Status</option>
                   {(formData.statusOptions || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* MEET: RULES */}
+          {modalType === 'bimeet_rules' && (
+            <>
+              <div className={styles.formGroup}>
+                <label>Room</label>
+                <select name="room_id" value={formData.room_id || ''} onChange={handleChange} required className={styles.input}>
+                  <option value="">Pilih Room</option>
+                  {(formData.roomOptions || []).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label>Hari (MON..SUN)</label>
+                <select name="weekday" value={formData.weekday || 'MON'} onChange={handleChange} className={styles.input}>
+                  {['MON','TUE','WED','THU','FRI','SAT','SUN'].map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+              <div className={styles.formGroup}><label>Mulai</label><input name="start_time" type="time" value={formData.start_time || ''} onChange={handleChange} className={styles.input} /></div>
+              <div className={styles.formGroup}><label>Selesai</label><input name="end_time" type="time" value={formData.end_time || ''} onChange={handleChange} className={styles.input} /></div>
+              <div className={styles.formGroup}>
+                <label>Sesi per Hari</label>
+                <select name="sessions_per_day" value={formData.sessions_per_day || 3} onChange={handleChange} className={styles.input}>
+                  {[2,3,4].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label>Aktif</label>
+                <select name="is_active" value={formData.is_active ?? 1} onChange={handleChange} className={styles.input}>
+                  <option value={1}>Ya</option><option value={0}>Tidak</option>
                 </select>
               </div>
             </>

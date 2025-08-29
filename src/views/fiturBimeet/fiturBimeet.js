@@ -1,5 +1,5 @@
 // /pages/User/fiturbimeet.js
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { FaArrowLeft } from "react-icons/fa";
@@ -60,6 +60,241 @@ const SuccessPopup = ({ onClose }) => (
     </div>
   </div>
 );
+
+/* ====== Helpers tanggal lokal anti-geser ====== */
+const pad2 = (n) => String(n).padStart(2, "0");
+const ymd = (d) =>
+  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const ym = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+const addMinutes = (date, minutes) => new Date(date.getTime() + minutes * 60000);
+const toHHMM = (s) => String(s || "").slice(0, 5);
+
+/* ====== Badge kecil ====== */
+const StatusBadge = ({ status, available }) => {
+  const s = String(status || "").toLowerCase();
+  let color = "#1f8f4e";
+  let text = "Tersedia";
+  if (s === "maintenance") {
+    color = "#d35400";
+    text = "Maintenance";
+  } else if (available === false) {
+    color = "#c0392b";
+    text = "Tidak tersedia";
+  }
+  return <span style={{ fontWeight: 700, color }}>{text}</span>;
+};
+
+/* ====== Mini Kalender User (seragam gaya BI.CARE) ====== */
+function MiniMeetCalendar({
+  ns,
+  roomId,
+  onPickSlot, // (dateString 'YYYY-MM-DD', hhmm 'HH:MM') => void
+}) {
+  const today = useMemo(() => new Date(), []);
+  const [cursor, setCursor] = useState(
+    () => new Date(today.getFullYear(), today.getMonth(), 1)
+  );
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [slotMap, setSlotMap] = useState({});
+  const [bookedMap, setBookedMap] = useState({});
+  const [adminBlocks, setAdminBlocks] = useState({});
+
+  // Monday-first month matrix (7×6)
+  const getMonthMatrix = useCallback((year, monthIndex0) => {
+    const firstOfMonth = new Date(year, monthIndex0, 1);
+    const lastOfMonth = new Date(year, monthIndex0 + 1, 0);
+    const firstDayIdxSun0 = firstOfMonth.getDay(); // 0=Sun..6=Sat
+    const firstDayIdxMon0 = (firstDayIdxSun0 + 6) % 7; // 0=Mon..6=Sun
+    const daysInMonth = lastOfMonth.getDate();
+
+    const cells = [];
+    // prepend previous-month days to fill Monday start
+    for (let i = 0; i < firstDayIdxMon0; i++) {
+      const d = new Date(year, monthIndex0, 1 - (firstDayIdxMon0 - i));
+      cells.push(d);
+    }
+    // current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push(new Date(year, monthIndex0, d));
+    }
+    // pad to 42 cells
+    while (cells.length < 42) {
+      const last = cells[cells.length - 1];
+      cells.push(new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1));
+    }
+    const weeks = [];
+    for (let i = 0; i < 42; i += 7) weeks.push(cells.slice(i, i + 7));
+    return weeks;
+  }, []);
+
+  const year = cursor.getFullYear();
+  const month = cursor.getMonth();
+  const monthName = cursor.toLocaleString("id-ID", { month: "long", year: "numeric" });
+  const matrix = useMemo(() => getMonthMatrix(year, month), [getMonthMatrix, year, month]);
+
+  // fetch data ketika bulan/room berubah
+  const lastYmRef = useRef(null);
+  useEffect(() => {
+    if (!roomId) return;
+    const ymKey = `${year}-${pad2(month + 1)}`;
+    if (lastYmRef.current === `${roomId}|${ymKey}`) return;
+    lastYmRef.current = `${roomId}|${ymKey}`;
+
+    (async () => {
+      setLoading(true);
+      setErr("");
+      try {
+        const qs = new URLSearchParams({
+          type: "bimeet_calendar",
+          roomId: String(roomId),
+          month: ymKey,
+        });
+        const r = await fetch(withNs(`/api/ketersediaanAdmin?${qs}`, ns), {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        // normalisasi HH:MM
+        const norm = (m = {}) =>
+          Object.fromEntries(
+            Object.entries(m).map(([k, arr]) => [k, (arr || []).map(toHHMM)])
+          );
+        setSlotMap(norm(j?.slotMap || {}));
+        setBookedMap(norm(j?.bookedMap || {}));
+        setAdminBlocks(norm(j?.adminBlocks || {}));
+      } catch (e) {
+        setErr(e.message || "Gagal memuat kalender");
+        setSlotMap({});
+        setBookedMap({});
+        setAdminBlocks({});
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [roomId, year, month, ns]);
+
+  const bookedSetByDate = useMemo(() => {
+    const m = new Map();
+    for (const [k, arr] of Object.entries(bookedMap || {})) {
+      m.set(k, new Set((arr || []).map(toHHMM)));
+    }
+    return m;
+  }, [bookedMap]);
+
+  const adminSetByDate = useMemo(() => {
+    const m = new Map();
+    for (const [k, arr] of Object.entries(adminBlocks || {})) {
+      m.set(k, new Set((arr || []).map(toHHMM)));
+    }
+    return m;
+  }, [adminBlocks]);
+
+  const isSameMonth = (d) => d.getMonth() === month && d.getFullYear() === year;
+  const isBeforeToday = (d) => ymd(d) < ymd(new Date());
+
+  return (
+    <div className={styles.calWrap}>
+      <div className={styles.calHeader}>
+        <button
+          type="button"
+          className={styles.calNavBtn}
+          onClick={() => setCursor(new Date(year, month - 1, 1))}
+          aria-label="Bulan sebelumnya"
+        >
+          ‹
+        </button>
+        <div className={styles.calTitle}>{monthName}</div>
+        <button
+          type="button"
+          className={styles.calNavBtn}
+          onClick={() => setCursor(new Date(year, month + 1, 1))}
+          aria-label="Bulan berikutnya"
+        >
+          ›
+        </button>
+      </div>
+
+      <div className={styles.calDayNames}>
+        {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
+          <div key={d} className={styles.calDayName}>
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {err && (
+        <div className={styles.errorMsg} style={{ marginBottom: 6 }}>
+          {err}
+        </div>
+      )}
+      {loading && <div style={{ fontSize: 13, color: "#5b6b91", marginBottom: 6 }}>Memuat kalender…</div>}
+
+      <div className={styles.calGrid}>
+        {matrix.map((week, wi) => (
+          <React.Fragment key={wi}>
+            {week.map((d, di) => {
+              const inMonth = isSameMonth(d);
+              const dateStr = ymd(d);
+              const slotsToday = (slotMap?.[dateStr] || []).map(toHHMM);
+              const hasSlot = inMonth && !isBeforeToday(d) && slotsToday.length > 0;
+
+              return (
+                <div
+                  key={`${wi}-${di}`}
+                  className={`${styles.calCell} ${inMonth ? "" : styles.calCellMuted}`}
+                >
+                  <div className={styles.calCellHeader}>
+                    <span className={styles.calDateNum}>{d.getDate()}</span>
+                    {inMonth && slotsToday.length > 0 && (
+                      <span className={styles.calBadgeOpen}>Buka</span>
+                    )}
+                  </div>
+
+                  {hasSlot ? (
+                    <div className={styles.sessionList}>
+                      {slotsToday.map((time) => {
+                        const isBooked = bookedSetByDate.get(dateStr)?.has(time) ?? false;
+                        const isAdmin = adminSetByDate.get(dateStr)?.has(time) ?? false;
+                        const disabled = isBooked || isAdmin;
+                        return (
+                          <button
+                            key={time}
+                            type="button"
+                            className={`${styles.sessionBtn} ${
+                              disabled ? styles.sessionBooked : styles.sessionAvail
+                            }`}
+                            disabled={disabled}
+                            onClick={() => onPickSlot(dateStr, time)}
+                            aria-label={`Sesi ${time} pada ${d.toLocaleDateString("id-ID")}`}
+                            title={
+                              isAdmin
+                                ? "Ditutup Admin"
+                                : isBooked
+                                ? "Sudah Booked"
+                                : "Available"
+                            }
+                          >
+                            {time} • {isAdmin ? "Ditutup" : isBooked ? "Booked" : "Available"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className={styles.sessionListOff}>
+                      {inMonth ? "Tutup" : ""}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function FiturBimeet() {
   const router = useRouter();
@@ -262,20 +497,13 @@ export default function FiturBimeet() {
     }
   };
 
-  /* ====== BADGE ====== */
-  const StatusBadge = ({ status, available }) => {
-    const s = String(status || "").toLowerCase();
-    let color = "#1f8f4e";
-    let text = "Tersedia";
-
-    if (s === "maintenance") {
-      color = "#d35400";
-      text = "Maintenance";
-    } else if (available === false) {
-      color = "#c0392b";
-      text = "Tidak tersedia";
-    }
-    return <span style={{ fontWeight: 700, color }}>{text}</span>;
+  // === ketika user klik slot di kalender ===
+  const onPickCalendarSlot = (dateYMD, hhmm) => {
+    const [H, M] = hhmm.split(":").map(Number);
+    const [y, m, d] = dateYMD.split("-").map(Number);
+    const start = new Date(y, m - 1, d, H, M, 0, 0);
+    const end = addMinutes(start, 90); // default 90 menit
+    setFields((prev) => ({ ...prev, startDate: start, endDate: end }));
   };
 
   return (
@@ -374,42 +602,18 @@ export default function FiturBimeet() {
               </div>
             </div>
 
-            {/* Unit Kerja */}
+            {/* ====== KALENDER USER (seragam BI.CARE) ====== */}
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
-                <label htmlFor="unitKerja">Unit Kerja (Divisi)</label>
-                <select
-                  id="unitKerja"
-                  name="unitKerja"
-                  value={fields.unitKerja}
-                  onChange={handleChange}
-                  className={`${styles.selectReset} ${errors.unitKerja ? styles.errorInput : ""}`}
-                >
-                  <option value="">— Pilih Unit Kerja —</option>
-                  {UNIT_KERJA_BI.map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
-                {errors.unitKerja && <span className={styles.errorMsg}>{errors.unitKerja}</span>}
-              </div>
-            </div>
-
-            {/* Agenda */}
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label htmlFor="agenda">Agenda Rapat</label>
-                <input
-                  id="agenda"
-                  name="agenda"
-                  type="text"
-                  placeholder="Contoh: Koordinasi Proyek X"
-                  value={fields.agenda}
-                  onChange={handleChange}
-                  className={errors.agenda ? styles.errorInput : ""}
-                />
-                {errors.agenda && <span className={styles.errorMsg}>{errors.agenda}</span>}
+                <label>Kalender Ketersediaan</label>
+                {!fields.roomId && (
+                  <div className={styles.errorMsg} style={{ marginBottom: 8 }}>
+                    Pilih ruangan dulu untuk melihat slot yang tersedia.
+                  </div>
+                )}
+                {fields.roomId && (
+                  <MiniMeetCalendar ns={ns} roomId={fields.roomId} onPickSlot={onPickCalendarSlot} />
+                )}
               </div>
             </div>
 
@@ -454,6 +658,45 @@ export default function FiturBimeet() {
               <div className={styles.formGroup}>
                 <label>Durasi</label>
                 <input type="text" readOnly value={durationText()} className={styles.readOnlyInput} />
+              </div>
+            </div>
+
+            {/* Unit Kerja */}
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label htmlFor="unitKerja">Unit Kerja (Divisi)</label>
+                <select
+                  id="unitKerja"
+                  name="unitKerja"
+                  value={fields.unitKerja}
+                  onChange={handleChange}
+                  className={`${styles.selectReset} ${errors.unitKerja ? styles.errorInput : ""}`}
+                >
+                  <option value="">— Pilih Unit Kerja —</option>
+                  {UNIT_KERJA_BI.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </select>
+                {errors.unitKerja && <span className={styles.errorMsg}>{errors.unitKerja}</span>}
+              </div>
+            </div>
+
+            {/* Agenda */}
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label htmlFor="agenda">Agenda Rapat</label>
+                <input
+                  id="agenda"
+                  name="agenda"
+                  type="text"
+                  placeholder="Contoh: Koordinasi Proyek X"
+                  value={fields.agenda}
+                  onChange={handleChange}
+                  className={errors.agenda ? styles.errorInput : ""}
+                />
+                {errors.agenda && <span className={styles.errorMsg}>{errors.agenda}</span>}
               </div>
             </div>
 

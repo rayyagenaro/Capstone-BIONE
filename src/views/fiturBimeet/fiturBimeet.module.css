@@ -324,3 +324,146 @@
 .badgeGreen { background:#e8fff0; color:#119a40; }
 .badgeRed { background:#fff0f0; color:#d93025; }
 .badgeGray { background:#f1f3f8; color:#6b7280; }
+/* ===== KALENDER (seragam BI.CARE) ===== */
+.calWrap {
+  background: #fff;
+  border: 1px solid #e1e6f3;
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 8px;
+}
+.calHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.calTitle {
+  font-weight: 800;
+  color: #233969;
+}
+.calNavBtn {
+  border: 1px solid #cfd7ee;
+  background: #f7f9ff;
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: #2f4d8e;
+}
+.calNavBtn:hover {
+  background: #e9efff;
+}
+
+.calDayNames {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin: 6px 0 8px;
+}
+.calDayName {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7b88aa;
+  letter-spacing: .02em;
+}
+
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.calCell {
+  background: #fbfcff;
+  border: 1px solid #e6ebf7;
+  border-radius: 10px;
+  min-height: 120px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.calCellMuted {
+  opacity: .45;
+  background: #f6f7fb;
+}
+.calCellHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.calDateNum {
+  font-weight: 800;
+  color: #233969;
+}
+.calBadgeOpen {
+  font-size: 11px;
+  font-weight: 800;
+  color: #2b6c2f;
+  background: #e6f7ea;
+  border: 1px solid #bfe8c6;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.sessionList {
+  display: grid;
+  grid-auto-rows: minmax(28px, auto);
+  gap: 6px;
+  margin-top: 4px;
+}
+.sessionListOff {
+  margin-top: auto;
+  font-size: 12px;
+  color: #8b93b0;
+}
+.sessionBtn {
+  width: 100%;
+  border-radius: 8px;
+  padding: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-align: center;
+}
+.sessionAvail {
+  background: #f2f7ff;
+  border-color: #cddaf6;
+  color: #20427f;
+}
+.sessionAvail:hover {
+  background: #e6f0ff;
+}
+.sessionBooked {
+  background: #f9e9ea;
+  border-color: #f0c9cd;
+  color: #9a2b2f;
+  cursor: not-allowed;
+}
+
+/* booked/admin tetap terlihat walau disabled */
+.sessionBtn.sessionBooked,
+.sessionBtn.sessionBooked:disabled {
+  background: #f9e9ea !important;
+  border-color: #f0c9cd !important;
+  color: #9a2b2f !important;
+  opacity: 1 !important;
+}
+.sessionBtn.sessionAvail:disabled {
+  background: #f2f7ff !important;
+  border-color: #cddaf6 !important;
+  color: #20427f !important;
+  opacity: 1 !important;
+}
+
+/* Responsive kalender */
+@media (max-width: 860px) {
+  .calCell { min-height: 110px; }
+}
+@media (max-width: 640px) {
+  .calDayNames, .calGrid { gap: 4px; }
+  .sessionBtn { font-size: 12px; padding: 5px; }
+}
