@@ -43,7 +43,7 @@ const norm = (s) => String(s || '').trim().toLowerCase();
 
 const FEATURE_LOGOS = {
   bidrive: "/assets/D'MOVE.svg",
-  bicare:  "/assets/D'CARE.svg",
+  bicare:  "/assets/BI-CARE.svg",
   bimeal:  "/assets/D'MEAL.svg",
   bimeet:  "/assets/D'ROOM.svg",
   bimail:  "/assets/D'TRACK.svg",

@@ -115,9 +115,9 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
         <div className={styles.welcomeBox}>
           <h2 className={styles.greeting}>Selamat Datang, {namaUser}</h2>
           <div className={styles.servicesBox}>
-            <div className={styles.servicesTitle}>Pilih Layanan Fitur Sesuai Kebutuhan Anda</div>
+            <div className={styles.servicesTitle}>Pilih Layanan Sesuai Kebutuhan Anda</div>
             <div className={styles.servicesDesc}>
-              BI.ONE, platform satu pintu layanan digital untuk mendukung aktivitas di lingkungan KPw Bank Indonesia Provinsi Jawa Timur.
+              BI.ONE, memudahkan Anda dalam memilih layanan digital untuk mendukung aktivitas di lingkungan KPw Bank Indonesia .
             </div>
             <div className={styles.cardsGrid}>
               {fiturLayanan.map((fitur, idx) => (

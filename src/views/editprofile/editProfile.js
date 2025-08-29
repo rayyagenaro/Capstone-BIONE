@@ -147,13 +147,13 @@ export default function EditProfile() {
               <Link href={withNs('/User/HalamanUtama/hal-utamauser', ns)}>Kembali</Link>
             </button>
             <div className={styles.title}>
-              Edit Profile
+              EDIT PROFILE
             </div>
           </div>
 
           <form className={styles.profileForm} autoComplete="off" onSubmit={handleSubmit}>
             <div className={styles.formGroup}>
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">EMAIL</label>
               <input
                 className={styles.input}
                 type="text"
