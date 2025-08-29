@@ -1,6 +1,6 @@
 // src/components/DetailsLaporan/bidrive/BiDriveSection.js
 import React from 'react';
-import { FaFilePdf } from 'react-icons/fa';
+import { FaFilePdf, FaWhatsapp } from 'react-icons/fa';
 
 /**
  * Komponen presentational untuk BI-DRIVE (alias: dmove).
@@ -221,11 +221,13 @@ export default function BiDriveSection({
       {statusId === 2 && (
         <div className={styles.actionBtnRow} style={{ gap: 12, flexWrap: 'wrap' }}>
           <div className={styles.kirimPesanWrapper}>
-            <button className={styles.btnKirimPesan} onClick={onOpenKontak}>
-              Kirim Pesan
+            <button type="button" className={styles.btnKirimPesan} onClick={onOpenKontak}>
+              <FaWhatsapp className={styles.waIcon} />
+              <span>Kirim Pesan ke User dan Driver</span>
             </button>
+
             <p className={styles.kirimPesanNote}>
-              Kirim pesan otomatis kepada driver untuk konfirmasi.
+              Info: Kirim pesan otomatis kepada user dan driver untuk konfirmasi.
             </p>
           </div>
 
