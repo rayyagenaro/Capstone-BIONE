@@ -1,3 +1,4 @@
+/* ================== LAYOUT & BACKGROUND ================== */
 .background {
   min-height: 100vh;
   position: relative;
@@ -5,8 +6,6 @@
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
   overflow: hidden;
 }
-
-/* Background image layer */
 .background::before {
   content: "";
   position: fixed;
@@ -17,8 +16,6 @@
   opacity: 0.35;
   pointer-events: none;
 }
-
-/* Gradient overlay */
 .background::after {
   content: "";
   position: fixed;
@@ -41,7 +38,6 @@
   inset: 0 auto 0 0;
   z-index: 99;
 }
-
 .logoSidebar {
   display: flex;
   align-items: center;
@@ -49,7 +45,6 @@
   padding: 18px 0 14px 28px;
   border-bottom: 1px solid #ececec;
 }
-
 .logoDone { width: 160px !important; height: 160px !important; object-fit: contain; }
 
 .navMenu { flex: 1; width: 100%; margin-top: 10px; }
@@ -71,40 +66,18 @@
 }
 .logoutIcon { font-size: 20px; }
 
-.header {
-  position: fixed; top: 0; left: 255px; right: 0; height: 92px;
-  background: #fff; display: flex; align-items: center; justify-content: space-between;
-  padding: 0 60px 0 38px; box-shadow: 0 1px 4px 0 rgba(47,77,142,0.04); z-index: 10;
-}
-
-.logoBIWrapper { display: flex; align-items: center; gap: 16px; }
-.logoBI { width: 170px !important; height: 34px !important; object-fit: contain; }
-
-.searchBar {
-  display: flex; align-items: center; background: #fff; border-radius: 36px;
-  border: 1px solid #ececec; box-shadow: 0 1px 4px 0 rgba(47,77,142,0.03);
-  padding: 4px 28px; min-width: 330px; height: 48px; gap: 14px;
-}
-.searchBar input {
-  border: none; background: transparent; outline: none; flex: 1;
-  font-size: 20px; color: #363958; padding: 8px 6px;
-}
-.searchBar button { background: none; border: none; cursor: pointer; display: flex; align-items: center; }
-.searchLabel { font-size: 22px; color: #2F4D8E; font-weight: 600; margin-left: 8px; }
-
+/* ================== MAIN WRAPPER ================== */
 .mainContent {
   flex: 1; display: flex; flex-direction: column; background: #2f4d8e;
   min-height: 100vh; margin-left: 255px;
 }
-
 .bookingBox {
   background: #fff; border-radius: 18px; box-shadow: 0 2px 16px rgba(47,77,142,0.09);
   width: 95%; max-width: 1050px; margin: 48px auto 0; padding: 26px 32px 32px;
   display: flex; flex-direction: column;
 }
 
-.topRow { display: flex; align-items: center; margin-bottom: 22px; }
-
+.topRowPage { display: flex; align-items: center; margin-bottom: 22px; }
 .backBtn {
   background: #fff; color: #2F4D8E; border: none; font-weight: 600; font-size: 17px;
   border-radius: 21px; padding: 8px 27px 8px 17px; cursor: pointer;
@@ -120,60 +93,41 @@
   text-shadow: 0 2px 7px #f5f6fa42;
 }
 
-/* ================== TABS + BADGE ================== */
+/* ================== TABS ================== */
 .tabRow {
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  gap: 28px; 
-  margin-bottom: 26px;
-  margin-top: 20px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 28px; margin: 20px 0 26px;
 }
-
 .tabBtn {
   padding: 10px 32px; font-size: 18px; font-weight: 700; border: none;
   background: #f5f5fa; color: #777; border-radius: 20px;
   box-shadow: 0 2px 9px 0 rgba(100,110,150,0.11);
   cursor: pointer; transition: background 0.12s, color 0.12s;
-  display: inline-flex; align-items: center; gap: 10px; /* label + badge/dot */
+  display: inline-flex; align-items: center; gap: 10px;
 }
-
 .tabActive {
   background: #2F4D8E !important; color: #fff !important;
   box-shadow: 0 4px 12px 0 rgba(47,77,142,0.10);
 }
-
 .tabLabel { line-height: 1; }
-
-/* Badge merah berangka */
 .tabBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: 12px;
-  line-height: 1;
-  font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 6px; border-radius: 999px;
+  font-size: 12px; line-height: 1; font-weight: 800;
 }
-.tabBadgeActive {
-  background: #e53935;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(229,57,53,.25);
-}
-
-/* Dot abu-abu saat tidak ada item baru */
-.tabDot {
-  width: 10px; height: 10px; border-radius: 999px; display: inline-block;
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.02) inset;
-}
-.tabDotIdle   { background: #c9c9cf; }
+.tabBadgeActive { background: #e53935; color: #fff; box-shadow: 0 2px 8px rgba(229,57,53,.25); }
+.tabDot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; box-shadow: 0 0 0 2px rgba(0,0,0,0.02) inset; }
+.tabDotIdle { background: #c9c9cf; }
 
 /* ================== LIST ================== */
-.listArea { display: flex; flex-direction: column; gap: 24px; margin-top: 10px; }
+.filterRow { margin-bottom: 16px; }
+.itemsPerPageDropdown {
+  padding: 8px 12px; border-radius: 8px; border: 1.5px solid #e0e0e0; background-color: #fff;
+  color: #000; font-size: 15px; font-weight: 500; cursor: pointer;
+}
+.label { margin-right: 8px; color: #22335e; font-weight: 400; }
 
+.listArea { display: flex; flex-direction: column; gap: 24px; margin-top: 10px; }
 .bookingCard {
   display: flex; align-items: flex-start; background: #fff;
   border: 1.2px solid #e7e9f2; border-radius: 16px;
@@ -181,15 +135,9 @@
   padding: 24px 32px 18px 22px; min-height: 90px; gap: 22px;
   cursor: pointer; user-select: none;
 }
-
 .cardLogo {
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-  object-position: center; 
-  display: block;         
-  align-self: center;     
-  margin-right: 4px;
+  width: 72px; height: 72px; object-fit: contain; object-position: center;
+  display: block; align-self: center; margin-right: 4px;
 }
 .cardDetail { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .cardTitle { font-size: 1.22rem; font-weight: 700; color: #222; margin-bottom: 4px; }
@@ -197,9 +145,10 @@
 .cardVehicles { font-size: 1rem; color: #1b1b1b; margin-bottom: 4px; }
 
 .statusProcess  { color: #727272; font-size: 15px; font-weight: 600; }
-.statusApproved { color: #1ec877; font-size: 15px; font-weight: 600; }
-.statusRejected { color: #e74c3c; font-size: 15px; font-weight: 600; }
-.statusFinished { color: #6c63ff; font-size: 15px; font-weight: 600; }
+.statusPending  { color: #338ef7; font-size: 15px; font-weight: 700; } /* konsisten admin */
+.statusApproved { color: #22a455; font-size: 15px; font-weight: 700; }
+.statusRejected { color: #ed6257; font-size: 15px; font-weight: 700; }
+.statusFinished { color: #6c63ff; font-size: 15px; font-weight: 700; }
 
 .emptyState { 
   color: #2F4D8E; font-size: 1.1rem; font-weight: 600; text-align: center; margin-top: 28px;
@@ -207,56 +156,226 @@
 
 /* ================== PAGINATION ================== */
 .paginationContainer { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e7e9f2; }
-.paginationControls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 10px; }
-.resultsText { font-size: 15px; color: #555; font-weight: 500; }
-.itemsPerPageDropdown {
-  padding: 8px 12px; border-radius: 8px; border: 1.5px solid #e0e0e0; background-color: #fff;
-  color: #000; font-size: 15px; font-weight: 500; cursor: pointer;
+.paginationControls {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 10px;
 }
-.label { margin-right: 8px; color: #22335e; font-weight: 400; margin-bottom: 8;}
+.resultsText { font-size: 15px; color: #555; font-weight: 500; }
 
-/* ================== MODAL ================== */
+/* ================== MODAL BASE ================== */
 .modalOverlay {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.25);
   display: flex; align-items: center; justify-content: center; z-index: 9999;
 }
 .modalContent {
-  background: #fff; width: 100%; max-width: 560px; border-radius: 16px;
+  background: #fff; width: 100%; max-width: 880px; border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 22px; position: relative;
 }
-.modalCloseBtn { position: absolute; top: 10px; right: 12px; border: none; background: transparent; font-size: 18px; cursor: pointer; }
+.modalCloseBtn {
+  position: absolute; top: 10px; right: 12px; border: none; background: transparent;
+  font-size: 18px; cursor: pointer; line-height: 1; color: #475569;
+}
 .modalTitle { margin: 0 0 8px; color: #2F4D8E; font-weight: 800; }
 .modalBody { font-size: 15px; color: #2b2b2b; }
 .modalDivider { margin: 12px 0; border: none; border-top: 1px solid #eee; }
-
-.assignedBlock { margin-bottom: 12px; }
-.assignedList { list-style: disc; padding-left: 20px; }
-.assignedEmpty { font-size: 14px; color: #777; }
-
 .modalActions { margin-top: 14px; display: flex; justify-content: flex-end; }
+
+/* ================== ADMIN-LIKE DETAIL CARD (di dalam modal) ================== */
+.detailCard {
+  border-radius: 20px;
+  box-shadow: 0 4px 24px 0 rgba(47,77,142,0.13);
+  padding: 20px 22px 22px;
+}
+.topRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  border-bottom: 1.1px solid #e0e6f2;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+}
+.leftTitle { flex: 1; }
+.bookingTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #253e70;
+  margin-bottom: 10px;
+  letter-spacing: 0.01em;
+}
+.headerMetaWrap { display: flex; align-items: center; gap: 16px; }
+.headerDates {
+  display: grid;
+  grid-template-columns: 170px auto;
+  column-gap: 12px; row-gap: 4px;
+}
+.metaRow { display: contents; }
+.headerStatus { margin-left: auto; white-space: nowrap; }
+
+.metaLabel {
+  color: #888; font-size: 13px; font-weight: 700; letter-spacing: 0.01em;
+}
+.metaValue {
+  color: #222; font-size: 14px; font-weight: 600; margin-right: 14px;
+}
+
+.detailRow {
+  display: flex; flex-direction: row; gap: 40px; margin-bottom: 10px;
+}
+.detailColLeft, .detailColRight {
+  flex: 1; display: flex; flex-direction: column; gap: 4px;
+}
+.detailColRight {
+  border-left: 1.2px solid #e0e6f2; padding-left: 22px; margin-left: 10px;
+}
+.detailLabel {
+  font-size: 12px; color: #888; font-weight: 800; text-transform: uppercase;
+  margin-top: 10px; letter-spacing: 0.03em;
+}
+.detailValue {
+  font-size: 15px; color: #23263b; margin-top: 1px; font-weight: 600;
+}
+
+.fileBox {
+  display: inline-flex; align-items: center; gap: 10px; background: #ececec;
+  border-radius: 8px; padding: 7px 14px 7px 11px; margin-top: 3px; font-size: 15px;
+}
+.fileIcon { font-size: 18px; }
+.fileName {
+  color: #23263b; font-weight: 700; text-decoration: none; font-size: 14.5px;
+  letter-spacing: 0.01em;
+}
+.fileName:hover { text-decoration: underline; }
+
+.rejectBox {
+  margin-top: 14px; background: #fff5f5; border: 1.4px solid #f2b7b3;
+  border-radius: 12px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(218,59,59,0.06);
+}
+.rejectTitle {
+  font-size: 13px; font-weight: 800; color: #c82b2b; text-transform: uppercase;
+  letter-spacing: 0.03em; margin-bottom: 6px;
+}
+.rejectText { font-size: 14px; color: #2b1e1e; font-weight: 600; line-height: 1.45; }
+
+/* ================== FINISH BUTTON ================== */
 .finishButton {
   padding: 10px 18px; border: none; border-radius: 10px;
   background: linear-gradient(90deg, #5a54e4 70%, #7a74ff 100%);
-  color: #fff; font-weight: 700; cursor: pointer;
+  color: #fff; font-weight: 800; cursor: pointer;
   box-shadow: 0 2px 12px rgba(90, 84, 228, 0.25);
   transition: transform .08s ease, filter .12s ease;
-}
-.filterRow {
-  margin-bottom: 16px;
 }
 .finishButton:hover { filter: brightness(1.05); }
 .finishButton:active { transform: translateY(1px); }
 .finishButton:disabled { opacity: .6; cursor: not-allowed; }
 
+/* ================== RATING UI ================== */
+.ratingArea { margin-top: 8px; }
+.feedbackCta {
+  margin-top: 8px; padding: 14px; border-radius: 12px; background: #f7f9ff;
+  border: 1px solid #e5ebff; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+}
+.feedbackPrompt { color: #22335e; font-weight: 700; }
+.btnPrimary {
+  background: #2F4D8E; color: #fff; border: none; border-radius: 12px;
+  padding: 10px 16px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 3px 12px rgba(47,77,142,.18); transition: background .15s;
+}
+.btnPrimary:hover { background: #253e70; }
+.btnSecondary {
+  background: #fff; color: #2F4D8E; border: 1.5px solid #2F4D8E; border-radius: 12px;
+  padding: 10px 16px; font-weight: 800; cursor: pointer; transition: background .15s, color .15s;
+}
+.btnSecondary:hover { background: #eef3ff; color: #1c2f66; }
+
+.feedbackSummary {
+  margin-top: 8px; padding: 14px; border-radius: 12px; background: #fafafa;
+  border: 1px solid #eee;
+}
+.feedbackTitle { font-weight: 800; color: #22335e; margin-bottom: 8px; }
+.feedbackStars { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.starFilled { color: #f59e0b; }
+.starEmpty  { color: #e2e8f0; }
+.feedbackScore { font-weight: 800; color: #334155; margin-left: 6px; }
+.feedbackTags { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+.tagChipReadonly {
+  background: #eef2ff; color: #334155; border: 1px solid #dbe4ff; padding: 6px 10px;
+  border-radius: 999px; font-size: 12px; font-weight: 700;
+}
+.feedbackComment { color: #475569; font-style: italic; }
+
+.ratingModal {
+  background: #fff; width: 100%; max-width: 520px; border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.18); padding: 22px; position: relative;
+}
+.ratingTitle { margin: 0 0 4px; color: #2F4D8E; font-weight: 900; }
+.ratingSubtitle { color: #475569; margin: 0 0 14px; }
+.ratingSection { margin: 10px 0 14px; }
+.sectionLabel { font-weight: 800; color: #1e293b; margin-bottom: 6px; }
+.optional { font-weight: 600; color: #94a3b8; }
+
+.starRow { display: flex; align-items: center; gap: 6px; }
+.starBtn {
+  border: none; background: transparent; cursor: pointer; font-size: 24px; line-height: 1;
+  color: #cbd5e1; transition: transform .08s ease, color .12s ease;
+}
+.starBtn:hover { transform: translateY(-1px); }
+.starActive { color: #f59e0b; }
+
+.tagsWrap { display: flex; gap: 8px; flex-wrap: wrap; }
+.tagChip {
+  background: #f8fafc; color: #334155; border: 1.5px solid #e2e8f0; padding: 7px 12px;
+  border-radius: 999px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.tagChipActive {
+  background: #eef2ff; color: #1e293b; border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgba(99,102,241,.18);
+}
+
+.commentInput {
+  width: 100%; border-radius: 12px; border: 1.5px solid #e2e8f0; padding: 10px 12px;
+  font-size: 14px; outline: none; transition: border-color .12s ease, box-shadow .12s ease;
+}
+.commentInput:focus {
+  border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,.2);
+}
+
+.ratingActions { margin-top: 6px; display: flex; justify-content: flex-end; gap: 10px; }
+
 /* ================== RESPONSIVE ================== */
 @media (max-width: 1100px) {
   .bookingBox { padding: 18px 5vw; }
   .title { font-size: 1.3rem; }
+  .modalContent { max-width: 92vw; }
+}
+@media (max-width: 860px) {
+  .detailRow { flex-direction: column; gap: 12px; }
+  .detailColRight { border-left: none; padding-left: 0; margin-left: 0; }
 }
 @media (max-width: 700px) {
   .sidebar { display: none; }
-  .header { left: 0; padding: 0 4px; height: 64px; }
   .bookingBox { padding: 7px 1vw 13px; margin: 12px 0; }
   .bookingCard { flex-direction: column; padding: 10px; }
   .cardLogo { margin-bottom: 10px; }
+  .topRowPage { margin-bottom: 14px; }
+  .title { margin-right: 0; }
+  .modalContent, .ratingModal { max-width: 96vw; padding: 16px; }
+}
+
+/* Link dokumen: biru, underline, ada hover & fokus */
+.linkDoc {
+  color: #2563eb;                 /* biru */
+  text-decoration: underline;     /* underline */
+  text-underline-offset: 2px;     /* jarak underline */
+  cursor: pointer;
+  transition: color .15s ease;
+}
+
+.linkDoc:hover {
+  color: #1d4ed8;                 /* biru lebih gelap saat hover */
+}
+
+.linkDoc:focus-visible {
+  outline: 2px solid #93c5fd;     /* ring aksesibilitas */
+  outline-offset: 2px;
+  text-decoration-thickness: 2px; /* underline sedikit lebih tebal */
 }

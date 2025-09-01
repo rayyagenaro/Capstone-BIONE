@@ -7,7 +7,7 @@ const opts = (signal) => ({
   signal,
 });
 
-/* ===================== Normalisasi Data ===================== */
+/* ===================== Helper umum ===================== */
 const mapBICareStatusToId = (status) => {
   const s = String(status || "").toLowerCase();
   if (s === "booked") return 2;
@@ -16,13 +16,28 @@ const mapBICareStatusToId = (status) => {
   return 1; // Pending default
 };
 
+// untuk jaga-jaga kalau ada date string “aneh”
+const asISO = (d) => {
+  if (!d) return null;
+  const t = new Date(d);
+  return Number.isNaN(t.valueOf()) ? null : t.toISOString();
+};
+const firstDate = (...vals) => vals.find((v) => !!asISO(v)) || null;
+
+/* ===================== Normalisasi per layanan ===================== */
 function normalizeBIDriveRow(row) {
+  const start = firstDate(row.start_date, row.start_datetime, row.created_at);
+  const end   = firstDate(row.end_date, row.end_datetime, row.start_date) || start;
+  const created = firstDate(row.created_at, row.start_date, row.start_datetime, start);
+
   return {
     id: Number(row.id) || 0,
     feature_key: "bidrive",
     tujuan: row.tujuan || row.destination || "Perjalanan",
-    start_date: row.start_date || row.start_datetime || row.created_at,
-    end_date: row.end_date || row.end_datetime || row.start_date,
+    start_date: start || new Date().toISOString(),
+    end_date: end || start || new Date().toISOString(),
+    created_at: created || start || new Date().toISOString(),
+    finished_at: row.finished_at || null,
     status_id: row.status_id || 1,
     vehicle_types: row.vehicle_types || [],
     _raw_bidrive: row,
@@ -30,6 +45,7 @@ function normalizeBIDriveRow(row) {
 }
 
 function normalizeBICareRow(row) {
+  // rakit start dari (booking_date + slot_time), default 30 menit
   const dateOnly = row?.booking_date
     ? (typeof row.booking_date === "string"
         ? row.booking_date.slice(0, 10)
@@ -39,9 +55,7 @@ function normalizeBICareRow(row) {
   const slot = (() => {
     const raw = String(row.slot_time || "00:00:00").slice(0, 8);
     return /^\d{2}:\d{2}(:\d{2})?$/.test(raw)
-      ? raw.includes(":") && raw.split(":").length === 2
-        ? `${raw}:00`
-        : raw
+      ? (raw.split(":").length === 2 ? `${raw}:00` : raw)
       : "00:00:00";
   })();
 
@@ -53,25 +67,30 @@ function normalizeBICareRow(row) {
     id: `bicare-${row.id}`,
     feature_key: "bicare",
     tujuan: `Klinik Dokter #${row.doctor_id}`,
-    start_date: startLocal,
+    start_date: asISO(startLocal) || new Date().toISOString(),
     end_date: end.toISOString(),
+    created_at: firstDate(row.created_at, row.createdAt, startLocal) || new Date().toISOString(),
+    finished_at: row.finished_at || null,
     status_id: mapBICareStatusToId(row.status),
     _raw_bicare: row,
   };
 }
 
 function normalizeBIMailRow(row) {
-  const start = row.tanggal_dokumen || row.created_at || new Date().toISOString();
-  
+  const start = firstDate(row.tanggal_dokumen, row.created_at) || new Date().toISOString();
+  const created = firstDate(row.created_at, row.tanggal_dokumen, start);
+
   return {
     id: `bimail-${row.id}`,
     feature_key: "bimail",
     tujuan: row.perihal || `Dokumen ${row.nomor_surat || ""}`.trim(),
     start_date: start,
     end_date: start,
+    created_at: created || start,
+    finished_at: start, // treat dokumen sebagai selesai pada tanggal dokumen
     status_id: 4,
 
-    // === kolom sesuai tabel ===
+    // kolom sesuai tabel
     nomor_surat: row.nomor_surat,
     tipe_dokumen: row.tipe_dokumen,
     unit_code: row.unit_code,
@@ -82,15 +101,13 @@ function normalizeBIMailRow(row) {
     kepada: row.kepada,
     link_dokumen: row.link_dokumen,
 
-    // untuk debugging tetap simpan raw
     _raw_bimail: row,
   };
 }
 
-
 function normalizeBIMealRow(row) {
-  const startISO =
-    row.waktu_pesanan || row.created_at || new Date().toISOString();
+  const start = firstDate(row.waktu_pesanan, row.created_at) || new Date().toISOString();
+  const created = firstDate(row.created_at, row.waktu_pesanan, start);
   const items = Array.isArray(row.items) ? row.items : [];
   const totalQty = items.reduce((a, x) => a + (Number(x?.qty) || 0), 0);
 
@@ -98,33 +115,46 @@ function normalizeBIMealRow(row) {
     id: `bimeal-${row.id}`,
     feature_key: "bimeal",
     tujuan: row.unit_kerja ? `Catering • ${row.unit_kerja}` : "Catering",
-    start_date: startISO,
-    end_date: startISO,
+    start_date: start,
+    end_date: start,
+    created_at: created || start,
+    finished_at: row.finished_at || null,
     status_id: row.status_id || 1,
     _raw_bimeal: { ...row, items, total_qty: totalQty },
   };
 }
 
 function normalizeBIMeetRow(row) {
+  const start = firstDate(row.start_date, row.created_at);
+  const end   = firstDate(row.end_date, row.start_date) || start;
+  const created = firstDate(row.created_at, row.createdAt, row.start_date, start);
+
   return {
     id: `bimeet-${row.id}`,
     feature_key: "bimeet",
     tujuan: row.title || `Meeting Room • ${row.room_name || row.room_id}`,
-    start_date: row.start_date, // langsung dari SQL alias
-    end_date: row.end_date,
+    start_date: start || new Date().toISOString(),
+    end_date: end || start || new Date().toISOString(),
+    created_at: created || start || new Date().toISOString(),
+    finished_at: row.finished_at || null,
     status_id: row.status_id || 1,
     _raw_bimeet: row,
   };
 }
 
-
 function normalizeBIStayRow(row) {
+  const start = firstDate(row.check_in, row.created_at);
+  const end   = firstDate(row.check_out, row.check_in) || start;
+  const created = firstDate(row.created_at, row.check_in, start);
+
   return {
     id: `bistay-${row.id}`,
     feature_key: "bistay",
     tujuan: row.asal_kpw ? `Menginap • ${row.asal_kpw}` : "Menginap",
-    start_date: row.check_in,
-    end_date: row.check_out,
+    start_date: start || new Date().toISOString(),
+    end_date: end || start || new Date().toISOString(),
+    created_at: created || start || new Date().toISOString(),
+    finished_at: row.finished_at || null,
     status_id: Number(row.status_id) || 1,
     _raw_bistay: row,
   };
@@ -139,9 +169,10 @@ export async function fetchAllBookings(ns, scope = "user", abortSignal) {
 
   const endpoints = [
     { service: "bidrive", url: "/api/booking", normalize: normalizeBIDriveRow },
+
     {
       service: "bicare",
-      url: `/api/BIcare/my-bookings?scope=${scope}`, // atau /api/my-bookings?scope=${scope}
+      url: `/api/BIcare/my-bookings?scope=${scope}`,
       normalize: normalizeBICareRow,
       arrKey: "bookings",
     },
@@ -165,7 +196,7 @@ export async function fetchAllBookings(ns, scope = "user", abortSignal) {
       normalize: normalizeBIMeetRow,
       arrKey: "items",
     },
-    
+
     {
       service: "bistay",
       url: `/api/BIstaybook/bistaybooking?scope=${scope}`,
@@ -198,7 +229,8 @@ export async function fetchAllBookings(ns, scope = "user", abortSignal) {
     })
   );
 
+  // bisa sort by created_at agar urutan lebih “wajar”
   return results
     .flat()
-    .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+    .sort((a, b) => new Date(b.created_at || b.start_date) - new Date(a.created_at || a.start_date));
 }

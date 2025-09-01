@@ -1,32 +1,33 @@
-// src/pages/StatusBooking/hal-statusBooking.js
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import styles from './statusBooking.module.css';
+
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
-import { FaArrowLeft, FaTimes } from 'react-icons/fa';
 import RejectionBox from '@/components/RejectionBox/RejectionBox';
+import { FaArrowLeft } from 'react-icons/fa';
+
+import BookingDetailModal from '@/components/BookingDetail/BookingDetailModal';
+import RatingModal from '@/components/BookingDetail/RatingModal';
+
 import { getNs } from '@/lib/ns';
 import { fetchAllBookings } from '@/lib/fetchBookings';
 
-/* ===================== KONFIGURASI & HELPER (STATUS) ===================== */
+/* ====== Status & Feature helpers ====== */
 const STATUS_CONFIG = {
-  '1': { text: 'Pending',  className: styles.statusProcess },
+  '1': { text: 'Pending',  className: styles.statusPending || styles.statusProcess },
   '2': { text: 'Approved', className: styles.statusApproved },
   '3': { text: 'Rejected', className: styles.statusRejected },
   '4': { text: 'Finished', className: styles.statusFinished },
 };
-
 const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished'];
 const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
-
 const SEEN_KEYS = { Pending: 'pending', Approved: 'approved', Rejected: 'rejected', Finished: 'finished' };
 const DEFAULT_SEEN = { pending: 0, approved: 0, rejected: 0, finished: 0 };
 const seenStorageKey = (userId) => `statusTabSeen:${userId}`;
 
-/* ===================== KONFIGURASI & HELPER (FITUR/LAYANAN) ===================== */
 const FEATURE_OPTIONS = [
   { label: 'All', value: 'all' },
   { label: 'Drive', value: 'bidrive' },
@@ -36,11 +37,6 @@ const FEATURE_OPTIONS = [
   { label: 'Docs',  value: 'bimail' },
   { label: 'Stay',  value: 'bistay' },
 ];
-
-const SERVICE_ID_TO_KEY = {};
-
-const norm = (s) => String(s || '').trim().toLowerCase();
-
 const FEATURE_LOGOS = {
   bidrive: "/assets/D'MOVE.svg",
   bicare:  "/assets/D'CARE.svg",
@@ -49,43 +45,26 @@ const FEATURE_LOGOS = {
   bimail:  "/assets/D'TRACK.svg",
   bistay:  "/assets/D'REST.svg",
 };
-const logoSrcOf = (booking) => {
-  const key = resolveFeatureKey(booking);
-  return FEATURE_LOGOS[key] || '/assets/BI-One-Blue.png';
-};
-
-const numericIdOf = (id) => {
-  const m = String(id ?? '').match(/(\d+)$/);
-  return m ? Number(m[1]) : NaN;
-};
-
+const norm = (s) => String(s || '').trim().toLowerCase();
 function resolveFeatureKey(booking) {
   if (booking?.feature_key) return booking.feature_key;
-  const sid = booking?.service_id ?? booking?.layanan_id ?? booking?.feature_id ?? booking?.serviceId;
-  if (sid && SERVICE_ID_TO_KEY[sid]) return SERVICE_ID_TO_KEY[sid];
   const candidates = [
-    booking?.service,
-    booking?.service_name,
-    booking?.service_code,
-    booking?.feature,
-    booking?.layanan,
-    booking?.jenis_layanan,
-    booking?.feature_name,
+    booking?.service, booking?.service_name, booking?.service_code,
+    booking?.feature, booking?.layanan, booking?.jenis_layanan, booking?.feature_name,
   ].map(norm).filter(Boolean);
   for (const raw of candidates) {
     const s = raw.replace(/\s+/g, '');
-    if (s.includes('bi.drive') || s.includes('bidrive') || s === 'drive') return 'bidrive';
-    if (s.includes('bi.care')  || s.includes('bicare')  || s === 'care')  return 'bicare';
-    if (s.includes('bi.meal')  || s.includes('bimeal')  || s === 'meal')  return 'bimeal';
-    if (s.includes('bi.meet')  || s.includes('bimeet')  || s === 'meet')  return 'bimeet';
-    if (s.includes('bi.docs')  || s.includes('bimail')  || s === 'docs')  return 'bimail';
-    if (s.includes('bi.stay')  || s.includes('bistay')  || s === 'stay')  return 'bistay';
+    if (s.includes('bidrive') || s.includes('bi.drive') || s === 'drive') return 'bidrive';
+    if (s.includes('bimeal')  || s.includes('bi.meal')  || s === 'meal')  return 'bimeal';
+    if (s.includes('bimeet')  || s.includes('bi.meet')  || s === 'meet')  return 'bimeet';
+    if (s.includes('bimail')  || s.includes('bi.docs')  || s === 'docs')  return 'bimail';
+    if (s.includes('bistay')  || s.includes('bi.stay')  || s === 'stay')  return 'bistay';
+    if (s.includes('bicare')  || s.includes('bi.care')  || s === 'care')  return 'bicare';
   }
   return 'unknown';
 }
 function featureLabelOf(booking) {
-  const key = resolveFeatureKey(booking);
-  switch (key) {
+  switch (resolveFeatureKey(booking)) {
     case 'bidrive': return 'BI.Drive';
     case 'bicare':  return 'BI.Care';
     case 'bimeal':  return 'BI.Meal';
@@ -96,21 +75,23 @@ function featureLabelOf(booking) {
   }
 }
 const formatDate = (dateString) => {
-  if (!dateString) return 'Tanggal tidak valid';
-  return new Date(dateString).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
+  if (!dateString) return '-';
+  const d = new Date(dateString);
+  if (Number.isNaN(d.valueOf())) return String(dateString);
+  return d.toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
-const getPlate = (v) =>
-  v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
+const numericIdOf = (id) => {
+  const m = String(id ?? '').match(/(\d+)$/);
+  return m ? Number(m[1]) : NaN;
+};
+const logoSrcOf = (booking) => FEATURE_LOGOS[resolveFeatureKey(booking)] || '/assets/BI-One-Blue.png';
 
-/* ===================== Helper API opsional untuk set AVAILABLE ===================== */
+/* ===== Optional helpers: set available & update status ===== */
 async function setDriversAvailable(driverIds, availableStatusId = 1) {
   if (!Array.isArray(driverIds) || driverIds.length === 0) return { ok: true, affected: 0 };
   const calls = driverIds.map((id) =>
     fetch('/api/updateDriversStatus', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ driverId: id, newStatusId: availableStatusId }),
     }).then(async (r) => {
       if (!r.ok) {
@@ -129,8 +110,7 @@ async function setVehiclesAvailable(vehicleIds, availableStatusId = 1) {
   if (!Array.isArray(vehicleIds) || vehicleIds.length === 0) return { ok: true, affected: 0 };
   const calls = vehicleIds.map((id) =>
     fetch('/api/updateVehiclesStatus', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ vehicleId: id, newStatusId: availableStatusId }),
     }).then(async (r) => {
       if (!r.ok) {
@@ -145,14 +125,8 @@ async function setVehiclesAvailable(vehicleIds, availableStatusId = 1) {
   if (failed.length) throw new Error(failed[0].reason?.message || 'Gagal update sebagian kendaraan');
   return { ok: true, affected: results.length };
 }
-
-/* ===================== Helper umum: update status booking ===================== */
 async function updateServiceStatus(featureKey, bookingId, newStatusId = 4, ns) {
-  // BI.Care dikecualikan → langsung return
-  if (featureKey === 'bicare') {
-    console.warn('Update status BI.Care dilewati karena otomatis oleh sistem.');
-    return { ok: false, skipped: true };
-  }
+  if (featureKey === 'bicare') return { ok: false, skipped: true };
 
   const idNum = numericIdOf(bookingId);
   if (!Number.isFinite(idNum)) throw new Error('ID booking tidak valid');
@@ -166,15 +140,12 @@ async function updateServiceStatus(featureKey, bookingId, newStatusId = 4, ns) {
 
   if (!endpoint) throw new Error(`Finish tidak didukung untuk layanan ${featureKey}.`);
 
-  const payload = { bookingId: idNum, newStatusId, ...(ns ? { ns } : {}) };
-
   const res = await fetch(endpoint, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
     credentials: 'include',
+    body: JSON.stringify({ bookingId: idNum, newStatusId, ...(ns ? { ns } : {}) }),
   });
-
   if (!res.ok) {
     let msg = `Gagal update status booking (${featureKey}).`;
     try {
@@ -187,15 +158,11 @@ async function updateServiceStatus(featureKey, bookingId, newStatusId = 4, ns) {
   try { return await res.json(); } catch { return { ok: true }; }
 }
 
-
-/* ===================== SUB-KOMPONEN ===================== */
-// (BookingCard, TabFilter, FeatureDropdown, BookingDetailModal) — tetap sama persis dengan kode kamu
-// --- dipotong demi singkat jawaban, tidak ada perubahan di bagian ini ---
-
-/* ===================== KOMPONEN UTAMA ===================== */
-export default function StatusBooking() {
+/* ====== Halaman ====== */
+export default function StatusBookingView() {
   const router = useRouter();
   const ns = getNs(router);
+
   const [userId, setUserId] = useState(null);
   const [allBookings, setAllBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -203,6 +170,7 @@ export default function StatusBooking() {
   const [activeTab, setActiveTab] = useState('All');
   const [featureValue, setFeatureValue] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
@@ -210,9 +178,12 @@ export default function StatusBooking() {
   const autoFinishTried = useRef(new Set());
   const [seenCounts, setSeenCounts] = useState(DEFAULT_SEEN);
 
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+
   useEffect(() => {
     let active = true;
-    const fetchData = async () => {
+    (async () => {
       setIsLoading(true);
       try {
         const meRes = await fetch('/api/me?scope=user', { cache: 'no-store', credentials:'include' });
@@ -230,22 +201,20 @@ export default function StatusBooking() {
           setSeenCounts(raw ? { ...DEFAULT_SEEN, ...JSON.parse(raw) } : DEFAULT_SEEN);
         } catch { setSeenCounts(DEFAULT_SEEN); }
 
-        // gunakan helper fetchAllBookings
-        const bookings = await fetchAllBookings(ns, "user");
+        const bookings = await fetchAllBookings(ns, 'user');
         if (active) setAllBookings(bookings);
-      } catch (err) {
-        setError(err.message);
+      } catch (e) {
+        setError(e.message);
       } finally {
         if (active) setIsLoading(false);
       }
-    };
-    fetchData();
+    })();
     return () => { active = false; };
   }, [ns]);
-    // ===== AUTO FINISH BI.Care =====
+
+  /* Auto-finish BI.Care */
   useEffect(() => {
     if (!allBookings.length) return;
-
     let cancelled = false;
     const runCheck = async () => {
       const now = Date.now();
@@ -259,12 +228,8 @@ export default function StatusBooking() {
           try {
             await updateServiceStatus('bicare', numericIdOf(b.id), 4, ns);
             if (cancelled) return;
-            setAllBookings((prev) =>
-              prev.map((x) => (x.id === b.id ? { ...x, status_id: 4 } : x))
-            );
-            setSelectedBooking((prev) =>
-              prev && prev.id === b.id ? { ...prev, status_id: 4 } : prev
-            );
+            setAllBookings(prev => prev.map(x => (x.id === b.id ? { ...x, status_id: 4 } : x)));
+            setSelectedBooking(prev => prev && prev.id === b.id ? { ...prev, status_id: 4 } : prev);
           } catch (e) {
             autoFinishTried.current.delete(b.id);
             console.warn('Auto-finish BI.Care gagal:', e);
@@ -274,16 +239,11 @@ export default function StatusBooking() {
     };
     runCheck();
     const timer = setInterval(runCheck, 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
+    return () => { cancelled = true; clearInterval(timer); };
   }, [allBookings, ns]);
 
-  // ===== SEEN COUNTS =====
   useEffect(() => {
-    if (selectedBooking) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
+    document.body.style.overflow = selectedBooking ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [selectedBooking]);
 
@@ -291,15 +251,14 @@ export default function StatusBooking() {
     try { await fetch('/api/logout', { method: 'POST' }); } catch {}
     finally { router.replace('/Signin/hal-sign'); }
   };
-  /* ===================== SUB-KOMPONEN ===================== */
+
+  /* Card list */
   const BookingCard = React.memo(({ booking, onClick }) => {
-    const statusInfo =
-      STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
+    const statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
     const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
     const featureLabel = featureLabelOf(booking);
     const featureKey = resolveFeatureKey(booking);
 
-    // Baris info ringkas per layanan
     const renderServiceLine = () => {
       switch (featureKey) {
         case 'bicare': {
@@ -318,7 +277,6 @@ export default function StatusBooking() {
           const parts = [nomor && `Nomor: ${nomor}`, perihal && `Perihal: ${perihal}`, route].filter(Boolean);
           return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
         }
-
         case 'bimeal': {
           const unit   = booking.unit_kerja || booking._raw_bimeal?.unit_kerja;
           const count  = booking.items?.length || booking._raw_bimeal?.items?.length || 0;
@@ -326,7 +284,6 @@ export default function StatusBooking() {
                           .reduce((sum, it) => sum + (it.qty || 0), 0) || 0;
           const ket    = booking.keterangan || booking._raw_bimeal?.keterangan;
           const lokasi = booking.lokasi_pengiriman || booking._raw_bimeal?.lokasi_pengiriman;
-
           const parts = [
             unit && `Unit: ${unit}`,
             count ? `Item: ${count}` : null,
@@ -334,24 +291,16 @@ export default function StatusBooking() {
             ket && `Keterangan: ${ket}`,
             lokasi && `Lokasi Antar: ${lokasi}`,
           ].filter(Boolean);
-
-          return parts.length ? (
-            <div className={styles.cardVehicles}>{parts.join(' • ')}</div>
-          ) : null;
+          return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
         }
-
         case 'bimeet': {
           const rn = booking.room_name;
           const part = booking.participants;
           const uker = booking.unit_kerja;
-          const parts = [
-            rn && `Ruangan: ${rn}`,
-            Number.isFinite(part) && `Peserta: ${part}`,
-            uker && `Unit: ${uker}`,
-          ].filter(Boolean);
+          const parts = [rn && `Ruangan: ${rn}`, Number.isFinite(part) && `Peserta: ${part}`, uker && `Unit: ${uker}`]
+            .filter(Boolean);
           return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
         }
-
         case 'bistay': {
           const s = booking._raw_bistay;
           const parts = [
@@ -361,7 +310,6 @@ export default function StatusBooking() {
           ].filter(Boolean);
           return parts.length ? <div className={styles.cardVehicles}>{parts.join(' • ')}</div> : null;
         }
-
         default: {
           if (featureKey === 'bidrive' && booking.vehicle_types?.length > 0) {
             return <div className={styles.cardVehicles}>{booking.vehicle_types.map((vt) => vt.name).join(', ')}</div>;
@@ -372,21 +320,8 @@ export default function StatusBooking() {
     };
 
     return (
-      <div
-        className={styles.bookingCard}
-        onClick={onClick}
-        onKeyDown={(e) => e.key === 'Enter' && onClick()}
-        role="button"
-        tabIndex={0}
-      >
-        {/* Logo dinamis per layanan */}
-        <Image
-          src={logoSrcOf(booking)}
-          alt={featureLabel || 'logo'}
-          width={70}
-          height={70}
-          className={styles.cardLogo}
-        />
+      <div className={styles.bookingCard} onClick={onClick} onKeyDown={(e) => e.key === 'Enter' && onClick()} role="button" tabIndex={0}>
+        <Image src={logoSrcOf(booking)} alt={featureLabel || 'logo'} width={70} height={70} className={styles.cardLogo} />
         <div className={styles.cardDetail}>
           <div className={styles.cardTitle}>
             {featureLabel ? `[${featureLabel}] ` : ''}Booking | {booking.tujuan || 'Tanpa Tujuan'}
@@ -394,11 +329,8 @@ export default function StatusBooking() {
           <div className={styles.cardSub}>
             {`${formatDate(booking.start_date)} - ${formatDate(booking.end_date)}`}
           </div>
-
           {renderServiceLine()}
-
           <div className={statusInfo.className}>{statusInfo.text}</div>
-
           {isRejected && (
             <div style={{ marginTop: 8 }}>
               <RejectionBox reason={booking.rejection_reason} compact />
@@ -410,345 +342,57 @@ export default function StatusBooking() {
   });
   BookingCard.displayName = 'BookingCard';
 
-  /* ===== MODAL DETAIL ===== */
-  const BookingDetailModal = ({ booking, onClose, onFinish, finishing }) => {
-    useEffect(() => {
-      if (!booking) return;
-      const onKey = (e) => e.key === 'Escape' && onClose();
-      window.addEventListener('keydown', onKey);
-      return () => window.removeEventListener('keydown', onKey);
-    }, [booking, onClose]);
-
-    if (!booking) return null;
-    const statusInfo =
-      STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
-    const isApprovedOrFinished = Number(booking.status_id) === 2 || Number(booking.status_id) === 4;
-    const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
-
-    const featureKey = resolveFeatureKey(booking);
-    const featureLabel = featureLabelOf(booking);
-
-    const shouldShowAssignments =
-      featureKey === 'bidrive' &&
-      (Array.isArray(booking.assigned_drivers) || Array.isArray(booking.assigned_vehicles));
-
-    return (
-      <div className={styles.modalOverlay} onClick={onClose}>
-        <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-          <button className={styles.modalCloseBtn} onClick={onClose} type="button">
-            <FaTimes />
-          </button>
-          <h3 className={styles.modalTitle}>Detail Booking {featureLabel ? `— ${featureLabel}` : ''}</h3>
-          <div className={styles.modalBody}>
-            <p><strong>Tujuan:</strong> {booking.tujuan}</p>
-            <p><strong>Mulai:</strong> {formatDate(booking.start_date)}</p>
-            <p><strong>Selesai:</strong> {formatDate(booking.end_date)}</p>
-            <p>
-              <strong>Status:</strong>{' '}
-              <span className={`${styles.modalStatus} ${statusInfo.className}`}>{statusInfo.text}</span>
-            </p>
-
-            {isRejected && (
-              <>
-                <hr className={styles.modalDivider} />
-                <RejectionBox reason={booking.rejection_reason} title="Alasan Penolakan" />
-              </>
-            )}
-
-            <hr className={styles.modalDivider} />
-            <p><strong>Fitur/Layanan:</strong> {featureLabel || 'Tidak diketahui'}</p>
-
-            {/* BI.Docs detail */}
-            {featureKey === 'bimail' && (
-              <>
-                <p><strong>Nomor Surat:</strong> {booking.nomor_surat || '-'}</p>
-                <p><strong>Tanggal Dokumen:</strong> {formatDate(booking.tanggal_dokumen || booking.start_date)}</p>
-                <p><strong>Tipe Dokumen:</strong> {booking.tipe_dokumen || '-'}</p>
-                <p><strong>Unit Code:</strong> {booking.unit_code || '-'}</p>
-                <p><strong>Wilayah:</strong> {booking.wilayah_code || '-'}</p>
-                <p><strong>Perihal:</strong> {booking.perihal || '-'}</p>
-                <p><strong>Dari:</strong> {booking.dari || '-'}</p>
-                <p><strong>Kepada:</strong> {booking.kepada || '-'}</p>
-                {booking.link_dokumen && (
-                  <p>
-                    <strong>Link Dokumen:</strong>{' '}
-                    <a href={booking.link_dokumen} target="_blank" rel="noopener noreferrer">Buka</a>
-                  </p>
-                )}
-              </>
-            )}
-
-            {/* BI.Care detail */}
-            {featureKey === 'bicare' && booking._raw_bicare && (
-              <>
-                <p><strong>Nama Pemesan:</strong> {booking._raw_bicare.booker_name}</p>
-                <p><strong>NIP:</strong> {booking._raw_bicare.nip}</p>
-                <p><strong>No. WA:</strong> {booking._raw_bicare.wa}</p>
-                <p><strong>Pasien:</strong> {booking._raw_bicare.patient_name} ({booking._raw_bicare.patient_status})</p>
-                <p><strong>Gender:</strong> {booking._raw_bicare.gender}</p>
-                <p><strong>Tanggal Lahir:</strong> {booking._raw_bicare.birth_date}</p>
-                <p><strong>Slot Waktu:</strong> {String(booking._raw_bicare.slot_time || '').slice(0,5)}</p>
-              </>
-            )}
-
-            {/* BI.Meal detail */}
-            {featureKey === 'bimeal' && booking._raw_bimeal && (
-              <>
-                <p><strong>Nama Pemesan:</strong> {booking._raw_bimeal.nama_pic}</p>
-                <p><strong>Nama PIC Tagihan:</strong> {booking._raw_bimeal.nama_pic_tagihan}</p>
-                <p><strong>No. WA PIC:</strong> {booking._raw_bimeal.no_wa_pic}</p>
-                <p><strong>Unit Kerja:</strong> {booking._raw_bimeal.unit_kerja || '-'}</p>
-                <p><strong>Waktu Antar:</strong> {formatDate(booking._raw_bimeal.waktu_pesanan || booking.start_date)}</p>
-                <p><strong>Lokasi Antar:</strong> {booking._raw_bimeal.lokasi_pengiriman || '-'}</p>
-                <p><strong>Keterangan:</strong> {booking._raw_bimeal.keterangan || '-'}</p>
-                <p><strong>Pesanan:</strong></p>
-                {Array.isArray(booking._raw_bimeal.items) && booking._raw_bimeal.items.length ? (
-                  <ul className={styles.assignedList}>
-                    {booking._raw_bimeal.items.map((it, idx) => (
-                      <li key={idx}>{it.item} — {it.qty} {it.unit}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className={styles.assignedEmpty}>Tidak ada item.</p>
-                )}
-              </>
-            )}
-
-            {/* BI.Meet detail */}
-            {featureKey === 'bimeet' && (
-              <>
-                <p><strong>Ruangan:</strong> {booking.room_name || '-'}</p>
-                {Number.isFinite(booking.room_capacity ?? booking.capacity) && (
-                  <p><strong>Kapasitas Ruangan:</strong> {(booking.room_capacity ?? booking.capacity)} org</p>
-                )}
-                <p><strong>Unit Kerja:</strong> {booking.unit_kerja || '-'}</p>
-                {Number.isFinite(booking.participants) && (
-                  <p><strong>Jumlah Peserta:</strong> {booking.participants} org</p>
-                )}
-                <p><strong>PIC:</strong> {booking.pic_name || '-'}</p>
-                <p><strong>Kontak:</strong> {booking.contact_phone || '-'}</p>
-                <p><strong>Judul:</strong> {booking.title || '-'}</p>
-                {booking.description && (
-                  <p><strong>Deskripsi:</strong> {booking.description}</p>
-                )}
-              </>
-            )}
-
-
-
-            {/* BI.Stay detail */}
-            {featureKey === 'bistay' && booking._raw_bistay && (
-              <>
-                <p><strong>Nama Pemesan:</strong> {booking._raw_bistay.nama_pemesan || '-'}</p>
-                <p><strong>NIP:</strong> {booking._raw_bistay.nip || '-'}</p>
-                <p><strong>No. WA:</strong> {booking._raw_bistay.no_wa || '-'}</p>
-                <p><strong>Asal KPW:</strong> {booking._raw_bistay.asal_kpw || '-'}</p>
-                <p><strong>Status Pegawai:</strong> {booking._raw_bistay.status_pegawai || '-'}</p>
-                {booking._raw_bistay.keterangan && (
-                  <p><strong>Keterangan:</strong> {booking._raw_bistay.keterangan}</p>
-                )}
-              </>
-            )}
-
-            {/* BI.Drive assignments */}
-            {shouldShowAssignments && isApprovedOrFinished && (
-              <>
-                <hr className={styles.modalDivider} />
-                <div className={styles.assignedBlock}>
-                  <p><strong>Driver Ditugaskan:</strong></p>
-                  {Array.isArray(booking.assigned_drivers) && booking.assigned_drivers.length ? (
-                    <ul className={styles.assignedList}>
-                      {booking.assigned_drivers.map((d) => (
-                        <li key={d.id}>{d.name}{d.phone ? ` — ${d.phone}` : ''}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className={styles.assignedEmpty}>Belum ada data driver.</p>
-                  )}
-                </div>
-
-                <div className={styles.assignedBlock}>
-                  <p><strong>Kendaraan Ditugaskan:</strong></p>
-                  {Array.isArray(booking.assigned_vehicles) && booking.assigned_vehicles.length ? (
-                    <ul className={styles.assignedList}>
-                      {booking.assigned_vehicles.map((v) => (
-                        <li key={v.id}>{getPlate(v)}{v.type_name ? ` — ${v.type_name}` : ''}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className={styles.assignedEmpty}>Belum ada data kendaraan.</p>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Tombol Finish */}
-            {featureKey !== 'bicare' && featureKey !== 'bimail' && Number(booking.status_id) === 2 && (
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  className={styles.finishButton}
-                  onClick={() => onFinish(booking)}
-                  disabled={finishing}
-                  title="Tandai booking ini sudah selesai"
-                >
-                  {finishing ? 'Memproses...' : 'Finish Booking'}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
+  /* Buka detail */
   const handleCardClick = useCallback(async (booking) => {
     try {
       const featureKey = resolveFeatureKey(booking);
       const bid = numericIdOf(booking.id);
       if (!Number.isFinite(bid)) throw new Error('ID booking tidak valid');
 
+      let full = booking;
+
       if (featureKey === 'bidrive') {
         const res = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
         if (!res.ok) throw new Error('Gagal memuat detail booking.');
-        const full = await res.json();
-        console.log("Detail bidrive:", full);
-        setSelectedBooking({ ...full, feature_key: 'bidrive' });
+        full = await res.json();
+        full.feature_key = 'bidrive';
 
+        if (Number(full.status_id) === 4) {
+          try {
+            const fr = await fetch(`/api/bidrive/feedback?bookingId=${bid}`, { credentials: 'include' });
+            if (fr.ok) {
+              const data = await fr.json();
+              const item = data?.item || data || null;
+              const tags = Array.isArray(item?.tags_json) ? item.tags_json
+                        : Array.isArray(item?.tags) ? item.tags
+                        : typeof item?.tags_json === 'string' ? JSON.parse(item.tags_json || '[]') : [];
+              setSelectedFeedback(item ? { ...item, tags } : null);
+            } else setSelectedFeedback(null);
+          } catch { setSelectedFeedback(null); }
+        } else {
+          setSelectedFeedback(null);
+        }
       } else if (featureKey === 'bimeet') {
-        const res = await fetch(`/api/bimeet/createbooking?bookingId=${bid}&ns=${ns}`, {
-          credentials: 'include'
-        });
+        const res = await fetch(`/api/bimeet/createbooking?bookingId=${bid}&ns=${ns}`, { credentials: 'include' });
         if (!res.ok) throw new Error('Gagal memuat detail BI.Meet.');
-        const full = await res.json();
-        console.log("Detail bimeet:", full);
-
-        if (!full.item) throw new Error('Data booking tidak ditemukan.');
-
-        setSelectedBooking({
-          ...full.item,
-          feature_key: 'bimeet'
-        });
-      } else {
-        // fallback: langsung pakai data list
-        setSelectedBooking(booking);
+        const fullRes = await res.json();
+        if (!fullRes.item) throw new Error('Data booking tidak ditemukan.');
+        full = { ...fullRes.item, feature_key: 'bimeet' };
       }
+
+      setSelectedBooking(full);
     } catch (e) {
       console.error('fetch detail error:', e);
     }
+  }, [ns]);
+
+  const closeModal = useCallback(() => {
+    setSelectedBooking(null);
+    setSelectedFeedback(null);
+    setRatingOpen(false);
   }, []);
 
-
-
-  const closeModal = useCallback(() => setSelectedBooking(null), []);
-  const FeatureDropdown = React.memo(({ value, onChange }) => (
-    <div className={styles.filterRow}>
-      <label htmlFor="featureFilter" className={styles.label}>
-        Fitur/Layanan:
-      </label>
-      <select
-        id="featureFilter"
-        className={styles.itemsPerPageDropdown}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {FEATURE_OPTIONS.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
-  ));
-  FeatureDropdown.displayName = 'FeatureDropdown';
-
-  /* ===== TAB STATUS ===== */
-  const TabFilter = React.memo(({ currentTab, onTabChange, badgeCounts }) => (
-    <div className={styles.tabRow}>
-      {TABS.map((tabName) => {
-        const isAll = tabName === 'All';
-        const key = SEEN_KEYS[tabName];
-        const count = isAll ? 0 : (badgeCounts[key] || 0);
-        const showNumber = !isAll && count > 0;
-
-        return (
-          <button
-            key={tabName}
-            className={`${styles.tabBtn} ${currentTab === tabName ? styles.tabActive : ''}`}
-            onClick={() => onTabChange(tabName)}
-            type="button"
-          >
-            <span className={styles.tabLabel}>{tabName}</span>
-            {!isAll && (
-              showNumber ? (
-                <span className={`${styles.tabBadge} ${styles.tabBadgeActive}`}>{count}</span>
-              ) : (
-                <span className={`${styles.tabDot} ${styles.tabDotIdle}`} aria-hidden="true" />
-              )
-            )}
-          </button>
-        );
-      })}
-    </div>
-  ));
-  TabFilter.displayName = 'TabFilter';
-
-
-  const markAsFinished = useCallback(async (booking) => {
-    const featureKey = resolveFeatureKey(booking);
-    if (featureKey === 'bicare' || featureKey === 'bimail') {
-      alert('Fitur ini tidak mendukung Finish dari UI.');
-      return;
-    }
-    const bid = numericIdOf(booking.id);
-    if (!Number.isFinite(bid)) {
-      alert('ID booking tidak valid.');
-      return;
-    }
-    try {
-      setFinishing(true);
-      if (featureKey === 'bidrive') {
-        let fullBooking =
-          selectedBooking && numericIdOf(selectedBooking.id) === bid ? selectedBooking : null;
-        if (!fullBooking?.assigned_drivers || !fullBooking?.assigned_vehicles) {
-          try {
-            const r = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
-            if (r.ok) fullBooking = await r.json();
-          } catch {}
-        }
-        const driverIds = (fullBooking?.assigned_drivers || []).map(d => d.id);
-        const vehicleIds = (fullBooking?.assigned_vehicles || []).map(v => v.id);
-        await updateServiceStatus('bidrive', bid, 4, ns);
-        await setDriversAvailable(driverIds, 1);
-        await setVehiclesAvailable(vehicleIds, 1);
-      } else {
-        await updateServiceStatus(featureKey, bid, 4, ns);
-      }
-      setAllBookings(prev =>
-        prev.map(b => (numericIdOf(b.id) === bid ? { ...b, status_id: 4 } : b))
-      );
-      if (featureKey === 'bidrive') {
-        try {
-          const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
-          const full = await r2.json().catch(() => null);
-          setSelectedBooking(
-            full ? { ...full, feature_key: 'bidrive' }
-                : { ...booking, status_id: 4 }
-          );
-        } catch {
-          setSelectedBooking(prev => (prev ? { ...prev, status_id: 4 } : prev));
-        }
-      } else {
-        setSelectedBooking(prev => (prev ? { ...prev, status_id: 4 } : prev));
-      }
-      setActiveTab('Finished');
-      markTabSeen('Finished');
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setFinishing(false);
-    }
-  }, [selectedBooking, ns]);
-
-  // ===== FILTER & PAGINATION =====
+  /* Filter Tabs, Pagination */
   const tabCounts = useMemo(() => {
     const c = { pending: 0, approved: 0, rejected: 0, finished: 0 };
     for (const b of allBookings) {
@@ -808,7 +452,6 @@ export default function StatusBooking() {
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-
   const paginatedBookings = useMemo(
     () => filteredBookings.slice(startIndex, endIndex),
     [filteredBookings, startIndex, endIndex]
@@ -828,13 +471,140 @@ export default function StatusBooking() {
   const resultsFrom = filteredBookings.length ? startIndex + 1 : 0;
   const resultsTo = Math.min(endIndex, filteredBookings.length);
 
-  // ===== RENDER =====
+  const FeatureDropdown = React.memo(({ value, onChange }) => (
+    <div className={styles.filterRow}>
+      <label htmlFor="featureFilter" className={styles.label}>Fitur/Layanan:</label>
+      <select id="featureFilter" className={styles.itemsPerPageDropdown} value={value} onChange={(e) => onChange(e.target.value)}>
+        {FEATURE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+      </select>
+    </div>
+  ));
+  FeatureDropdown.displayName = 'FeatureDropdown';
+
+  const TabFilter = React.memo(({ currentTab, onTabChange, badgeCounts }) => (
+    <div className={styles.tabRow}>
+      {TABS.map((tabName) => {
+        const isAll = tabName === 'All';
+        const key = SEEN_KEYS[tabName];
+        const count = isAll ? 0 : (badgeCounts[key] || 0);
+        const showNumber = !isAll && count > 0;
+
+        return (
+          <button key={tabName} className={`${styles.tabBtn} ${currentTab === tabName ? styles.tabActive : ''}`} onClick={() => onTabChange(tabName)} type="button">
+            <span className={styles.tabLabel}>{tabName}</span>
+            {!isAll && (showNumber
+              ? <span className={`${styles.tabBadge} ${styles.tabBadgeActive}`}>{count}</span>
+              : <span className={`${styles.tabDot} ${styles.tabDotIdle}`} aria-hidden="true" />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  ));
+  TabFilter.displayName = 'TabFilter';
+
+  const markAsFinished = useCallback(async (booking) => {
+    const featureKey = resolveFeatureKey(booking);
+    if (featureKey === 'bicare' || featureKey === 'bimail') {
+      alert('Fitur ini tidak mendukung Finish dari UI.');
+      return;
+    }
+    const bid = numericIdOf(booking.id);
+    if (!Number.isFinite(bid)) {
+      alert('ID booking tidak valid.');
+      return;
+    }
+    try {
+      setFinishing(true);
+      if (featureKey === 'bidrive') {
+        let fullBooking =
+          selectedBooking && numericIdOf(selectedBooking.id) === bid ? selectedBooking : null;
+        if (!fullBooking?.assigned_drivers || !fullBooking?.assigned_vehicles) {
+          try {
+            const r = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
+            if (r.ok) fullBooking = await r.json();
+          } catch {}
+        }
+        const driverIds = (fullBooking?.assigned_drivers || []).map(d => d.id);
+        const vehicleIds = (fullBooking?.assigned_vehicles || []).map(v => v.id);
+        await updateServiceStatus('bidrive', bid, 4, ns);
+        await setDriversAvailable(driverIds, 1);
+        await setVehiclesAvailable(vehicleIds, 1);
+      } else {
+        await updateServiceStatus(featureKey, bid, 4, ns);
+      }
+
+      setAllBookings(prev => prev.map(b => (numericIdOf(b.id) === bid ? { ...b, status_id: 4 } : b)));
+
+      if (featureKey === 'bidrive') {
+        try {
+          const r2 = await fetch(`/api/bookings-with-vehicle?bookingId=${bid}`);
+          const full = await r2.json().catch(() => null);
+          setSelectedBooking(full ? { ...full, feature_key: 'bidrive' } : { ...booking, status_id: 4 });
+
+          try {
+            const fr = await fetch(`/api/bidrive/feedback?bookingId=${bid}`, { credentials: 'include' });
+            if (fr.ok) {
+              const data = await fr.json();
+              const item = data?.item || data || null;
+              const tags = Array.isArray(item?.tags_json) ? item.tags_json
+                        : Array.isArray(item?.tags) ? item.tags
+                        : typeof item?.tags_json === 'string' ? JSON.parse(item.tags_json || '[]') : [];
+              setSelectedFeedback(item ? { ...item, tags } : null);
+              if (!item) setRatingOpen(true);
+            } else { setSelectedFeedback(null); setRatingOpen(true); }
+          } catch { setSelectedFeedback(null); setRatingOpen(true); }
+        } catch {
+          setSelectedBooking(prev => (prev ? { ...prev, status_id: 4 } : prev));
+          setRatingOpen(true);
+        }
+      } else {
+        setSelectedBooking(prev => (prev ? { ...prev, status_id: 4 } : prev));
+      }
+
+      setActiveTab('Finished');
+      markTabSeen('Finished');
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setFinishing(false);
+    }
+  }, [selectedBooking, ns, markTabSeen]);
+
+  const submitRating = async (payload) => {
+    try {
+      setRatingSubmitting(true);
+      const res = await fetch('/api/bidrive/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        let msg = 'Gagal mengirim penilaian.';
+        try { const j = await res.json(); if (j?.error) msg = j.error; } catch {}
+        throw new Error(msg);
+      }
+      setSelectedFeedback({
+        rating_overall: payload.rating_overall,
+        tags: payload.tags || [],
+        comment_text: payload.comment_text || '',
+      });
+      setRatingOpen(false);
+    } catch (e) {
+      alert(e.message || 'Gagal mengirim penilaian.');
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
+
+  /* Render */
   return (
     <div className={styles.background}>
       <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
       <main className={styles.mainContent}>
         <div className={styles.bookingBox}>
-          <div className={styles.topRow}>
+          <div className={styles.topRowPage}>
             <button className={styles.backBtn} onClick={() => router.back()} type="button">
               <FaArrowLeft /> Kembali
             </button>
@@ -863,12 +633,7 @@ export default function StatusBooking() {
                 </div>
                 <div>
                   <label htmlFor="perPage" className={styles.label}>Items per page:</label>
-                  <select
-                    id="perPage"
-                    className={styles.itemsPerPageDropdown}
-                    value={itemsPerPage}
-                    onChange={onChangeItemsPerPage}
-                  >
+                  <select id="perPage" className={styles.itemsPerPageDropdown} value={itemsPerPage} onChange={onChangeItemsPerPage}>
                     <option value={5}>5</option>
                     <option value={10}>10</option>
                     <option value={15}>15</option>
@@ -876,11 +641,7 @@ export default function StatusBooking() {
                   </select>
                 </div>
               </div>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={onPageChange}
-              />
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
             </div>
           )}
         </div>
@@ -888,9 +649,19 @@ export default function StatusBooking() {
 
       <BookingDetailModal
         booking={selectedBooking}
+        feedback={selectedFeedback}              // null/undefined utk non-Drive
         onClose={closeModal}
         onFinish={markAsFinished}
         finishing={finishing}
+        onOpenRating={() => setRatingOpen(true)} // << hanya dipakai saat BI.Drive Finished & belum ada feedback
+      />
+
+      <RatingModal
+        open={ratingOpen && !!selectedBooking}
+        onClose={() => setRatingOpen(false)}
+        onSubmit={submitRating}
+        booking={selectedBooking}
+        submitting={ratingSubmitting}
       />
 
       <LogoutPopup
@@ -901,5 +672,3 @@ export default function StatusBooking() {
     </div>
   );
 }
-
-
