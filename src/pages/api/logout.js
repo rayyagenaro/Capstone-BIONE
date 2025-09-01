@@ -58,10 +58,7 @@ export default async function handler(req, res) {
     'user_session', 'admin_session',
     'token', 'user_token', 'admin_token',
   ];
-  const legacyClient   = [
-    'role', 'displayName',
-    'current_user_ns', 'current_admin_ns'   // 🔹 tambahin sticky ns
-  ];
+  const legacyClient   = []
 
   // ==== MODE 1: GLOBAL LOGOUT ====
   if (wantGlobal) {
@@ -101,12 +98,9 @@ export default async function handler(req, res) {
     }
   }
 
-  const cookieName = `${normArea === 'admin' ? 'admin' : 'user'}_session__${finalNs}`;
+  const cookieName = `${normArea === 'admin' ? 'admin' : 'user'}_session_${finalNs}`;
   const setCookies = Array.from(new Set([
     kill(cookieName, true),
-    kill(normArea === 'admin' ? 'current_admin_ns' : 'current_user_ns', false), // 🔹 hapus sticky
-    kill('role', false),
-    kill('displayName', false),
   ]));
 
   res.setHeader('Set-Cookie', setCookies);

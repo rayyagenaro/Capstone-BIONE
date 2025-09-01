@@ -61,7 +61,7 @@ export async function middleware(req) {
   }
 
   // === 2) Ambil token untuk ns ===
-  const cookieName = `${isAdminArea ? 'admin' : 'user'}_session__${ns}`;
+  const cookieName = `${isAdminArea ? 'admin' : 'user'}_session_${ns}`;
   const token = req.cookies.get(cookieName)?.value;
 
   if (!token) {
@@ -74,7 +74,7 @@ export async function middleware(req) {
   }
 
   // === 2b) Cross-check ns di cookieName
-  const cookieNs = cookieName.split('__')[1];
+  const cookieNs = cookieName.split('_')[2];
   if (cookieNs !== ns) {
     const r = NextResponse.redirect(
       redirectTo(isAdminArea ? '/Signin/hal-signAdmin' : '/Login/hal-login')

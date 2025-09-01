@@ -6,22 +6,16 @@ import { useRouter } from 'next/router';
 import styles from './halamanUtamaUser.module.css';
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
-import { jwtVerify } from 'jose';
-
-// ===== Helpers =====
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-const withNs = (url, ns) => {
-  if (!ns) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}ns=${encodeURIComponent(ns)}`;
-};
+import { getNsFromReq } from '@/lib/ns-server';
+import { parseCookieHeader, resolveUser } from '@/lib/resolve';
+import { withNs, NS_RE } from '@/lib/ns';
 
 export default function HalamanUtamaUser({ initialName = 'User' }) {
   const router = useRouter();
   const ns = typeof router.query.ns === 'string' && NS_RE.test(router.query.ns) ? router.query.ns : '';
-
   const [namaUser, setNamaUser] = useState(initialName);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+  const [loading, setLoading] = useState(initialName);
 
   // ✅ Client guard: pastikan sesi untuk ns ini valid
   useEffect(() => {
@@ -49,10 +43,13 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
         setNamaUser(d?.payload?.name || initialName);
       } catch {
         router.replace(`/Signin/hal-sign?from=${encodeURIComponent(router.asPath)}`);
+      } finally {
+        if (active) setLoading(false);   // 🔹 pastikan loading dihentikan di semua jalur
       }
     })();
     return () => { active = false; };
   }, [router.isReady, router.asPath, ns, initialName, router]);
+
 
   // ✅ daftar fitur: semua link di-append ?ns=
   const fiturLayanan = [
@@ -107,6 +104,10 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
     router.replace('/Signin/hal-sign');
   };
 
+  if (loading) {
+    return <div className={styles.loading}>Memuat…</div>;
+  }
+
   return (
     <div className={styles.background}>
       <SidebarUser onLogout={() => setShowLogoutPopup(true)} />
@@ -143,55 +144,31 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
   );
 }
 
-// ✅ SSR guard: cek cookie namespaced user_session__{ns}
+/* ===================== SSR Guard ===================== */
 export async function getServerSideProps(ctx) {
-  const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-  const withNs = (url, ns) => {
-    if (!ns) return url;
-    const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}ns=${encodeURIComponent(ns)}`;
-  };
-
-  const { ns: nsRaw } = ctx.query;
-  const ns = Array.isArray(nsRaw) ? nsRaw[0] : nsRaw;
-  const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
-
+  const ns = getNsFromReq(ctx.req);
   const from = ctx.resolvedUrl || '/User/HalamanUtama/hal-utamauser';
 
-  if (!nsValid) {
+  if (!ns) {
     return {
       redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(from)}`, permanent: false },
     };
   }
 
-  const cookieName = `user_session__${nsValid}`;
-  const token = ctx.req.cookies?.[cookieName] || null;
+  const cookies = parseCookieHeader(ctx.req.headers.cookie);
+  const u = await resolveUser(ns, cookies);
 
-  if (!token) {
+  // ❌ Tidak ada user_session → redirect langsung
+  if (!u?.hasToken || !u?.payload || u.payload.roleNormalized !== 'user') {
     return {
-      redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(withNs(from, nsValid))}`, permanent: false },
+      redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(from)}`, permanent: false },
     };
   }
 
-  try {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) throw new Error('missing-secret');
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
-      algorithms: ['HS256'],
-      clockTolerance: 10,
-    });
-
-    // Hanya user yang boleh
-    if (payload?.role !== 'user') {
-      return {
-        redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(withNs(from, nsValid))}`, permanent: false },
-      };
-    }
-
-    return { props: { initialName: payload?.name || 'User' } };
-  } catch {
-    return {
-      redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(withNs(from, nsValid))}`, permanent: false },
-    };
-  }
+  return {
+    props: {
+      initialName: u.payload.name || 'User',
+      ns,
+    },
+  };
 }

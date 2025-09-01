@@ -69,9 +69,18 @@ export default async function handler(req, res) {
       .sign(new TextEncoder().encode(secret));
 
     const isProd = process.env.NODE_ENV === 'production';
+        // 🔹 Cari semua cookie admin_session__* dan kill
+    // const killOldUser = allCookies
+    //   .map(c => {
+    //     const name = c.split('=')[0];
+    //     return name.startsWith('user_session_')
+    //       ? `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`
+    //       : null;
+    //   })
+    //   .filter(Boolean);
 
     // 🔹 Session cookie per namespace (HttpOnly)
-    const cookieName = `user_session__${ns}`;
+    const cookieName = `user_session_${ns}`;
     const sessionAttrs = [
       'Path=/',
       'HttpOnly',
@@ -82,6 +91,7 @@ export default async function handler(req, res) {
 
     // 🔹 Set cookies (tanpa sticky)
     res.setHeader('Set-Cookie', [
+      // ...killOldUser, // hapus semua session user lama
       `${cookieName}=${token}; ${sessionAttrs}`,
       `user_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,
       `user_token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${isProd ? ' Secure;' : ''}`,

@@ -86,7 +86,7 @@ export default async function handler(req, res) {
     const killOldAdmin = allCookies
       .map(c => {
         const name = c.split('=')[0];
-        return name.startsWith('admin_session__')
+        return name.startsWith('admin_session_')
           ? `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`
           : null;
       })
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
     // 🔹 Set cookie baru + bersihkan legacy
     res.setHeader('Set-Cookie', [
       ...killOldAdmin, // hapus semua session admin lama
-      `admin_session__${ns}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${isProd ? '; Secure' : ''}`,
+      `admin_session_${ns}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${isProd ? '; Secure' : ''}`,
       `admin_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`,
       `admin_token=;  Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`,
       `token=;        Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`,

@@ -37,8 +37,8 @@ export async function verifyAuth(req, roles = ['user'], scope = 'user') {
     if (!ns) return { ok: false, reason: 'NO_NS' };
 
     // Tentukan cookie sesuai area
-    const cookieNameUser = `user_session__${ns}`;
-    const cookieNameAdmin = `admin_session__${ns}`;
+    const cookieNameUser = `user_session_${ns}`;
+    const cookieNameAdmin = `admin_session_${ns}`;
 
     // 🔹 Gunakan parser kalau req.cookies undefined
     const cookies = req.cookies || parseCookies(req);

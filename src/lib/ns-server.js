@@ -25,8 +25,8 @@ export function getNsFromReq(req) {
 
   // 🔹 2. Session cookies dengan prefix
   const cookieKeys = Object.keys(req.cookies || {});
-  const adminPrefix = 'admin_session__';
-  const userPrefix = 'user_session__';
+  const adminPrefix = 'admin_session_';
+  const userPrefix = 'user_session_';
 
   const foundAdmin = cookieKeys.find((k) => k.startsWith(adminPrefix));
   if (foundAdmin) {
