@@ -47,10 +47,7 @@ export async function middleware(req) {
   };
 
   // === 1) Ambil ns pakai helper ===
-  let ns = getNsFromReq({
-    query: Object.fromEntries(req.nextUrl.searchParams),
-    cookies: Object.fromEntries(req.cookies.getAll().map(c => [c.name, c.value])),
-  });
+  let ns = getNsFromReq(req);
 
   if (!ns) {
     const r = NextResponse.redirect(
@@ -74,7 +71,9 @@ export async function middleware(req) {
   }
 
   // === 2b) Cross-check ns di cookieName
-  const cookieNs = cookieName.split('_')[2];
+  const prefix = `${isAdminArea ? 'admin' : 'user'}_session_`;
+  const cookieNs = cookieName.startsWith(prefix) ? cookieName.slice(prefix.length) : '';
+
   if (cookieNs !== ns) {
     const r = NextResponse.redirect(
       redirectTo(isAdminArea ? '/Signin/hal-signAdmin' : '/Login/hal-login')

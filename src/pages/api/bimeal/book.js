@@ -30,11 +30,6 @@ export default async function handler(req, res) {
     const auth = isAdminScope
       ? await verifyAuth(req, ['super_admin', 'admin_fitur'], 'admin')
       : await verifyAuth(req, ['user'], 'user');
-    console.log('DEBUG GET /bimeal/book:', {
-      isAdminScope,
-      ns: req.query?.ns,
-      auth
-    });
 
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);

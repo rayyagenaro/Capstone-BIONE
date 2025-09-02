@@ -8,9 +8,8 @@ import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import { jwtVerify } from 'jose';
-
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-const withNs = (url, ns) => (ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url);
+import { NS_RE } from '@/lib/ns-server';
+import { withNs } from '@/lib/ns';
 
 const calculateDays = (start, end) => {
   if (!start || !end) return '';
@@ -295,7 +294,7 @@ export async function getServerSideProps(ctx) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 
-  const cookieName = `admin_session__${nsValid}`;
+  const cookieName = `admin_session_${nsValid}`;
   const token = ctx.req.cookies?.[cookieName] || null;
   if (!token) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
