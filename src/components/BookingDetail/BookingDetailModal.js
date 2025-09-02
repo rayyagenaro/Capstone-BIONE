@@ -70,6 +70,41 @@ const formatDateTime = (dateString) => {
   });
 };
 
+// pilih teks untuk judul header
+const headerSubject = (booking) => {
+  const key = resolveFeatureKey(booking);
+  switch (key) {
+    case "bimeet":
+      // prioritas: title → room_name → tujuan → "-"
+      return booking?.title || booking?.room_name || booking?.tujuan || "-";
+    case "bimail":
+      return booking?.perihal || booking?.tujuan || "-";
+    case "bimeal":
+      return (
+        booking?.tujuan ||
+        (booking?._raw_bimeal?.unit_kerja
+          ? `Catering • ${booking._raw_bimeal.unit_kerja}`
+          : "Catering")
+      );
+    case "bistay":
+      return (
+        booking?.tujuan ||
+        (booking?._raw_bistay?.asal_kpw
+          ? `Menginap • ${booking._raw_bistay.asal_kpw}`
+          : "Menginap")
+      );
+    case "bicare":
+      return (
+        booking?.tujuan ||
+        (booking?._raw_bicare?.doctor_id
+          ? `Klinik Dokter #${booking._raw_bicare.doctor_id}`
+          : "Klinik")
+      );
+    default:
+      return booking?.tujuan || "-";
+  }
+};
+
 /* ===== component ===== */
 export default function BookingDetailModal({
   booking,
@@ -135,7 +170,7 @@ export default function BookingDetailModal({
         <div className={styles.topRow}>
           <div className={styles.leftTitle}>
             <div className={styles.bookingTitle}>
-              {`Booking ${featureLabel ? `${featureLabel} | ` : ""}${booking.tujuan ?? "-"}`}
+              {`Booking ${featureLabel ? `${featureLabel} | ` : ""}${headerSubject(booking)}`}
             </div>
             <div className={styles.headerMetaWrap}>
               <div className={styles.headerDates}>
