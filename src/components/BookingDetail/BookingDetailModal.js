@@ -134,6 +134,14 @@ export default function BookingDetailModal({
   const featureKey = resolveFeatureKey(booking);
   const featureLabel = featureLabelOf(booking);
 
+  // validasi feedback (1..5)
+  const ratingVal   = Number(feedback?.rating_overall);
+  const hasFeedback =
+    Number.isFinite(ratingVal) && ratingVal >= 1 && ratingVal <= 5;
+
+  // optional: pastikan tags array
+  const feedbackTags = Array.isArray(feedback?.tags) ? feedback.tags : [];
+
   // Keterangan header kiri → fallback per layanan
   const keteranganTop =
     booking?.keterangan ??
@@ -147,15 +155,15 @@ export default function BookingDetailModal({
     featureKey === "bidrive" &&
     (Array.isArray(booking.assigned_drivers) || Array.isArray(booking.assigned_vehicles));
 
-  const renderRatingStars = () => (
+  const renderRatingStars = (val) => (
     <div className={styles.feedbackStars}>
       {Array.from({ length: 5 }).map((_, i) => (
         <FaStar
           key={i}
-          className={i < (feedback?.rating_overall || 0) ? styles.starFilled : styles.starEmpty}
+          className={i < val ? styles.starFilled : styles.starEmpty}
         />
       ))}
-      <span className={styles.feedbackScore}>{feedback?.rating_overall || 0}/5</span>
+      <span className={styles.feedbackScore}>{val}/5</span>
     </div>
   );
 
@@ -517,14 +525,14 @@ export default function BookingDetailModal({
 
         {/* BI.Drive rating section */}
         {featureKey === "bidrive" && isFinished && (
-          feedback ? (
+          hasFeedback ? (
             <div className={styles.ratingArea}>
               <div className={styles.feedbackSummary}>
                 <div className={styles.feedbackTitle}>Penilaian Anda</div>
-                {renderRatingStars()}
-                {Array.isArray(feedback?.tags) && feedback.tags.length > 0 && (
+                {renderRatingStars(ratingVal)}      {/* ✅ pakai angka valid */}
+                {feedbackTags.length > 0 && (
                   <div className={styles.feedbackTags}>
-                    {feedback.tags.map((t) => (
+                    {feedbackTags.map((t) => (
                       <span key={t} className={styles.tagChipReadonly}>{t}</span>
                     ))}
                   </div>

@@ -379,3 +379,90 @@
   outline-offset: 2px;
   text-decoration-thickness: 2px; /* underline sedikit lebih tebal */
 }
+
+/* === Besarin & tengahin bintang di Rating Modal === */
+.ratingModal .starRow {
+  justify-content: center;      /* ⭐ di tengah */
+  gap: 10px;
+  margin: 2px 0 10px;
+}
+
+.ratingModal .starBtn {
+  font-size: 36px;              /* ⭐ lebih besar */
+  padding: 6px;                 /* area klik lebih lebar */
+}
+@media (max-width: 700px) {
+  .ratingModal .starBtn { font-size: 32px; }
+}
+
+/* === Tag hijau saat aktif, hover juga hijau === */
+.tagChip {
+  background: #f8fafc;
+  color: #334155;
+  border: 1.5px solid #e2e8f0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s, box-shadow .12s;
+}
+
+/* hover (belum dipilih) → hijau muda */
+.tagChip:hover {
+  background: #ecfdf5;          /* hijau muda */
+  border-color: #86efac;        /* green-300 */
+  color: #065f46;               /* green-900 */
+  box-shadow: 0 2px 8px rgba(16,185,129,.15);
+}
+
+/* aktif → hijau */
+.tagChipActive {
+  background: #dcfce7;          /* green-100 */
+  color: #065f46;               /* green-900 */
+  border-color: #16a34a;        /* green-600 */
+  box-shadow: 0 2px 8px rgba(22,163,74,.25);
+}
+
+/* aktif + hover → sedikit lebih pekat */
+.tagChipActive:hover {
+  background: #bbf7d0;          /* green-200 */
+  border-color: #15803d;        /* green-700 */
+  color: #064e3b;               /* green-950 */
+}
+
+/* aksesibilitas: ring saat fokus via keyboard */
+.tagChip:focus-visible,
+.tagChipActive:focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 2px;
+}
+
+/* === Perbaiki kontras textarea komentar === */
+.commentInput {
+  color: #0f172a;              /* teks nyata: gelap & jelas */
+  background: #fff;            /* pastikan putih */
+  caret-color: #2F4D8E;        /* kursor terlihat */
+}
+
+/* Placeholder: abu-abu, tapi beda dari teks nyata */
+.commentInput::placeholder,
+.commentInput::-webkit-input-placeholder,
+.commentInput::-moz-placeholder,
+.commentInput:-ms-input-placeholder,
+.commentInput::-ms-input-placeholder {
+  color: #94a3b8;              /* abu-abu sedang */
+  opacity: 1;                  /* jangan transparan */
+  font-weight: 500;
+}
+
+/* Saat fokus, placeholder dibuat sedikit lebih muda */
+.commentInput:focus::placeholder {
+  color: #cbd5e1;
+}
+
+/* Fokus: ring lebih kontras */
+.commentInput:focus {
+  border-color: #2F4D8E;
+  box-shadow: 0 0 0 3px rgba(47,77,142,.18);
+}

@@ -16,6 +16,28 @@ import { getNs } from '@/lib/ns';
 import { fetchAllBookings } from '@/lib/fetchBookings';
 
 /* ====== Status & Feature helpers ====== */
+const safeParse = (v) => {
+  if (Array.isArray(v)) return v;
+  try { return JSON.parse(v || '[]'); } catch { return []; }
+};
+async function fetchFeedbackByBookingId(bid) {
+  const r = await fetch(`/api/bidrive/feedback?bookingId=${bid}`, { credentials: 'include' });
+
+  if (r.status === 404) return null;           // kalau kamu nanti ganti 404
+  if (!r.ok) return null;                      // gagal → anggap belum ada
+
+  const data = await r.json().catch(() => null);
+  const item = data?.item || null;
+  const rating = Number(item?.rating_overall || 0);
+  if (rating < 1 || rating > 5) return null;   // ⬅️ kunci utama
+
+  const tags = Array.isArray(item?.tags) ? item.tags : safeParse(item?.tags_json);
+  return { ...item, rating_overall: rating, tags };
+}
+
+const withNs = (url, ns) =>
+  ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url;
+
 const STATUS_CONFIG = {
   '1': { text: 'Pending',  className: styles.statusPending || styles.statusProcess },
   '2': { text: 'Approved', className: styles.statusApproved },
@@ -358,20 +380,13 @@ export default function StatusBookingView() {
         full.feature_key = 'bidrive';
 
         if (Number(full.status_id) === 4) {
-          try {
-            const fr = await fetch(`/api/bidrive/feedback?bookingId=${bid}`, { credentials: 'include' });
-            if (fr.ok) {
-              const data = await fr.json();
-              const item = data?.item || data || null;
-              const tags = Array.isArray(item?.tags_json) ? item.tags_json
-                        : Array.isArray(item?.tags) ? item.tags
-                        : typeof item?.tags_json === 'string' ? JSON.parse(item.tags_json || '[]') : [];
-              setSelectedFeedback(item ? { ...item, tags } : null);
-            } else setSelectedFeedback(null);
-          } catch { setSelectedFeedback(null); }
+          const frItem = await fetchFeedbackByBookingId(bid); // ✅ pakai helper
+          setSelectedFeedback(frItem);
+          if (!frItem) setRatingOpen(true);                   // selesai tapi blm ada feedback -> buka modal
         } else {
           setSelectedFeedback(null);
         }
+
       } else if (featureKey === 'bimeet') {
         const res = await fetch(`/api/bimeet/createbooking?bookingId=${bid}&ns=${ns}`, { credentials: 'include' });
         if (!res.ok) throw new Error('Gagal memuat detail BI.Meet.');
@@ -542,18 +557,10 @@ export default function StatusBookingView() {
           const full = await r2.json().catch(() => null);
           setSelectedBooking(full ? { ...full, feature_key: 'bidrive' } : { ...booking, status_id: 4 });
 
-          try {
-            const fr = await fetch(`/api/bidrive/feedback?bookingId=${bid}`, { credentials: 'include' });
-            if (fr.ok) {
-              const data = await fr.json();
-              const item = data?.item || data || null;
-              const tags = Array.isArray(item?.tags_json) ? item.tags_json
-                        : Array.isArray(item?.tags) ? item.tags
-                        : typeof item?.tags_json === 'string' ? JSON.parse(item.tags_json || '[]') : [];
-              setSelectedFeedback(item ? { ...item, tags } : null);
-              if (!item) setRatingOpen(true);
-            } else { setSelectedFeedback(null); setRatingOpen(true); }
-          } catch { setSelectedFeedback(null); setRatingOpen(true); }
+          const frItem = await fetchFeedbackByBookingId(bid); // ✅ pakai helper
+            setSelectedFeedback(frItem);
+            if (!frItem) setRatingOpen(true);
+
         } catch {
           setSelectedBooking(prev => (prev ? { ...prev, status_id: 4 } : prev));
           setRatingOpen(true);
@@ -574,7 +581,7 @@ export default function StatusBookingView() {
   const submitRating = async (payload) => {
     try {
       setRatingSubmitting(true);
-      const res = await fetch('/api/bidrive/feedback', {
+      const res = await fetch(withNs('/api/bidrive/feedback', ns), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
