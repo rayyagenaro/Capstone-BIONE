@@ -7,7 +7,7 @@ import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import RejectionBox from '@/components/RejectionBox/RejectionBox';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaStar } from 'react-icons/fa';
 
 import BookingDetailModal from '@/components/BookingDetail/BookingDetailModal';
 import RatingModal from '@/components/BookingDetail/RatingModal';
@@ -202,6 +202,7 @@ export default function StatusBookingView() {
 
   const [ratingOpen, setRatingOpen] = useState(false);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [feedbackById, setFeedbackById] = useState({});
 
   useEffect(() => {
     let active = true;
@@ -274,12 +275,18 @@ export default function StatusBookingView() {
     finally { router.replace('/Signin/hal-sign'); }
   };
 
+  const renderMiniStar = (i, filled) => (
+    <FaStar key={i} className={filled ? styles.starMiniFilled : styles.starMiniEmpty} />
+  );
+
   /* Card list */
-  const BookingCard = React.memo(({ booking, onClick }) => {
+  const BookingCard = React.memo(({ booking, onClick, driveRating }) => {
     const statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
     const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
     const featureLabel = featureLabelOf(booking);
     const featureKey = resolveFeatureKey(booking);
+    const isBidriveFinished = featureKey === 'bidrive' && Number(booking.status_id) === 4;
+    const ratingValue = Number(driveRating?.rating_overall || 0);
 
     const renderServiceLine = () => {
       switch (featureKey) {
@@ -342,23 +349,64 @@ export default function StatusBookingView() {
     };
 
     return (
-      <div className={styles.bookingCard} onClick={onClick} onKeyDown={(e) => e.key === 'Enter' && onClick()} role="button" tabIndex={0}>
+      <div
+        className={styles.bookingCard}
+        onClick={onClick}
+        onKeyDown={(e) => e.key === 'Enter' && onClick()}
+        role="button"
+        tabIndex={0}
+      >
         <Image src={logoSrcOf(booking)} alt={featureLabel || 'logo'} width={70} height={70} className={styles.cardLogo} />
+
+        {/* Kiri: detail default */}
         <div className={styles.cardDetail}>
           <div className={styles.cardTitle}>
             {featureLabel ? `[${featureLabel}] ` : ''}Booking | {booking.tujuan || 'Tanpa Tujuan'}
           </div>
+
           <div className={styles.cardSub}>
             {`${formatDate(booking.start_date)} - ${formatDate(booking.end_date)}`}
           </div>
+
           {renderServiceLine()}
           <div className={statusInfo.className}>{statusInfo.text}</div>
+
           {isRejected && (
             <div style={{ marginTop: 8 }}>
               <RejectionBox reason={booking.rejection_reason} compact />
             </div>
           )}
         </div>
+
+        {/* Kanan: status rating khusus BI.Drive Finished */}
+        {isBidriveFinished && (
+          <div className={styles.cardRight} onClick={(e) => e.stopPropagation()}>
+            {driveRating === undefined ? null : (
+              ratingValue < 1 ? (
+                <div className={styles.unratedText}>Belum Anda Rating</div>
+              ) : (
+                <div className={styles.ratedBox}>
+                  <div className={styles.ratingLabel}>Anda Rating</div>
+
+                  <div className={styles.starsTight} role="img" aria-label={`Rating ${ratingValue} dari 5`}>
+                    {/* baris atas: 2 bintang */}
+                    <div className={styles.triRowTop}>
+                      <FaStar className={ratingValue >= 1 ? styles.starMiniFilled : styles.starMiniEmpty} />
+                      <FaStar className={ratingValue >= 2 ? styles.starMiniFilled : styles.starMiniEmpty} />
+                    </div>
+
+                    {/* baris bawah: 3 bintang */}
+                    <div className={styles.triRowBottom}>
+                      <FaStar className={ratingValue >= 3 ? styles.starMiniFilled : styles.starMiniEmpty} />
+                      <FaStar className={ratingValue >= 4 ? styles.starMiniFilled : styles.starMiniEmpty} />
+                      <FaStar className={ratingValue >= 5 ? styles.starMiniFilled : styles.starMiniEmpty} />
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
       </div>
     );
   });
@@ -471,6 +519,27 @@ export default function StatusBookingView() {
     () => filteredBookings.slice(startIndex, endIndex),
     [filteredBookings, startIndex, endIndex]
   );
+
+  useEffect(() => {
+    const need = [];
+    for (const b of paginatedBookings) {
+      if (resolveFeatureKey(b) === 'bidrive' && Number(b.status_id) === 4) {
+        const bid = numericIdOf(b.id);
+        if (feedbackById[bid] === undefined) need.push(bid);
+      }
+    }
+    if (!need.length) return;
+
+    need.forEach(async (bid) => {
+      try {
+        const fi = await fetchFeedbackByBookingId(bid); // null jika belum dirating
+        setFeedbackById(prev => ({ ...prev, [bid]: fi }));
+      } catch {
+        setFeedbackById(prev => ({ ...prev, [bid]: null }));
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginatedBookings]);
 
   const onPageChange = useCallback((page) => {
     if (page < 1 || page > totalPages) return;
@@ -628,7 +697,12 @@ export default function StatusBookingView() {
               <div className={styles.emptyState}>Tidak ada booking dengan filter ini.</div>
             )}
             {!isLoading && !error && paginatedBookings.map((item) => (
-              <BookingCard key={item.id} booking={item} onClick={() => handleCardClick(item)} />
+              <BookingCard
+                key={item.id}
+                booking={item}
+                onClick={() => handleCardClick(item)}
+                driveRating={feedbackById[numericIdOf(item.id)]}   // ⬅️ tambahan
+              />
             ))}
           </div>
 

@@ -134,6 +134,8 @@
   box-shadow: 0 2px 8px rgba(47,77,142,0.03);
   padding: 24px 32px 18px 22px; min-height: 90px; gap: 22px;
   cursor: pointer; user-select: none;
+  align-items: center;
+  position: relative;
 }
 .cardLogo {
   width: 72px; height: 72px; object-fit: contain; object-position: center;
@@ -465,4 +467,90 @@
 .commentInput:focus {
   border-color: #2F4D8E;
   box-shadow: 0 0 0 3px rgba(47,77,142,.18);
+}
+
+.cardRight{
+  margin-left: auto;
+  align-self: stretch;
+  min-width: 180px;
+  padding-right: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* center vertikal */
+  align-items: center;        /* center horizontal */
+  text-align: center;
+}
+
+.unratedText { 
+  color:#94a3b8; 
+  font-weight:800; 
+  font-size:14px; 
+}
+
+.ratedBox{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;                 /* lebih rapat */
+}
+
+.ratingLabel{ 
+  color:#334155; 
+  font-weight:800; 
+  font-size:13px; 
+  margin-bottom:4px; 
+}
+
+.starsTight{
+  --star-size: 25px;
+  --star-gap-x: 3px; /* kanan–kiri antar bintang */
+  --star-gap-y: 3px; /* jarak baris atas–bawah */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--star-gap-y);
+  line-height: 0;
+}
+
+.triRowTop,
+.triRowBottom{
+  display: flex;
+  gap: var(--star-gap-x);
+}
+
+.starsRow{ 
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.starGhost {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.starMiniFilled,
+.starMiniEmpty{
+  font-size: var(--star-size);
+  width: var(--star-size);
+  height: var(--star-size);
+  display: inline-flex;   /* no whitespace gap */
+  align-items: center;
+  justify-content: center;
+}
+
+.starMiniFilled { color: #f59e0b; }
+.starMiniEmpty  { color: #e2e8f0; }
+
+.unratedText { color: #94a3b8; font-weight: 700; }
+.ratingLabel { font-weight: 800; color: #22335e; margin-bottom: 6px; }
+
+@media (max-width: 700px) {
+  .cardRight {
+    margin-left: 0;
+    align-self: flex-start;
+    text-align: left;
+    padding-right: 0;
+    margin-top: 8px;
+  }
 }
