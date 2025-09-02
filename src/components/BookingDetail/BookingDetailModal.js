@@ -293,8 +293,13 @@ export default function BookingDetailModal({
           <div className={styles.detailColRight}>
             {featureKey === "bistay" && booking?._raw_bistay && (
               <>
+                <div className={styles.detailLabel}>CHECK IN & OUT</div>
+                <div className={styles.detailValue}>
+                  {formatDate(booking._raw_bistay.check_in)} — {formatDate(booking._raw_bistay.check_out)}
+                </div>
+
                 <div className={styles.detailLabel}>ASAL KPW</div>
-                <div className={styles.detailValue}>{booking._raw_bistay.asal_kpw || "-"} </div>
+                <div className={styles.detailValue}>{booking._raw_bistay.asal_kpw || "-"}</div>
 
                 <div className={styles.detailLabel}>STATUS PEGAWAI</div>
                 <div className={styles.detailValue}>{booking._raw_bistay.status_pegawai || "-"}</div>
