@@ -128,6 +128,7 @@
 .label { margin-right: 8px; color: #22335e; font-weight: 400; }
 
 .listArea { display: flex; flex-direction: column; gap: 24px; margin-top: 10px; }
+
 .bookingCard {
   display: flex; align-items: flex-start; background: #fff;
   border: 1.2px solid #e7e9f2; border-radius: 16px;
@@ -136,7 +137,37 @@
   cursor: pointer; user-select: none;
   align-items: center;
   position: relative;
+    transition:
+    box-shadow .18s ease,
+    transform .12s ease,
+    border-color .18s ease,
+    background-color .18s ease;
 }
+
+/* hover (desktop/trackpad) */
+@media (hover: hover) {
+  .bookingCard:hover{
+    background: #f9fbff;                 /* sedikit lebih terang */
+    border-color: #2F4D8E;
+    box-shadow: 0 8px 24px rgba(47,77,142,.10);
+    transform: translateY(-2px);
+  }
+  .bookingCard:hover .cardTitle{ color:#1e3163; }
+  .bookingCard:hover .cardSub{ color:#6b7280; }
+}
+
+/* klik/tekan */
+.bookingCard:active{
+  transform: translateY(-1px) scale(.998);
+}
+
+/* aksesibilitas: fokus via keyboard */
+.bookingCard:focus-visible{
+  outline: 3px solid rgba(47,77,142,.35);
+  outline-offset: 2px;
+  border-color: #cfdcff;
+}
+
 .cardLogo {
   width: 72px; height: 72px; object-fit: contain; object-position: center;
   display: block; align-self: center; margin-right: 4px;
