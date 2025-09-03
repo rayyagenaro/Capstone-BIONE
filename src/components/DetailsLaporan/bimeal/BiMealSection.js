@@ -30,13 +30,12 @@ export default function BiMealSection({
             <div className={styles.detailColLeft}>
               <L styles={styles} label="ID" v={detail.id} />
               <L styles={styles} label="Nama PIC" v={detail.nama_pic || '-'} />
-              <L styles={styles} label="NIP PIC" v={detail.nip_pic || '-'} />
               <L styles={styles} label="No. WA PIC" v={detail.no_wa_pic || '-'} />
-              <L styles={styles} label="Unit Kerja" v={detail.unit_kerja || '-'} />
             </div>
 
             <div className={styles.detailColRight}>
               <L styles={styles} label="Waktu Pesanan" v={formatDateTime(detail.waktu_pesanan)} />
+              <L styles={styles} label="Unit Kerja" v={detail.unit_kerja || '-'} />
               <L styles={styles} label="Status" v={detail.status_name || (detail.status_id === 1 ? 'Pending' : detail.status_id ?? '-')} />
             </div>
           </div>
