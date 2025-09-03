@@ -29,7 +29,7 @@ async function enrichAdminPayload(payload, ns, cookieName) {
 export async function resolveAdmin(ns, cookies) {
   if (!ns) {
     const chosen =
-      (await chooseLatestValidTokenPayload(getCookiesByPrefix(cookies, 'admin_session__'))) ||
+      (await chooseLatestValidTokenPayload(getCookiesByPrefix(cookies, 'admin_session_'))) ||
       (await (async () => {
         const legacy = getCookie(cookies, 'admin_session');
         const payload = await verifyOrNull(legacy);
@@ -48,7 +48,6 @@ export async function resolveAdmin(ns, cookies) {
   }
 
   const token =
-    getCookie(cookies, `admin_session__${ns}`) ||
     getCookie(cookies, `admin_session_${ns}`) ||
     getCookie(cookies, 'admin_session');
 
@@ -61,7 +60,7 @@ export async function resolveAdmin(ns, cookies) {
     payload,
     ns,
     token
-      ? (getCookie(cookies, `admin_session__${ns}`) ? `admin_session__${ns}` : 'admin_session')
+      ? (getCookie(cookies, `admin_session_${ns}`) ? `admin_session_${ns}` : 'admin_session')
       : null
   );
 }

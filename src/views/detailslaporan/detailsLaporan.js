@@ -205,7 +205,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
-  // slug (aliaskan 'dmove' -> 'bidrive' untuk tampilan; API tetap pakai 'dmove')
+  // slug (aliaskan 'dmove' -> 'bidrive' untuk tampilan; A  PI tetap pakai 'dmove')
   const raw = (typeof qslug === 'string' ? qslug : '').toLowerCase();
   const normalized = raw === 'dmove' ? 'bidrive' : raw;
   const slug = ALLOWED_SLUGS.includes(normalized) ? (normalized === 'dmove' ? 'bidrive' : normalized) : 'bidrive';
@@ -732,22 +732,25 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
 
 /* ====== SSR guard (boleh role 1 & 2) ====== */
 export async function getServerSideProps(ctx) {
+  console.log('[SSR] headers.cookie:', ctx.req.headers.cookie);
+  console.log('[SSR] ns from req:', getNsFromReq(ctx.req));
   const from = ctx.resolvedUrl || '/Admin/DetailsLaporan/hal-detailslaporan';
 
-  // 🔹 Ambil ns pakai helper
-  const ns = getNsFromReq(ctx.req);
+  const ns = getNsFromReq(ctx.req) || ctx.query?.ns;
   if (!ns || !NS_RE.test(ns)) {
+    console.warn('[SSR] Invalid ns:', ns);
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 
-  // 🔹 Auth pakai verifyAuth (admin area)
+
   const auth = await verifyAuth(ctx.req, ['super_admin', 'admin_fitur'], 'admin');
+  console.log('[SSR] verifyAuth result:', auth);
 
   if (!auth.ok) {
+    console.warn('[SSR] Auth failed:', auth.reason);
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 
-  // 🔹 Normalisasi role ID untuk Sidebar
   const rId = Number(auth.payload?.role_id ?? 0);
   const rStr = String(auth.payload?.role || '').toLowerCase();
   const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);

@@ -9,7 +9,9 @@ import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import { FaArrowLeft } from 'react-icons/fa';
 import { fetchAllBookings } from '@/lib/fetchBookings';
-import { jwtVerify } from 'jose';
+import { NS_RE, getNsFromReq} from '@/lib/ns-server';
+import { withNs } from '@/lib/ns';
+import { verifyAuth } from '@/lib/auth';
 
 /* ===================== KONFIGURASI STATUS ===================== */
 const STATUS_CONFIG = {
@@ -52,8 +54,6 @@ const SERVICE_ID_MAP = {
 };
 
 const norm = (s) => String(s || '').trim().toLowerCase();
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-const withNs = (url, ns) => (ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url);
 
 const numericIdOf = (id) => {
   const m = String(id ?? '').match(/(\d+)$/);
@@ -410,38 +410,27 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
 
 /* ===================== SSR GUARD: role 1 & 2 ===================== */
 export async function getServerSideProps(ctx) {
-  const { ns: raw } = ctx.query;
-  const ns = Array.isArray(raw) ? raw[0] : raw;
-  const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
   const from = ctx.resolvedUrl || '/Admin/Persetujuan/hal-persetujuan';
 
-  if (!nsValid) {
+  const ns = getNsFromReq(ctx.req);
+  if (!ns || !NS_RE.test(ns)) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 
-  const cookieName = `admin_session__${nsValid}`;
-  const token = ctx.req.cookies?.[cookieName] || null;
-  if (!token) {
+  const auth = await verifyAuth(ctx.req, ['super_admin','admin_fitur'], 'admin');
+  if (!auth.ok) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 
-  try {
-    const secret = process.env.JWT_SECRET;
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), { algorithms: ['HS256'], clockTolerance: 10 });
+  const rId = Number(auth.payload?.role_id ?? 0);
+  const rStr = String(auth.payload?.role || '').toLowerCase();
+  const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
 
-    const rId = Number(payload?.role_id ?? 0);
-    const rStr = String(payload?.role || '').toLowerCase();
-    const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
-    const isFitur = rId === 2 || ['admin_fitur','admin-fitur','admin'].includes(rStr);
+  const serviceIds = isSuper
+    ? null
+    : (Array.isArray(auth.payload?.service_ids)
+        ? auth.payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean)
+        : []);
 
-    if (!isSuper && !isFitur) {
-      return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
-    }
-
-    const serviceIds = isSuper ? null : (Array.isArray(payload?.service_ids) ? payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean) : []);
-
-    return { props: { initialRoleId: isSuper ? 1 : 2, initialServiceIds: serviceIds } };
-  } catch {
-    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
-  }
+  return { props: { initialRoleId: isSuper ? 1 : 2, initialServiceIds: serviceIds } };
 }

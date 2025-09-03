@@ -16,6 +16,8 @@ export default async function handler(req, res) {
     bidocs: 'bimail',
     docs: 'bimail',
     mail: 'bimail',
+    dmove: 'bidrive',
+    bidrive: 'bidrive',
   };
   const service = SERVICE_ALIAS[rawSlug];
 
@@ -34,6 +36,19 @@ export default async function handler(req, res) {
     let params = [id];
 
     switch (service) {
+
+      case 'bidrive':
+        sql = `
+          SELECT 
+            b.*, 
+            u.name AS user_name, 
+            u.phone
+          FROM bidrive_bookings b
+          LEFT JOIN users u ON u.id = b.user_id
+          WHERE b.id = ? LIMIT 1
+        `;
+        break;
+
       case 'bicare':
         sql = `
           SELECT

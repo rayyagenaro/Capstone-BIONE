@@ -58,8 +58,17 @@ export async function middleware(req) {
   }
 
   // === 2) Ambil token untuk ns ===
-  const cookieName = `${isAdminArea ? 'admin' : 'user'}_session_${ns}`;
-  const token = req.cookies.get(cookieName)?.value;
+  const prefix = `${isAdminArea ? 'admin' : 'user'}_session_`;
+  const cookies = req.cookies.getAll();
+  const found = cookies.find(c => c.name.startsWith(prefix));
+
+  let token = null;
+  let cookieNs = null;
+
+  if (found) {
+    cookieNs = found.name.slice(prefix.length); // ambil ns dari nama cookie beneran
+    token = found.value;
+  }
 
   if (!token) {
     const url = req.nextUrl.clone();
@@ -69,10 +78,6 @@ export async function middleware(req) {
     r.headers.set('x-auth-reason', 'no-cookie-for-ns');
     return r;
   }
-
-  // === 2b) Cross-check ns di cookieName
-  const prefix = `${isAdminArea ? 'admin' : 'user'}_session_`;
-  const cookieNs = cookieName.startsWith(prefix) ? cookieName.slice(prefix.length) : '';
 
   if (cookieNs !== ns) {
     const r = NextResponse.redirect(
@@ -84,13 +89,6 @@ export async function middleware(req) {
     return r;
   }
 
-  if (!secretStr) {
-    const r = NextResponse.redirect(
-      redirectTo(isAdminArea ? '/Signin/hal-signAdmin' : '/Login/hal-login')
-    );
-    r.headers.set('x-auth-reason', 'missing-jwt-secret-in-middleware');
-    return r;
-  }
 
   // === 3) Verifikasi token ===
   const payload = await verifyToken(token, secretStr);

@@ -83,12 +83,11 @@ export async function resolveUser(ns, cookies) {
       scope: 'user',
       payload: { ...chosen.payload, roleNormalized: normalizeRole(chosen.payload?.role) },
       cookieName: chosen.cookieName,
-      ns: chosen.cookieName?.replace(/^user_session__/, '') || null,
+      ns: chosen.cookieName?.replace(/^user_session_/, '') || null,
     };
   }
 
   const token =
-    getCookie(cookies, `user_session__${ns}`) ||
     getCookie(cookies, `user_session_${ns}`) ||
     getCookie(cookies, 'user_session');
 
@@ -102,7 +101,7 @@ export async function resolveUser(ns, cookies) {
     scope: 'user',
     payload: { ...payload, roleNormalized: normalizeRole(payload.role) },
     cookieName: token
-      ? (getCookie(cookies, `user_session__${ns}`) ? `user_session__${ns}` : 'user_session')
+      ? (getCookie(cookies, `user_session_${ns}`) ? `user_session_${ns}` : 'user_session')
       : null,
     ns,
   };
@@ -112,7 +111,7 @@ export async function resolveUser(ns, cookies) {
 export async function resolveAdmin(ns, cookies) {
   if (!ns) {
     const chosen =
-      (await chooseLatestValidTokenPayload(getCookiesByPrefix(cookies, 'admin_session__'))) ||
+      (await chooseLatestValidTokenPayload(getCookiesByPrefix(cookies, 'admin_session_'))) ||
       (await (async () => {
         const legacy = getCookie(cookies, 'admin_session');
         const payload = await verifyOrNull(legacy);
@@ -128,12 +127,11 @@ export async function resolveAdmin(ns, cookies) {
       scope: normalizeRole(chosen.payload?.role),
       payload: { ...chosen.payload, roleNormalized: normalizeRole(chosen.payload?.role) },
       cookieName: chosen.cookieName,
-      ns: chosen.cookieName?.replace(/^admin_session__/, '') || null,
+      ns: chosen.cookieName?.replace(/^admin_session_/, '') || null,
     };
   }
 
   const token =
-    getCookie(cookies, `admin_session__${ns}`) ||
     getCookie(cookies, `admin_session_${ns}`) ||
     getCookie(cookies, 'admin_session');
 
@@ -147,7 +145,7 @@ export async function resolveAdmin(ns, cookies) {
     scope: normalizeRole(payload.role),
     payload: { ...payload, roleNormalized: normalizeRole(payload.role) },
     cookieName: token
-      ? (getCookie(cookies, `admin_session__${ns}`) ? `admin_session__${ns}` : 'admin_session')
+      ? (getCookie(cookies, `admin_session_${ns}`) ? `admin_session_${ns}` : 'admin_session')
       : null,
     ns,
   };
