@@ -205,7 +205,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
   })();
   const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
-  // slug (aliaskan 'dmove' -> 'bidrive' untuk tampilan; A  PI tetap pakai 'dmove')
+  // slug (aliaskan 'dmove' -> 'bidrive' untuk tampilan; API tetap pakai 'dmove')
   const raw = (typeof qslug === 'string' ? qslug : '').toLowerCase();
   const normalized = raw === 'dmove' ? 'bidrive' : raw;
   const slug = ALLOWED_SLUGS.includes(normalized) ? (normalized === 'dmove' ? 'bidrive' : normalized) : 'bidrive';

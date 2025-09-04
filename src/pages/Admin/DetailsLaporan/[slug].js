@@ -22,7 +22,7 @@ export async function getServerSideProps(ctx) {
     };
   }
 
-  const cookieName = `admin_session__${ns}`;
+  const cookieName = `admin_session_${ns}`;
   const token = ctx.req.cookies?.[cookieName] || null;
 
   if (!token) {

@@ -180,7 +180,7 @@ const ADMIN_DETAIL_ROUTES = {
   bimeal: (id) => `/Admin/Fitur/bimeal/detail?id=${id}`,
   bistay: (id) => `/Admin/Fitur/bistay/detail?id=${id}`,
   bimail: (id) => `/Admin/Fitur/bimail/detail?id=${id}`,
-  bidrive: (id) => `/Admin/DetailsLaporan/hal-detailslaporan?id=${id}`,
+  bidrive: (id) => `/Admin/Fitur/bidrive/detail?id=${id}`,
 };
 
 export default function PersetujuanBooking({ initialRoleId = null, initialServiceIds = null }) {

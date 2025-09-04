@@ -5,7 +5,7 @@ import { resolveAdmin, parseCookieHeader } from '@/lib/resolve';
 import { NS_RE } from '@/lib/ns';
 
 // Slug layanan yang didukung (termasuk bimeal)
-const ALLOWED_SLUGS = new Set(['dmove', 'bicare', 'bimeal', 'bimeet', 'bimail', 'bistay']);
+const ALLOWED_SLUGS = new Set(['bidrive', 'bicare', 'bimeal', 'bimeet', 'bimail', 'bistay']);
 
 export default function HalamanDetailLayanan({ slug, ns, id }) {
   return <DetailsLaporan slug={slug} ns={ns} id={id} />;
