@@ -1,6 +1,6 @@
-// pages/api/BIstaybook/bistaybooking.js
 import db from '@/lib/db';
-import { jwtVerify } from 'jose';
+import { verifyAuth } from '@/lib/auth';
+import { getNsFromReq } from '@/lib/ns-server';
 
 /* ---------- Helpers ---------- */
 function toMySQLDateTime(value) {
@@ -8,37 +8,6 @@ function toMySQLDateTime(value) {
   if (isNaN(d)) return null;
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-function getNsFromReq(req) {
-  const q = req.query?.ns ?? req.body?.ns ?? req.cookies?.current_user_ns;
-  return (typeof q === 'string' && NS_RE.test(q)) ? q : '';
-}
-function pickAnyUserSessionCookie(cookies = {}) {
-  const key = Object.keys(cookies).find((k) => /^user_session__/.test(k));
-  return key ? cookies[key] : null;
-}
-async function getUserIdFromCookie(req) {
-  try {
-    const ns = getNsFromReq(req);
-    const token =
-      (ns && req.cookies?.[`user_session__${ns}`]) ||
-      req.cookies?.user_session ||
-      pickAnyUserSessionCookie(req.cookies);
-    if (!token) return null;
-
-    const secret = process.env.JWT_SECRET;
-    if (!secret) return null;
-
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
-      algorithms: ['HS256'],
-      clockTolerance: 10,
-    });
-    return payload?.sub || payload?.user_id || payload?.id || null;
-  } catch {
-    return null;
-  }
 }
 
 function toInt(value, fallback) {
@@ -49,23 +18,27 @@ const ALLOWED_SORT = new Set(['id', 'nama_pemesan', 'nip', 'check_in', 'check_ou
 
 /* ---------- Handler ---------- */
 export default async function handler(req, res) {
-  // ===== GET: list/detail =====
+  /* ===================== GET ===================== */
   if (req.method === 'GET') {
     try {
-      const {
-        id,
-        page = '1',
-        limit = '10',
-        q = '',
-        from = '',
-        to = '',
-        orderBy = 'created_at',
-        order = 'DESC',
-        mine = '0',
-      } = req.query || {};
+      const isAdminScope = String(req.query?.scope || '').toLowerCase() === 'admin';
+      const auth = isAdminScope
+        ? await verifyAuth(req, ['super_admin','admin_fitur'], 'admin')
+        : await verifyAuth(req, ['user'], 'user');
+
+      if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+
+      const requestedUserId = req.query.userId ? Number(req.query.userId) : null;
+      const listForUserId =
+        isAdminScope && Number.isFinite(requestedUserId) && requestedUserId > 0
+          ? requestedUserId
+          : !isAdminScope
+          ? auth.userId
+          : null;
+
+      const { id, page = '1', limit = '10', q = '', from = '', to = '', orderBy = 'created_at', order = 'DESC' } = req.query || {};
 
       if (id) {
-        // ---- ambil detail ----
         const [rows] = await db.execute(
           `SELECT b.id, b.user_id, b.nama_pemesan, b.nip, b.no_wa,
                   b.status_pegawai_id, sp.status AS status_pegawai,
@@ -78,17 +51,14 @@ export default async function handler(req, res) {
         );
         if (!rows?.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
 
-        if (mine === '1') {
-          const uid = await getUserIdFromCookie(req);
-          if (!uid || String(rows[0].user_id ?? '') !== String(uid)) {
-            return res.status(403).json({ error: 'Tidak berhak mengakses data ini.' });
-          }
+        // user biasa hanya boleh lihat miliknya
+        if (auth.role === 'user' && String(rows[0].user_id) !== String(auth.userId)) {
+          return res.status(403).json({ error: 'Tidak berhak mengakses data ini.' });
         }
 
         return res.status(200).json({ ok: true, data: rows[0] });
       }
 
-      // ---- list ----
       const pageNum = toInt(page, 1);
       const limitNum = toInt(limit, 10);
       const offset = (pageNum - 1) * limitNum;
@@ -109,11 +79,9 @@ export default async function handler(req, res) {
         where.push(`b.check_out <= ?`);
         params.push(toMySQLDateTime(to));
       }
-      if (mine === '1') {
-        const uid = await getUserIdFromCookie(req);
-        if (!uid) return res.status(401).json({ error: 'Butuh login untuk melihat data Anda.' });
+      if (listForUserId) {
         where.push(`b.user_id = ?`);
-        params.push(uid);
+        params.push(listForUserId);
       }
 
       const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -149,9 +117,16 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== PUT: update status_id =====
+  /* ===================== PUT ===================== */
   if (req.method === 'PUT') {
     try {
+      const isAdminScope = String(req.query?.scope || '').toLowerCase() === 'admin';
+      const auth = isAdminScope
+        ? await verifyAuth(req, ['super_admin','admin_fitur'], 'admin')
+        : await verifyAuth(req, ['user'], 'user');
+
+      if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
       const bookingId = Number.parseInt(body?.bookingId, 10);
       const newStatusId = Number.parseInt(body?.newStatusId, 10);
@@ -163,21 +138,19 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'newStatusId harus 1|2|3|4' });
       }
 
-      const uid = await getUserIdFromCookie(req);
-      if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-
       const [own] = await db.execute('SELECT id, user_id FROM bistay_bookings WHERE id = ? LIMIT 1', [bookingId]);
       if (!own?.length) return res.status(404).json({ error: 'Booking tidak ditemukan' });
-      if (String(own[0].user_id) !== String(uid)) {
+
+      if (auth.role === 'user' && String(own[0].user_id) !== String(auth.userId)) {
         return res.status(403).json({ error: 'Tidak boleh mengubah booking ini' });
       }
 
       const [result] = await db.execute(
-        'UPDATE bistay_bookings SET status_id = ?, updated_at = NOW() WHERE id = ? AND user_id = ?',
-        [newStatusId, bookingId, uid]
+        'UPDATE bistay_bookings SET status_id = ?, updated_at = NOW() WHERE id = ?',
+        [newStatusId, bookingId]
       );
       if (result.affectedRows === 0) {
-        return res.status(409).json({ error: 'Gagal mengubah status (tidak ada baris terpengaruh)' });
+        return res.status(409).json({ error: 'Gagal mengubah status' });
       }
 
       return res.status(200).json({ ok: true, id: bookingId, status_id: newStatusId });
@@ -187,11 +160,18 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== POST: create =====
+  /* ===================== POST ===================== */
   if (req.method === 'POST') {
     try {
+      const isAdminScope = String(req.query?.scope || '').toLowerCase() === 'admin';
+      const auth = isAdminScope
+        ? await verifyAuth(req, ['super_admin','admin_fitur'], 'admin')
+        : await verifyAuth(req, ['user'], 'user');
+
+      if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
+
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-      const { user_id, nama_pemesan, nip, no_wa, status, asal_kpw, check_in, check_out, keterangan, status_id, ns } = body;
+      const { user_id, nama_pemesan, nip, no_wa, status, asal_kpw, check_in, check_out, keterangan, status_id } = body;
 
       const missing = [];
       if (!nama_pemesan?.trim()) missing.push('nama_pemesan');
@@ -209,7 +189,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'check_out harus setelah check_in' });
       }
 
-      // map status (pegawai) → status_pegawai_id
       let statusPegId = Number(status);
       if (!statusPegId) {
         const [rows] = await db.execute('SELECT id FROM bistay_status_pegawai WHERE status = ? LIMIT 1', [String(status)]);
@@ -217,18 +196,15 @@ export default async function handler(req, res) {
         statusPegId = rows[0].id;
       }
 
-      // user_id dari cookie jika tidak dikirim
-      let finalUserId = user_id ?? null;
-      if (finalUserId == null) {
-        finalUserId = await getUserIdFromCookie({ ...req, body: { ...req.body, ns } });
-      }
+      // 🔐 user biasa → userId dari token, admin boleh override
+      const finalUserId = !isAdminScope ? auth.userId : (user_id || auth.userId);
 
       const [result] = await db.execute(
         `INSERT INTO bistay_bookings
           (user_id, nama_pemesan, nip, no_wa, status_pegawai_id, asal_kpw, check_in, check_out, keterangan, status_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          finalUserId ?? null,
+          finalUserId,
           nama_pemesan.trim(),
           nip.trim(),
           no_wa.trim(),

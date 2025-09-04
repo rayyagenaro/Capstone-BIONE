@@ -1,4 +1,3 @@
-// /pages/api/bimeet/createbooking.js
 import db from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
 
@@ -19,32 +18,36 @@ export default async function handler(req, res) {
 
       if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
 
-      const { userId, role } = auth;
+      const requestedUserId = req.query.userId ? Number(req.query.userId) : null;
+      const listForUserId =
+        isAdminScope && Number.isFinite(requestedUserId) && requestedUserId > 0
+          ? requestedUserId
+          : !isAdminScope
+          ? auth.userId
+          : null;
+
       const statusMap = { pending: 1, approved: 2, rejected: 3, finished: 4 };
       const statusKey = String(req.query.status || '').toLowerCase();
       const statusId = statusMap[statusKey] ?? null;
       const bookingId = req.query.bookingId ? Number(req.query.bookingId) : null;
 
-      let whereSQL = '';
       const params = [];
+      const where = [];
 
-      // filter booking by user
-      if (role === 'user') {
-        whereSQL = 'WHERE b.user_id = ?';
-        params.push(userId);
+      if (listForUserId) {
+        where.push('b.user_id = ?');
+        params.push(listForUserId);
       }
-
-      // filter by status
       if (statusId) {
-        whereSQL += whereSQL ? ' AND b.status_id = ?' : 'WHERE b.status_id = ?';
+        where.push('b.status_id = ?');
         params.push(statusId);
       }
-
-      // filter by id
       if (bookingId) {
-        whereSQL += whereSQL ? ' AND b.id = ?' : 'WHERE b.id = ?';
+        where.push('b.id = ?');
         params.push(bookingId);
       }
+
+      const whereSQL = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
       const [rows] = await db.query(
         `
@@ -75,10 +78,16 @@ export default async function handler(req, res) {
   /* ===================== POST ===================== */
   if (req.method === 'POST') {
     try {
-      const auth = await verifyAuth(req, ['user'], 'user');
+      const isAdminScope = String(req.query?.scope || '').toLowerCase() === 'admin';
+      const auth = isAdminScope
+        ? await verifyAuth(req, ['super_admin','admin_fitur'], 'admin')
+        : await verifyAuth(req, ['user'], 'user');
+
       if (!auth.ok) return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
 
-      const userId = auth.userId;
+      // 🔐 user biasa: pakai id dari token, admin: boleh override body.user_id
+      const userId = !isAdminScope ? auth.userId : (req.body?.user_id || auth.userId);
+
       const {
         room_id, unit_kerja, title, description,
         start_date, end_date, participants,

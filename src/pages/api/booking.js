@@ -1,5 +1,5 @@
-// /pages/api/booking.js
 import db from "@/lib/db";
+import { verifyAuth } from "@/lib/auth";
 
 /** helper untuk insert bvt saat create booking */
 function formatInsertBookingVehicleTypes(bookingId, vehicleDetails) {
@@ -22,14 +22,18 @@ function formatInsertBookingVehicleTypes(bookingId, vehicleDetails) {
 export default async function handler(req, res) {
   const action = String(req.query.action || req.body?.action || "").toLowerCase();
 
-  // ===================== ASSIGN (POST?action=assign) =====================
+  // ===================== ASSIGN =====================
   if (req.method === "POST" && action === "assign") {
+    // 🔐 hanya admin boleh assign
+    const auth = await verifyAuth(req, ["super_admin", "admin_fitur"], "admin");
+    if (!auth.ok) return res.status(401).json({ error: "Unauthorized" });
+
     const {
       bookingId,
       driverIds = [],
       vehicleIds = [],
       keterangan,
-      updateStatusTo, // contoh: 2 untuk Approved
+      updateStatusTo,
     } = req.body || {};
 
     const bid = Number(bookingId);
@@ -39,10 +43,8 @@ export default async function handler(req, res) {
 
     const conn = await db.getConnection();
     try {
-      // (kalau engine-mu MyISAM, transaksi diabaikan—tidak masalah)
       await conn.beginTransaction();
 
-      // Optional: update status & keterangan
       if (updateStatusTo) {
         await conn.query(
           "UPDATE bidrive_bookings SET status_id = ?, keterangan = COALESCE(?, keterangan) WHERE id = ?",
@@ -50,8 +52,6 @@ export default async function handler(req, res) {
         );
       }
 
-      // Simpan kendaraan ditugaskan
-      let insertedVehicles = 0;
       if (Array.isArray(vehicleIds) && vehicleIds.length) {
         const vals = vehicleIds.map((vid) => [bid, Number(vid), null]);
         await conn.query(
@@ -59,11 +59,8 @@ export default async function handler(req, res) {
            VALUES ${vals.map(() => "(?,?,?)").join(",")}`,
           vals.flat()
         );
-        insertedVehicles = vehicleIds.length;
       }
 
-      // Simpan driver ditugaskan
-      let insertedDrivers = 0;
       if (Array.isArray(driverIds) && driverIds.length) {
         const vals = driverIds.map((did) => [bid, null, Number(did)]);
         await conn.query(
@@ -71,15 +68,10 @@ export default async function handler(req, res) {
            VALUES ${vals.map(() => "(?,?,?)").join(",")}`,
           vals.flat()
         );
-        insertedDrivers = driverIds.length;
       }
 
       await conn.commit();
-      return res.status(200).json({
-        ok: true,
-        insertedVehicles,
-        insertedDrivers,
-      });
+      return res.status(200).json({ ok: true });
     } catch (e) {
       await conn.rollback();
       console.error("Assign error:", e);
@@ -91,23 +83,39 @@ export default async function handler(req, res) {
 
   // ===================== GET =====================
   if (req.method === "GET") {
-    const { userId, bookingId, status } = req.query;
+    const isAdminScope = String(req.query?.scope || "").toLowerCase() === "admin";
+    const auth = isAdminScope
+      ? await verifyAuth(req, ["super_admin", "admin_fitur"], "admin")
+      : await verifyAuth(req, ["user"], "user");
+
+    if (!auth.ok) return res.status(401).json({ error: "Unauthorized" });
+
+    const requestedUserId = req.query.userId ? Number(req.query.userId) : null;
+    const listForUserId =
+      isAdminScope && Number.isFinite(requestedUserId) && requestedUserId > 0
+        ? requestedUserId
+        : !isAdminScope
+        ? auth.userId
+        : null;
+
+    const { bookingId, status } = req.query;
 
     try {
-      let whereClause = "";
       const queryParams = [];
+      const where = [];
 
       if (bookingId) {
-        whereClause = "WHERE b.id = ?";
+        where.push("b.id = ?");
         queryParams.push(bookingId);
-      } else if (userId) {
-        whereClause = "WHERE b.user_id = ?";
-        queryParams.push(userId);
-      } else if (status === "pending") {
-        whereClause = "WHERE b.status_id = 1";
-      } else if (status === "finished") {
-        whereClause = "WHERE b.status_id = 4";
       }
+      if (listForUserId) {
+        where.push("b.user_id = ?");
+        queryParams.push(listForUserId);
+      }
+      if (status === "pending") where.push("b.status_id = 1");
+      if (status === "finished") where.push("b.status_id = 4");
+
+      const whereSQL = where.length ? "WHERE " + where.join(" AND ") : "";
 
       const query = `
         SELECT
@@ -126,7 +134,7 @@ export default async function handler(req, res) {
         LEFT JOIN users u ON b.user_id = u.id
         LEFT JOIN bidrive_booking_vehicle_types bv ON b.id = bv.booking_id
         LEFT JOIN bidrive_vehicle_types vt ON bv.vehicle_type_id = vt.id
-        ${whereClause}
+        ${whereSQL}
         GROUP BY b.id
         ORDER BY b.created_at DESC
       `;
@@ -154,50 +162,57 @@ export default async function handler(req, res) {
         };
       });
 
-      const responseData = bookingId ? processedResults[0] : processedResults;
-      return res.status(200).json(responseData);
+      return res.status(200).json(bookingId ? processedResults[0] : processedResults);
     } catch (error) {
       console.error("Get Bookings API Error:", error);
-      return res
-        .status(500)
-        .json({ error: "Gagal mengambil data booking.", details: error.message });
+      return res.status(500).json({ error: "Gagal mengambil data booking.", details: error.message });
     }
   }
 
-  // ===================== PUT (update status) =====================
+  // ===================== PUT =====================
   if (req.method === "PUT") {
-    const { bookingId, newStatusId } = req.body;
+    const auth = await verifyAuth(req, ["user", "super_admin", "admin_fitur"], "user");
+    if (!auth.ok) return res.status(401).json({ error: "Unauthorized" });
 
+    const { bookingId, newStatusId } = req.body;
     if (!bookingId || !newStatusId) {
-      return res
-        .status(400)
-        .json({ error: "Booking ID dan Status baru diperlukan." });
+      return res.status(400).json({ error: "Booking ID dan Status baru diperlukan." });
     }
 
     try {
+      const [[own]] = await db.query(
+        "SELECT id, user_id FROM bidrive_bookings WHERE id = ? LIMIT 1",
+        [bookingId]
+      );
+      if (!own) return res.status(404).json({ error: "Booking tidak ditemukan" });
+
+      if (auth.role === "user" && String(own.user_id) !== String(auth.userId)) {
+        return res.status(403).json({ error: "Booking bukan milik Anda" });
+      }
+
       const query = "UPDATE bidrive_bookings SET status_id = ? WHERE id = ?";
       const [result] = await db.query(query, [newStatusId, bookingId]);
 
       if (result.affectedRows === 0) {
-        return res
-          .status(404)
-          .json({ error: "Booking tidak ditemukan untuk diupdate." });
+        return res.status(409).json({ error: "Tidak ada baris yang berubah" });
       }
 
-      return res
-        .status(200)
-        .json({ message: "Status booking berhasil diperbarui." });
+      return res.status(200).json({ message: "Status booking berhasil diperbarui." });
     } catch (error) {
       console.error("Update Booking Status Error:", error);
-      return res
-        .status(500)
-        .json({ error: "Gagal memperbarui status booking.", details: error.message });
+      return res.status(500).json({ error: "Gagal memperbarui status booking.", details: error.message });
     }
   }
 
-  // ===================== POST (create booking baru) =====================
+  // ===================== POST (create booking) =====================
   if (req.method === "POST") {
-    // jika bukan action=assign (sudah ditangani di atas)
+    const isAdminScope = String(req.query?.scope || "").toLowerCase() === "admin";
+    const auth = isAdminScope
+      ? await verifyAuth(req, ["super_admin", "admin_fitur"], "admin")
+      : await verifyAuth(req, ["user"], "user");
+
+    if (!auth.ok) return res.status(401).json({ error: "Unauthorized" });
+
     const {
       user_id,
       tujuan,
@@ -209,9 +224,11 @@ export default async function handler(req, res) {
       phone,
       keterangan,
       file_link,
-      vehicle_details, // [{id, quantity}]
+      vehicle_details,
       jumlah_driver,
     } = req.body;
+
+    const finalUserId = !isAdminScope ? auth.userId : (user_id || auth.userId);
 
     const connection = await db.getConnection();
     try {
@@ -224,8 +241,8 @@ export default async function handler(req, res) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       const bookingValues = [
-        user_id,
-        1, // Pending
+        finalUserId,
+        1,
         tujuan,
         jumlah_orang,
         jumlah_kendaraan,
@@ -249,15 +266,11 @@ export default async function handler(req, res) {
       }
 
       await connection.commit();
-      return res
-        .status(201)
-        .json({ id: newBookingId, message: "Booking berhasil dibuat." });
+      return res.status(201).json({ id: newBookingId, message: "Booking berhasil dibuat." });
     } catch (error) {
       await connection.rollback();
       console.error("Booking API Error (Transaction):", error);
-      return res
-        .status(500)
-        .json({ error: "Gagal menyimpan data booking.", details: error.message });
+      return res.status(500).json({ error: "Gagal menyimpan data booking.", details: error.message });
     } finally {
       connection.release();
     }

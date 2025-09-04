@@ -37,6 +37,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
 
+    // tentukan userId target
     const requestedUserId = req.query.userId ? Number(req.query.userId) : null;
     const listForUserId =
       isAdminScope && Number.isFinite(requestedUserId) && requestedUserId > 0
@@ -81,8 +82,8 @@ export default async function handler(req, res) {
       const ids = bookings.map((r) => r.id);
       const [items] = await conn.query(
         `SELECT booking_id, nama_pesanan, jumlah, satuan
-        FROM bimeal_booking_items
-        WHERE booking_id IN (?)`,
+         FROM bimeal_booking_items
+         WHERE booking_id IN (?)`,
         [ids]
       );
 
@@ -110,7 +111,6 @@ export default async function handler(req, res) {
     const auth = await verifyAuth(req, ['user'], 'user');
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
-      console.warn('Unauthorized POST /bimeal/book:', auth.reason);
       return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
     const userId = Number(auth.userId);
@@ -158,7 +158,6 @@ export default async function handler(req, res) {
         );
       }
 
-
       await conn.commit();
       return res.status(201).json({ ok: true, booking_id: bookingId, status_id: PENDING_STATUS_ID });
     } catch (e) {
@@ -175,7 +174,6 @@ export default async function handler(req, res) {
     const auth = await verifyAuth(req, ['user', 'super_admin', 'admin_fitur'], 'user');
     if (!auth.ok) {
       res.setHeader('Allow', ['GET', 'POST', 'PUT']);
-      console.warn('Unauthorized PUT /bimeal/book:', auth.reason);
       return res.status(401).json({ error: 'Unauthorized', reason: auth.reason });
     }
 
