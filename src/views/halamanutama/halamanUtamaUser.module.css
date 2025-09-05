@@ -1,27 +1,23 @@
 .background {
   min-height: 100vh;
-  /* Pakai posisi relative untuk overlay */
   position: relative;
   z-index: 0;
-  /* Tetap gunakan gradient agar efeknya sama */
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
   overflow: hidden;
 }
 
-/* Tambahkan ini di akhir file css kamu */
 .background::before {
   content: "";
-  position: fixed; /* Supaya gambar tetap dan full */
+  position: fixed;
   left: 0; top: 0; right: 0; bottom: 0;
   width: 100vw;
   height: 100vh;
   z-index: -2;
   background: url('/assets/bankindonesia.png') center center / cover no-repeat;
-  opacity: 0.35;      /* Atur transparansi gambar biar tidak terlalu gelap/terang */
-  pointer-events: none; /* Supaya ga ganggu klik apapun */
+  opacity: 0.35;
+  pointer-events: none;
 }
 
-/* Supaya gradient tetap terlihat di atas gambar */
 .background::after {
   content: "";
   position: fixed;
@@ -30,7 +26,7 @@
   height: 100vh;
   z-index: -1;
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
-  opacity: 0.7;      /* atur sesuai kebutuhan supaya gabungannya halus */
+  opacity: 0.7;
   pointer-events: none;
 }
 
@@ -48,73 +44,21 @@
   bottom: 0;
   z-index: 99;
 }
-.logoSidebar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  height: 92px;
-  padding-left: 28px;
-  padding-top: 18px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #ececec;
-}
-.logoDone {
-  width: 160px !important;
-  height: 160px !important;
-  object-fit: contain;
-}
-.navMenu {
-  flex: 1;
-  width: 100%;
-  margin-top: 10px;
-}
-.navMenu ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.navMenu li {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 30px 14px 28px;
-  font-size: 17px;
-  color: #888b96;
-  cursor: pointer;
-  border-radius: 0 28px 28px 0;
-  transition: background .15s, color .15s;
-  margin-bottom: 2px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-.menuIcon {
-  font-size: 20px;
-}
-.navMenu li.active,
-.navMenu li:hover {
-  background: #2f4d8e;
-  color: #fff;
-}
-.logout {
-  margin: 20px 0 28px 28px;
-  color: #ed6257;
-  font-weight: 600;
-  font-size: 17px;
-  cursor: pointer;
-  letter-spacing: 0.01em;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.logoutIcon {
-  font-size: 20px;
-}
+.logoSidebar { display: flex; align-items: center; justify-content: flex-start; height: 92px; padding-left: 28px; padding-top: 18px; padding-bottom: 14px; border-bottom: 1px solid #ececec; }
+.logoDone { width: 160px !important; height: 160px !important; object-fit: contain; }
+.navMenu { flex: 1; width: 100%; margin-top: 10px; }
+.navMenu ul { list-style: none; padding: 0; margin: 0; }
+.navMenu li { display: flex; align-items: center; gap: 16px; padding: 14px 30px 14px 28px; font-size: 17px; color: #888b96; cursor: pointer; border-radius: 0 28px 28px 0; transition: background .15s, color .15s; margin-bottom: 2px; font-weight: 500; letter-spacing: 0.01em; }
+.menuIcon { font-size: 20px; }
+.navMenu li.active, .navMenu li:hover { background: #2f4d8e; color: #fff; }
+.logout { margin: 20px 0 28px 28px; color: #ed6257; font-weight: 600; font-size: 17px; cursor: pointer; letter-spacing: 0.01em; display: flex; align-items: center; gap: 10px; }
+.logoutIcon { font-size: 20px; }
+
 .header {
   position: fixed;
   top: 0;
-  left: 255px; /* width sidebar */
+  left: 255px;
   right: 0;
-  /* height: 92px; */
   background: #fff;
   display: flex;
   align-items: center;
@@ -124,16 +68,9 @@
   box-shadow: 0 1px 4px 0 rgba(47,77,142,0.04);
   z-index: 10;
 }
-.logoBIWrapper {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.logoBI {
-  width: 170px !important;
-  height: 34px !important;
-  object-fit: contain;
-}
+.logoBIWrapper { display: flex; align-items: center; gap: 16px; }
+.logoBI { width: 170px !important; height: 34px !important; object-fit: contain; }
+
 .mainContent {
   flex: 1;
   min-width: 0;
@@ -152,42 +89,19 @@
   box-shadow: 0 2px 16px rgba(47,77,142,0.07);
   padding: 34px 40px 36px 40px;
 }
-.greeting {
-  color: #2f4d8e;
-  font-weight: 700;
-  font-size: 28px;
-  text-align: center;
-  margin-bottom: 22px;
-  letter-spacing: 0.01em;
-}
-.servicesBox {
-  width: 100%;
-  margin-top: 0;
-}
-.servicesTitle {
-  font-size: 20px;
-  font-weight: 700;
-  color: #23263b;
-  margin-bottom: 9px;
-  text-align: left;
-}
-.servicesDesc {
-  color: #828282;
-  font-size: 15px;
-  margin-bottom: 28px;
-}
+.greeting { color: #2f4d8e; font-weight: 700; font-size: 28px; text-align: center; margin-bottom: 22px; letter-spacing: 0.01em; }
+.servicesBox { width: 100%; margin-top: 0; }
+.servicesTitle { font-size: 20px; font-weight: 700; color: #23263b; margin-bottom: 9px; text-align: left; }
+.servicesDesc { color: #828282; font-size: 15px; margin-bottom: 28px; }
+
 .cardsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 34px 24px;
   margin-top: 10px;
 }
-/* RESPONSIVE jika <900px lebar, jadi 1 kolom */
-@media (max-width: 900px) {
-  .cardsGrid {
-    grid-template-columns: 1fr;
-  }
-}
+@media (max-width: 900px) { .cardsGrid { grid-template-columns: 1fr; } }
+
 .card {
   background: #fafbff;
   border: 1.4px solid #dbe2f2;
@@ -200,28 +114,10 @@
   min-height: 215px;
   min-width: 0;
 }
-.cardLogo {
-  width: 500px !important;
-  height: 100px !important;
-  /* margin-bottom: 12px; */
-  object-fit: contain;
-}
-.cardTitle {
-  color: #2f4d8e;
-  font-size: 16px;
-  font-weight: 700;
-  /* margin-bottom: 7px; */
-  text-align: center;
-  /* min-height: 36px; */
-  letter-spacing: 0.01em;
-}
-.cardDesc {
-  color: #6b6b6b;
-  font-size: 14px;
-  text-align: center;
-  min-height: 36px;
-  margin-bottom: 16px;
-}
+.cardLogo { width: 500px !important; height: 100px !important; object-fit: contain; }
+.cardTitle { color: #2f4d8e; font-size: 16px; font-weight: 700; text-align: center; letter-spacing: 0.01em; }
+.cardDesc { color: #6b6b6b; font-size: 14px; text-align: center; min-height: 36px; margin-bottom: 16px; }
+
 .bookingBtn {
   background: #2f4d8e;
   color: #fff;
@@ -237,154 +133,93 @@
   transition: background 0.15s;
   box-shadow: 0 1px 4px 0 rgba(47,77,142,0.05);
 }
-.bookingBtn:hover {
+.bookingBtn:hover { background: #233969; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1200px) {
+  .welcomeBox { padding: 16px 2vw 18px 2vw; width: 98vw; }
+  .cardsGrid { gap: 18px 10px; }
+  .header { padding: 0 10px 0 255px; }
+  .logoBI { width: 110px !important; height: 22px !important; }
+}
+@media (max-width: 900px) { .cardsGrid { grid-template-columns: 1fr; } }
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .header { left: 0; padding: 0 4px; height: 64px; }
+  .logoBI { width: 70px !important; height: 13px !important; }
+  .welcomeBox { margin: 8px 0; border-radius: 10px; padding: 10px 1vw 14px 1vw; }
+}
+
+/* Popup styles (dipertahankan) */
+.popupOverlay { position: fixed; z-index: 1400; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(40, 54, 82, 0.15); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2.2px); animation: popupfade 0.19s; }
+@keyframes popupfade { from { opacity: 0; } to { opacity: 1; } }
+.popupBox { background: #fff; border-radius: 22px; box-shadow: 0 4px 32px 0 rgba(60,60,60,0.10), 0 1.5px 6px 0 rgba(70,90,150,0.05); text-align: center; width: 97vw; max-width: 370px; padding: 36px 22px 28px 22px; box-sizing: border-box; animation: fadeinpop .23s cubic-bezier(0.23,1,0.32,1); position: relative; }
+@keyframes fadeinpop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.popupIcon { display: flex; justify-content: center; align-items: center; margin-bottom: 13px; margin-top: 2px; }
+.popupIcon svg { filter: drop-shadow(0 2px 12px #ffe4807a); }
+.popupMsg { font-size: 1.13rem; color: #253e70; margin-bottom: 25px; margin-top: 5px; font-weight: 500; letter-spacing: 0.01em; }
+.popupButtonRow { display: flex; gap: 18px; justify-content: center; margin-top: 2px; }
+.cancelButton, .logoutButton { border: none; outline: none; border-radius: 18px; padding: 10px 28px; font-size: 1rem; font-weight: 600; cursor: pointer; min-width: 110px; box-shadow: 0 1.5px 6px 0 rgba(70,90,150,0.06); transition: background 0.17s, color 0.14s, box-shadow 0.18s; }
+.cancelButton { background: #f6f8fd; color: #2F4D8E; border: 1.7px solid #e4e6ef; }
+.cancelButton:hover { background: #edf2fa; color: #16336c; }
+.logoutButton { background: linear-gradient(90deg, #2F4D8E 70%, #3f65b7 100%); color: #fff; border: none; }
+.logoutButton:hover { background: linear-gradient(90deg, #244073 70%, #3f65b7 100%); color: #fff; box-shadow: 0 2px 16px #d1e0ff3b; }
+@media (max-width: 600px) {
+  .popupBox { max-width: 99vw; padding: 16px 8px 18px 8px; font-size: 0.99rem; }
+  .popupMsg { font-size: 1.03rem; }
+  .popupIcon svg { width: 44px !important; height: 44px !important; }
+  .cancelButton, .logoutButton { padding: 9px 0; min-width: 90px; font-size: .95rem; }
+}
+
+/* === ACTION BUTTONS (2 tombol sejajar di dalam kartu) === */
+.actionsRow{
+  width: 100%;
+  display: flex;
+  justify-content: center; 
+  gap: 22px;               
+  margin-top: 10px;
+}
+
+.btn{
+  display: inline-block;
+  flex: 1 1 0;
+  max-width: 240px;        
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: .2px;
+  text-align: center;
+  text-decoration: none;   
+  cursor: pointer;
+  transition: background-color .18s ease, box-shadow .18s ease, transform .02s;
+  box-shadow: 0 1px 4px rgba(47,77,142,0.08);
+  border: none;
+}
+
+.btnPrimary{
+  background: #233969;
+  color: #fff;
+}
+.btnSecondary{
+  background: #d4dcee;
+  color: #233969;
+}
+
+.btnPrimary:hover,
+.btnSecondary:hover{
   background: #233969;
 }
 
-/* RESPONSIVE */
-@media (max-width: 1200px) {
-  .welcomeBox {
-    padding: 16px 2vw 18px 2vw;
-    width: 98vw;
-  }
-  .cardsGrid {
-    gap: 18px 10px;
-  }
-  .header {
-    padding: 0 10px 0 255px;
-  }
-  .logoBI {
-    width: 110px !important;
-    height: 22px !important;
-  }
-}
-@media (max-width: 900px) {
-  .cardsGrid {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 700px) {
-  .sidebar {
-    display: none;
-  }
-  .header {
-    left: 0;
-    padding: 0 4px 0 4px;
-    height: 64px;
-  }
-  .logoBI {
-    width: 70px !important;
-    height: 13px !important;
-  }
-  .welcomeBox {
-    margin: 8px 0;
-    border-radius: 10px;
-    padding: 10px 1vw 14px 1vw;
-  }
-}
-.popupOverlay {
-  position: fixed;
-  z-index: 1400;
-  left: 0; top: 0; width: 100vw; height: 100vh;
-  background: rgba(40, 54, 82, 0.15);
-  display: flex; align-items: center; justify-content: center;
-  backdrop-filter: blur(2.2px);
-  animation: popupfade 0.19s;
-}
-@keyframes popupfade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.btn:disabled{
+  opacity: .6;
+  cursor: not-allowed;
 }
 
-.popupBox {
-  background: #fff;
-  border-radius: 22px;
-  box-shadow: 0 4px 32px 0 rgba(60,60,60,0.10), 0 1.5px 6px 0 rgba(70,90,150,0.05);
-  text-align: center;
-  width: 97vw;
-  max-width: 370px;
-  padding: 36px 22px 28px 22px;
-  box-sizing: border-box;
-  animation: fadeinpop .23s cubic-bezier(0.23,1,0.32,1);
-  position: relative;
-}
 
-@keyframes fadeinpop {
-  from { transform: scale(0.92); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
-}
-
-.popupIcon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 13px;
-  margin-top: 2px;
-}
-.popupIcon svg {
-  filter: drop-shadow(0 2px 12px #ffe4807a);
-}
-.popupMsg {
-  font-size: 1.13rem;
-  color: #253e70;
-  margin-bottom: 25px;
-  margin-top: 5px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-
-.popupButtonRow {
-  display: flex;
-  gap: 18px;
-  justify-content: center;
-  margin-top: 2px;
-}
-.cancelButton, .logoutButton {
-  border: none; outline: none;
-  border-radius: 18px;
-  padding: 10px 28px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  min-width: 110px;
-  box-shadow: 0 1.5px 6px 0 rgba(70,90,150,0.06);
-  transition: background 0.17s, color 0.14s, box-shadow 0.18s;
-}
-.cancelButton {
-  background: #f6f8fd;
-  color: #2F4D8E;
-  border: 1.7px solid #e4e6ef;
-}
-.cancelButton:hover {
-  background: #edf2fa;
-  color: #16336c;
-}
-.logoutButton {
-  background: linear-gradient(90deg, #2F4D8E 70%, #3f65b7 100%);
-  color: #fff;
-  border: none;
-}
-.logoutButton:hover {
-  background: linear-gradient(90deg, #244073 70%, #3f65b7 100%);
-  color: #fff;
-  box-shadow: 0 2px 16px #d1e0ff3b;
-}
-
-@media (max-width: 600px) {
-  .popupBox {
-    max-width: 99vw;
-    padding: 16px 8px 18px 8px;
-    font-size: 0.99rem;
+@media (max-width: 520px){
+  .actionsRow{
+    flex-direction: column;
   }
-  .popupMsg {
-    font-size: 1.03rem;
-  }
-  .popupIcon svg {
-    width: 44px !important; height: 44px !important;
-  }
-  .cancelButton, .logoutButton {
-    padding: 9px 0;
-    min-width: 90px;
-    font-size: .95rem;
-  }
+  .btn{ max-width: none; width: 100%; }
 }

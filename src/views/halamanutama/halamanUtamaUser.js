@@ -17,7 +17,6 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [loading, setLoading] = useState(initialName);
 
-  // ✅ Client guard: pastikan sesi untuk ns ini valid
   useEffect(() => {
     let active = true;
     (async () => {
@@ -44,62 +43,65 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
       } catch {
         router.replace(`/Signin/hal-sign?from=${encodeURIComponent(router.asPath)}`);
       } finally {
-        if (active) setLoading(false);   // 🔹 pastikan loading dihentikan di semua jalur
+        if (active) setLoading(false);
       }
     })();
     return () => { active = false; };
   }, [router.isReady, router.asPath, ns, initialName, router]);
 
-
-  // ✅ daftar fitur: semua link di-append ?ns=
   const fiturLayanan = [
     {
-     
       logo: "/assets/D'MOVE.svg",
+      title: 'Digital Driver Booking System',
       desc: "BI.DRIVE, mendukung pemesanan layanan pengemudi secara terjadwal untuk mendukung pelaksanaan tugas dinas.",
-      link: "/User/FiturDmove/hal-dmove"
+      bookingLink: "/User/FiturDmove/hal-dmove",
+      ongoingLink: "/User/FiturDmove/ongoing",
     },
     {
-      
       logo: "/assets/D'CARE.svg",
+      title: 'Clinic Booking System',
       desc: "BI.CARE, memfasilitasi pembuatan janji temu dan reservasi layanan klinik Bank Indonesia secara terencana.",
-      link: "/User/FiturBIcare/hal-BIcare"
+      bookingLink: "/User/FiturBIcare/hal-BIcare",
+      ongoingLink: "/User/FiturBIcare/ongoing",
     },
     {
-     
       logo: "/assets/D'MEAL.svg",
+      title: 'Meal Booking System',
       desc: "BI.MEAL, memfasilitasi pemesanan konsumsi secara terjadwal untuk mendukung kelancaran rapat dan tugas dinas.",
-      link: "/User/FiturBImeal/hal-BImeal"
+      bookingLink: "/User/FiturBImeal/hal-BImeal",
+      ongoingLink: "/User/FiturBImeal/ongoing",
     },
     {
-     
       logo: "/assets/D'ROOM.svg",
+      title: 'Room Booking System',
       desc: "BI.MEET, menghadirkan kemudahan reservasi ruang rapat dalam penyelenggaraan pertemuan dan kolaborasi antarunit kerja.",
-      link: "/User/FiturBimeet/hal-bimeet"
+      bookingLink: "/User/FiturBimeet/hal-bimeet",
+      ongoingLink: "/User/FiturBimeet/ongoing",
     },
     {
-    
       logo: "/assets/D'TRACK.svg",
+      title: 'Docs Numbering System',
       desc: "BI.MAIL, menyediakan layanan pelacakan dan penomoran surat dinas secara digital, sehingga administrasi surat-menyurat.",
-      link: "/User/FiturBImail/hal-BImail"
+      bookingLink: "/User/FiturBImail/hal-BImail",
+      ongoingLink: "/User/FiturBImail/ongoing",
     },
     {
-     
       logo: "/assets/D'REST.svg",
+      title: 'Wisma Booking System',
       desc: "BI.STAY, menyediakan sistem reservasi akomodasi rumah dinas Bank Indonesia selama menjalankan penugasan.",
-      link: "/User/FiturBIstay/hal-BIstay"
+      bookingLink: "/User/FiturBIstay/hal-BIstay",
+      ongoingLink: "/User/FiturBIstay/ongoing",
     },
   ];
 
-  // ✅ Logout per-namespace (tidak menendang tab lain)
   const handleLogout = async () => {
     try {
-     const ns = new URLSearchParams(location.search).get('ns');
-     await fetch('/api/logout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ area: 'user', ns }), 
-    });
+      const ns = new URLSearchParams(location.search).get('ns');
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ area: 'user', ns }),
+      });
     } catch {}
     router.replace('/Signin/hal-sign');
   };
@@ -120,31 +122,61 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
             <div className={styles.servicesDesc}>
               BI.ONE, memudahkan Anda dalam memilih layanan digital untuk mendukung aktivitas di lingkungan KPw Bank Indonesia .
             </div>
+
             <div className={styles.cardsGrid}>
               {fiturLayanan.map((fitur, idx) => (
                 <div className={styles.card} key={idx}>
-                  <Image src={fitur.logo} alt={fitur.title} width={48} height={48} className={styles.cardLogo} priority />
+                  <Image
+                    src={fitur.logo}
+                    alt={fitur.title}
+                    width={500}
+                    height={100}
+                    className={styles.cardLogo}
+                    priority
+                  />
                   <div className={styles.cardTitle}>{fitur.title}</div>
                   <div className={styles.cardDesc}>{fitur.desc}</div>
-                  {fitur.link && fitur.link !== "#" ? (
-                    <Link href={withNs(fitur.link, ns)} className={styles.bookingBtn}>
-                      Booking
-                    </Link>
-                  ) : (
-                    <button className={styles.bookingBtn} disabled>Booking</button>
-                  )}
+
+                  {/* 🔹 Dua tombol sejajar */}
+                  <div className={styles.actionsRow}>
+                    {fitur.ongoingLink ? (
+                      <Link
+                        href={withNs(fitur.ongoingLink, ns)}
+                        className={`${styles.btn} ${styles.btnSecondary}`}
+                      >
+                        On Going
+                      </Link>
+                    ) : (
+                      <button className={`${styles.btn} ${styles.btnSecondary}`} disabled>On Going</button>
+                    )}
+
+                    {fitur.bookingLink ? (
+                      <Link
+                        href={withNs(fitur.bookingLink, ns)}
+                        className={`${styles.btn} ${styles.btnPrimary}`}
+                      >
+                        Booking
+                      </Link>
+                    ) : (
+                      <button className={`${styles.btn} ${styles.btnPrimary}`} disabled>Booking</button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </main>
-      <LogoutPopup open={showLogoutPopup} onCancel={() => setShowLogoutPopup(false)} onLogout={handleLogout} />
+
+      <LogoutPopup
+        open={showLogoutPopup}
+        onCancel={() => setShowLogoutPopup(false)}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }
 
-/* ===================== SSR Guard ===================== */
 export async function getServerSideProps(ctx) {
   const ns = getNsFromReq(ctx.req);
   const from = ctx.resolvedUrl || '/User/HalamanUtama/hal-utamauser';
@@ -158,7 +190,6 @@ export async function getServerSideProps(ctx) {
   const cookies = parseCookieHeader(ctx.req.headers.cookie);
   const u = await resolveUser(ns, cookies);
 
-  // ❌ Tidak ada user_session → redirect langsung
   if (!u?.hasToken || !u?.payload || u.payload.roleNormalized !== 'user') {
     return {
       redirect: { destination: `/Signin/hal-sign?from=${encodeURIComponent(from)}`, permanent: false },
