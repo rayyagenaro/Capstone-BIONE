@@ -43,11 +43,12 @@ const STATUS_CONFIG = {
   '2': { text: 'Approved', className: styles.statusApproved },
   '3': { text: 'Rejected', className: styles.statusRejected },
   '4': { text: 'Finished', className: styles.statusFinished },
+  '5': { text: 'Cancelled', className: styles.statusCancelled },
 };
-const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished'];
-const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
-const SEEN_KEYS = { Pending: 'pending', Approved: 'approved', Rejected: 'rejected', Finished: 'finished' };
-const DEFAULT_SEEN = { pending: 0, approved: 0, rejected: 0, finished: 0 };
+const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished', 'Cancelled'];
+const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4, Cancelled: 5 };
+const SEEN_KEYS = { Pending: 'pending', Approved: 'approved', Rejected: 'rejected', Finished: 'finished', Cancelled: 'cancelled' };
+const DEFAULT_SEEN = { pending: 0, approved: 0, rejected: 0, finished: 0, cancelled: 0 };
 const seenStorageKey = (userId) => `statusTabSeen:${userId}`;
 
 const FEATURE_OPTIONS = [
