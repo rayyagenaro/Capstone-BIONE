@@ -168,7 +168,7 @@ export async function fetchAllBookings(ns, scope = "user", abortSignal) {
   }
 
   const endpoints = [
-    { service: "bidrive", url: "/api/booking", normalize: normalizeBIDriveRow },
+    { service: "bidrive", url: `/api/booking?scope=${scope}`, normalize: normalizeBIDriveRow },
 
     {
       service: "bicare",
@@ -208,6 +208,7 @@ export async function fetchAllBookings(ns, scope = "user", abortSignal) {
   const parseArray = (payload, key) => {
     if (key && Array.isArray(payload?.[key])) return payload[key];
     if (Array.isArray(payload)) return payload;
+    if (payload && typeof payload === "object") return [payload];
     return [];
   };
 
@@ -216,6 +217,9 @@ export async function fetchAllBookings(ns, scope = "user", abortSignal) {
       try {
         const res = await fetch(withNs(url, ns), opts(abortSignal));
         const j = await res.json().catch(() => ({}));
+        if (service === "bidrive") {
+          console.log("bidrive raw payload:", j);
+        }
 
         if (!res.ok)
           throw new Error(j?.reason || j?.error || `HTTP ${res.status}`);

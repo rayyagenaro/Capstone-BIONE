@@ -16,7 +16,6 @@ export default async function handler(req, res) {
     bidocs: 'bimail',
     docs: 'bimail',
     mail: 'bimail',
-    dmove: 'bidrive',
     bidrive: 'bidrive',
   };
   const service = SERVICE_ALIAS[rawSlug];

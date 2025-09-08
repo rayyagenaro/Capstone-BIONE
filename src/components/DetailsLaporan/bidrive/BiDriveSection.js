@@ -243,22 +243,6 @@ export default function BiDriveSection({
           </button>
         </div>
       )}
-
-      {/* Aksi status Finished */}
-      {statusId === 4 && (
-        <div className={styles.actionBtnRow}>
-          <button
-            type="button"
-            className={styles.btnSetujui}
-            onClick={onExportPDF}
-            disabled={exporting}
-            style={exporting ? { visibility: 'hidden' } : undefined}
-            data-html2canvas-ignore="true"
-          >
-            {exporting ? 'Menyiapkan PDF…' : 'Export to PDF'}
-          </button>
-        </div>
-      )}
     </div>
   );
 }

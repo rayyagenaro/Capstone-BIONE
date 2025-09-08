@@ -12,7 +12,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.2",
-    "@mui/x-charts": "7.29.1",
+    "@mui/x-charts": "^7.29.1",
     "@tailwindcss/postcss": "^4.1.11",
     "bcryptjs": "^3.0.2",
     "bootstrap": "^5.3.7",

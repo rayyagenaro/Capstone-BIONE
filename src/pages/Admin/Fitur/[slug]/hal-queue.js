@@ -18,7 +18,7 @@ const calculateDays = (start, end) => {
 };
 
 const META = {
-  dmove:  { title: "BI.DRIVE", logo: "/assets/D'MOVE.svg"  },
+  bidrive:  { title: "BI.DRIVE", logo: "/assets/D'MOVE.svg"  },
   bicare: { title: "BI.CARE",  logo: "/assets/BI-CARE.svg" },
   bimeal: { title: "BI.MEAL",  logo: "/assets/D'MEAL.svg"  },
   bimeet: { title: "BI.MEET",  logo: "/assets/D'ROOM.svg"  },
@@ -30,7 +30,7 @@ function renderCardText(slug, row) {
   const fmtID = (v) => (v ? new Date(v).toLocaleString('id-ID') : '-');
 
   switch (slug) {
-    case 'dmove':
+    case 'bidrive':
       return {
         title: `Booking D'MOVE | ${row.tujuan || '-'}`,
         sub: calculateDays(row.start_date, row.end_date),

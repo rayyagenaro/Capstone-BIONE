@@ -10,7 +10,7 @@ import db from '@/lib/db';
  * - pendingWhere: kondisi untuk "pending/masuk". Jika null -> anggap semua.
  */
 const CFG = {
-  dmove: {
+  bidrive: {
     from: 'bidrive_bookings b LEFT JOIN booking_statuses s ON s.id = b.status_id',
     tableForCount: 'bidrive_bookings b',
     select: 'b.id, b.tujuan, b.start_date, b.end_date, b.status_id, s.name AS status_name, b.created_at',

@@ -2,7 +2,7 @@
 import db from '@/lib/db';
 
 const ID_TO_META = {
-  1: { slug: 'dmove',  logo: "/assets/D'MOVE.svg",    desc: 'Kelola antrian & pesanan layanan pengemudi.' },
+  1: { slug: 'bidrive',  logo: "/assets/D'MOVE.svg",    desc: 'Kelola antrian & pesanan layanan pengemudi.' },
   2: { slug: 'bicare', logo: "/assets/D'CARE.svg",    desc: 'Lihat pesanan janji klinik & approve/decline.' },
   3: { slug: 'bimeal', logo: "/assets/D'MEAL.svg",    desc: 'Pantau permintaan konsumsi & progres pemenuhan.' },
   4: { slug: 'bimeet', logo: "/assets/D'ROOM.svg",    desc: 'Review peminjaman ruang rapat & ketersediaan.' },
@@ -12,7 +12,7 @@ const ID_TO_META = {
 
 async function countPendingBySlug(slug) {
   switch (slug) {
-    case 'dmove': {
+    case 'bidrive': {
       const [[{ cnt }]] = await db.execute('SELECT COUNT(*) AS cnt FROM bidrive_bookings WHERE status_id = 1');
       return cnt;
     }

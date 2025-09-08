@@ -2,7 +2,7 @@ import db from '@/lib/db';
 
 const MAP = {
   // === pakai numeric status_id ===
-  dmove:  { table: 'bidrive_bookings', idField: 'id', statusField: 'status_id', rejectField: 'rejection_reason' },
+  bidrive:  { table: 'bidrive_bookings', idField: 'id', statusField: 'status_id', rejectField: 'rejection_reason' },
   bimeet: { table: 'bimeet_bookings', idField: 'id', statusField: 'status_id', rejectField: 'reject_reason' },
   bistay: { table: 'bistay_bookings', idField: 'id', statusField: 'status_id', rejectField: 'reject_reason' },
   bimeal: { table: 'bimeal_bookings', idField: 'id', statusField: 'status_id', rejectField: null }, // kalau mau simpan alasan, buat kolom lalu isi nama kolom di sini

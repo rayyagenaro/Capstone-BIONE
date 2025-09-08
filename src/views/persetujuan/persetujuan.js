@@ -263,7 +263,20 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
     setIsLoading(true);
 
     fetchAllBookings(ns, 'admin', abortCtrl.signal)
-      .then((merged) => setAllBookings(merged))
+      .then((merged) => {
+        console.log("[Persetujuan] bookings merged:", merged);
+
+        const bidrive = merged.filter(b => b.feature_key === 'bidrive');
+        console.log("[Persetujuan] bidrive only:", bidrive.map(b => ({
+          id: b.id,
+          status_id: b.status_id,
+          tujuan: b.tujuan,
+          start_date: b.start_date,
+          end_date: b.end_date
+        })));
+
+        setAllBookings(merged);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setIsLoading(false));
 

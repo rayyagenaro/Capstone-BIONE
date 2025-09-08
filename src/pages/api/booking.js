@@ -162,7 +162,7 @@ export default async function handler(req, res) {
         };
       });
 
-      return res.status(200).json(bookingId ? processedResults[0] : processedResults);
+      return res.status(200).json(bookingId ? [processedResults[0]] : processedResults);
     } catch (error) {
       console.error("Get Bookings API Error:", error);
       return res.status(500).json({ error: "Gagal mengambil data booking.", details: error.message });
