@@ -19,6 +19,7 @@
     "cookie": "^1.0.2",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
+    "hamburger-react": "^2.5.2",
     "html2canvas": "^1.4.1",
     "jose": "^6.0.13",
     "jspdf": "^3.0.1",

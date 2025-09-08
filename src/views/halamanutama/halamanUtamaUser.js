@@ -52,7 +52,7 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
   const fiturLayanan = [
     {
       logo: "/assets/D'MOVE.svg",
-      title: 'Digital Driver Booking System',
+      title: 'Driver Booking System',
       bookingLink: "/User/FiturDmove/hal-dmove",
       ongoingLink: "/User/FiturDmove/ongoing",
     },

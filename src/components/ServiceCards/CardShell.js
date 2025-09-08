@@ -3,14 +3,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './ServiceCards.module.css';
-
-
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
-const withNs = (url, ns) => {
-  if (!ns) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}ns=${encodeURIComponent(ns)}`;
-};
+import { withNs, NS_RE } from '@/lib/ns';
 
 export default function CardShell({ ns, loading, err, data }) {
   if (loading) return <div className={styles.skeletonCard} />;

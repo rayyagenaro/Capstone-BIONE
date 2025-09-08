@@ -13,7 +13,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 2000;
     animation: popupfade 0.19s;
 }
 
@@ -53,7 +53,7 @@
   border-radius: 18px;
   padding: 10px 28px;
   font-size: 1rem;
-  font-weight: 1000;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   min-width: 110px;
@@ -78,4 +78,11 @@
   background: linear-gradient(90deg, #244073 70%, #3f65b7 100%);
   color: #fff;
   box-shadow: 0 2px 16px #d1e0ff3b;
+}
+
+@media (max-width: 1200px) {
+  .popupBox { max-width: 90vw; padding: 20px 15px; }
+  .popupMsg { font-size: 1.05rem; }
+  .popupIcon svg { width: 48px !important; height: 48px !important; }
+  .cancelButton, .logoutButton { padding: 9px 0; min-width: 90px; font-size: .75rem; }
 }

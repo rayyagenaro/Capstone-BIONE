@@ -24,7 +24,7 @@ export default function LogoutPopup({ open, onCancel, onLogout }) {
                 <div className={styles.popupMsg}>Apakah Anda yakin ingin logout?</div>
                 <div className={styles.popupButtonRow}>
                     <button className={styles.cancelButton} onClick={onCancel}>Batal</button>
-                    <button className={styles.logoutButton} onClick={onLogout}>Ya, Logout</button>
+                    <button className={styles.logoutButton} onClick={onLogout}>Logout</button>
                 </div>
             </div>
         </div>
