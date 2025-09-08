@@ -5,7 +5,9 @@ import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import Pagination from '@/components/Pagination/Pagination';
 import styles from './laporan.module.css';
-import { jwtVerify } from 'jose';
+
+import { getNsFromReq } from '@/lib/ns-server';
+import { parseCookieHeader, resolveAdmin } from '@/lib/resolve';
 import { NS_RE } from '@/lib/ns-server';
 
 /* ====== PEMETAAN LAYANAN (sama spirit dengan halaman Persetujuan) ====== */
@@ -575,48 +577,63 @@ export default function HalLaporan({ initialRoleId = null, initialServiceIds = n
 
 // ====== SSR: validasi token + role → pass initialRoleId & initialServiceIds ======
 export async function getServerSideProps(ctx) {
-  const { ns: raw } = ctx.query;
-  const ns = Array.isArray(raw) ? raw[0] : raw;
-  const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
-  const fromUrl = ctx.resolvedUrl || '/Admin/Laporan/hal-laporan';
+  const ns = getNsFromReq(ctx.req); // ambil ns valid dari header/cookie/query
+  const from = ctx.resolvedUrl || '/Admin/Laporan/hal-laporan';
 
-  if (!nsValid) {
-    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
+  if (!ns) {
+    return {
+      redirect: {
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
+        permanent: false,
+      },
+    };
   }
 
-  const cookieName = `admin_session__${nsValid}`;
-  const token = ctx.req.cookies?.[cookieName] || null;
-  if (!token) {
-    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
-  }
+  const cookies = parseCookieHeader(ctx.req.headers.cookie);
 
   try {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) throw new Error('missing-secret');
+    const a = await resolveAdmin(ns, cookies);
+    // a: { hasToken, payload: { roleNormalized, service_ids, ... } }
 
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
-      algorithms: ['HS256'],
-      clockTolerance: 10,
-    });
-
-    const roleIdNum = Number(payload?.role_id ?? 0);
-    const roleStr   = String(payload?.role || '').toLowerCase();
-    const isSuper = roleIdNum === 1 || ['super_admin','superadmin','super-admin'].includes(roleStr);
-    const isFitur = roleIdNum === 2 || ['admin_fitur','admin-fitur','admin'].includes(roleStr);
-
-    if (!isSuper && !isFitur) {
-      return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
+    if (!a?.hasToken || !a?.payload) {
+      return {
+        redirect: {
+          destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(`${from}${from.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}`)}`,
+          permanent: false,
+        },
+      };
     }
 
-    // penting: pass daftar layanan yang diperbolehkan ke client (null untuk super admin)
-    const initialServiceIds = isSuper
-      ? null
-      : (Array.isArray(payload?.service_ids)
-          ? payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean)
-          : []);
+    if (a.payload.roleNormalized === 'super_admin') {
+      return {
+        props: {
+          initialRoleId: 1,
+          initialServiceIds: null, // super admin: semua modul
+        },
+      };
+    }
 
-    return { props: { initialRoleId: isSuper ? 1 : 2, initialServiceIds } };
+    if (a.payload.roleNormalized === 'admin_fitur') {
+      return {
+        props: {
+          initialRoleId: 2,
+          initialServiceIds: Array.isArray(a.payload.service_ids) ? a.payload.service_ids : [],
+        },
+      };
+    }
+
+    return {
+      redirect: {
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(`${from}${from.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}`)}`,
+        permanent: false,
+      },
+    };
   } catch {
-    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(fromUrl)}`, permanent: false } };
+    return {
+      redirect: {
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(`${from}${from.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}`)}`,
+        permanent: false,
+      },
+    };
   }
 }
