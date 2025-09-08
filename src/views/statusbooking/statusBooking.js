@@ -387,7 +387,7 @@ export default function StatusBookingView() {
                 <div className={styles.unratedText}>Belum Anda Rating</div>
               ) : (
                 <div className={styles.ratedBox}>
-                  <div className={styles.ratingLabel}>Anda Rating</div>
+                  <div className={styles.ratingLabel}>Rating Anda</div>
 
                   <div className={styles.starsTight} role="img" aria-label={`Rating ${ratingValue} dari 5`}>
                     {/* baris atas: 2 bintang */}

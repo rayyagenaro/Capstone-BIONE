@@ -147,7 +147,7 @@ export default function EditProfile() {
               <Link href={withNs('/User/HalamanUtama/hal-utamauser', ns)}>Kembali</Link>
             </button>
             <div className={styles.title}>
-              EDIT PROFILE
+              Edit Profile
             </div>
           </div>
 
