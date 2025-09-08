@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './SidebarFitur.module.css';
-import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaFileAlt, FaAddressBook, FaBook } from 'react-icons/fa';
+import { FaHome, FaClipboardList, FaCog, FaSignOutAlt, FaUsers, FaFileAlt, FaAddressBook, FaBook, FaChartPie } from 'react-icons/fa';
 
 const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
@@ -30,7 +30,8 @@ export default function SidebarFitur({ onLogout }) {
     { href: '/Admin/HalamanUtama/hal-utamaAdmin', text: 'Beranda', icon: FaHome },
     { href: '/Admin/Persetujuan/hal-persetujuan', text: 'Persetujuan Booking', icon: FaClipboardList },
     { href: '/Admin/Ketersediaan/hal-ketersediaan', text: 'Ketersediaan', icon: FaUsers },
-    { href: '/Admin/Laporan/hal-laporan',        text: 'Laporan', icon: FaBook },
+    { href: '/Admin/Monitor/hal-monitor', text: 'Monitor', icon: FaChartPie },
+    { href: '/Admin/Laporan/hal-laporan', text: 'Laporan', icon: FaBook },
   ];
 
   const handleNavigate = (href) => router.push(withNs(href));
