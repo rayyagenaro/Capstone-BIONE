@@ -14,12 +14,12 @@ import styles from './monitor.module.css';
 const SERVICE_ID_MAP = { 1: 'bidrive', 2: 'bicare', 3: 'bimeal', 4: 'bimeet', 5: 'bimail', 6: 'bistay' };
 
 const MODULES = [
-  { value: 'bi-care',  label: 'BI.CARE',  serviceKey: 'bicare'  },
-  { value: 'bi-meal',  label: 'BI.MEAL',  serviceKey: 'bimeal'  },
-  { value: 'bi-meet',  label: 'BI.MEET',  serviceKey: 'bimeet'  },
-  { value: 'bi-stay',  label: 'BI.STAY',  serviceKey: 'bistay'  },
-  { value: 'bi-docs',  label: 'BI.DOCS',  serviceKey: 'bimail'  },
-  { value: 'bi-drive', label: 'BI.DRIVE', serviceKey: 'bidrive' },
+  { value: 'bi-care',  label: 'CARE',  serviceKey: 'bicare'  },
+  { value: 'bi-meal',  label: 'MEAL',  serviceKey: 'bimeal'  },
+  { value: 'bi-meet',  label: 'MEET',  serviceKey: 'bimeet'  },
+  { value: 'bi-stay',  label: 'STAY',  serviceKey: 'bistay'  },
+  { value: 'bi-docs',  label: 'DOCS',  serviceKey: 'bimail'  },
+  { value: 'bi-drive', label: 'DRIVE', serviceKey: 'bidrive' },
 ];
 
 const STATUS_COLORS = {
@@ -326,8 +326,8 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
                 <BarChart
                   dataset={barDataset}
                   layout="horizontal"
-                  height={Math.max(260, 36 * barDataset.length + 40)}
-                  margin={{ top: 8, right: 160, bottom: 20, left: 80 }}
+                  height={Math.max(260, 36 * barDataset.length + 60)}
+                  margin={{ top: 8, right: 160, bottom: 40, left: 80 }}
                   yAxis={[{
                     scaleType: 'band',
                     dataKey: 'module',
