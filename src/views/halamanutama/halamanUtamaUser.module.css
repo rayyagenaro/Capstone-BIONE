@@ -44,14 +44,55 @@
   bottom: 0;
   z-index: 99;
 }
-.logoSidebar { display: flex; align-items: center; justify-content: flex-start; height: 92px; padding-left: 28px; padding-top: 18px; padding-bottom: 14px; border-bottom: 1px solid #ececec; }
-.logoDone { width: 160px !important; height: 160px !important; object-fit: contain; }
+
+.logoSidebar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 92px;
+  padding-left: 28px;
+  padding-top: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #ececec;
+}
+
+.logoDone {
+  width: 160px !important;
+  height: 160px !important;
+  object-fit: contain;
+}
+
 .navMenu { flex: 1; width: 100%; margin-top: 10px; }
 .navMenu ul { list-style: none; padding: 0; margin: 0; }
-.navMenu li { display: flex; align-items: center; gap: 16px; padding: 14px 30px 14px 28px; font-size: 17px; color: #888b96; cursor: pointer; border-radius: 0 28px 28px 0; transition: background .15s, color .15s; margin-bottom: 2px; font-weight: 500; letter-spacing: 0.01em; }
+.navMenu li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 30px 14px 28px;
+  font-size: 17px;
+  color: #6c757d;
+  cursor: pointer;
+  border-radius: 0 28px 28px 0;
+  transition: background .15s, color .15s;
+  margin-bottom: 2px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
 .menuIcon { font-size: 20px; }
-.navMenu li.active, .navMenu li:hover { background: #2f4d8e; color: #fff; }
-.logout { margin: 20px 0 28px 28px; color: #ed6257; font-weight: 600; font-size: 17px; cursor: pointer; letter-spacing: 0.01em; display: flex; align-items: center; gap: 10px; }
+.navMenu li.active,
+.navMenu li:hover { background: #2f4d8e; color: #fff; }
+
+.logout {
+  margin: 20px 0 28px 28px;
+  color: #ed6257;
+  font-weight: 600;
+  font-size: 17px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .logoutIcon { font-size: 20px; }
 
 .header {
@@ -80,6 +121,7 @@
   min-height: 100vh;
   margin-left: 255px;
 }
+
 .welcomeBox {
   width: 90%;
   max-width: 1050px;
@@ -89,7 +131,16 @@
   box-shadow: 0 2px 16px rgba(47,77,142,0.07);
   padding: 34px 40px 36px 40px;
 }
-.greeting { color: #2f4d8e; font-weight: 700; font-size: 28px; text-align: center; margin-bottom: 22px; letter-spacing: 0.01em; }
+
+.greeting {
+  color: #2f4d8e;
+  font-weight: 700;
+  font-size: 28px;
+  text-align: center;
+  margin-bottom: 22px;
+  letter-spacing: 0.01em;
+}
+
 .servicesBox { width: 100%; margin-top: 0; }
 .servicesTitle { font-size: 20px; font-weight: 700; color: #23263b; margin-bottom: 9px; text-align: left; }
 .servicesDesc { color: #828282; font-size: 15px; margin-bottom: 28px; }
@@ -100,7 +151,9 @@
   gap: 34px 24px;
   margin-top: 10px;
 }
-@media (max-width: 900px) { .cardsGrid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  .cardsGrid { grid-template-columns: 1fr; }
+}
 
 .card {
   background: #fafbff;
@@ -116,8 +169,9 @@
 }
 .cardLogo { width: 500px !important; height: 100px !important; object-fit: contain; }
 .cardTitle { color: #2f4d8e; font-size: 16px; font-weight: 700; text-align: center; letter-spacing: 0.01em; }
-.cardDesc { color: #6b6b6b; font-size: 14px; text-align: center; min-height: 36px; margin-bottom: 16px; }
+.cardDesc { color: #6b6b6b; font-size: 14px; text-align: center; min-height: 6px; margin-bottom: 6px; }
 
+/* Tombol lama (jika masih dipakai di tempat lain) */
 .bookingBtn {
   background: #2f4d8e;
   color: #fff;
@@ -135,22 +189,61 @@
 }
 .bookingBtn:hover { background: #233969; }
 
-/* ========== RESPONSIVE ========== */
-@media (max-width: 1200px) {
-  .welcomeBox { padding: 16px 2vw 18px 2vw; width: 98vw; }
-  .cardsGrid { gap: 18px 10px; }
-  .header { padding: 0 10px 0 255px; }
-  .logoBI { width: 110px !important; height: 22px !important; }
-}
-@media (max-width: 900px) { .cardsGrid { grid-template-columns: 1fr; } }
-@media (max-width: 700px) {
-  .sidebar { display: none; }
-  .header { left: 0; padding: 0 4px; height: 64px; }
-  .logoBI { width: 70px !important; height: 13px !important; }
-  .welcomeBox { margin: 8px 0; border-radius: 10px; padding: 10px 1vw 14px 1vw; }
+/* === ACTION BUTTONS (baru: 2 tombol sejajar) === */
+.actionsRow {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 12px;
 }
 
-/* Popup styles (dipertahankan) */
+.btn {
+  display: inline-block;
+  flex: 1 1 0;
+  max-width: 200px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  text-align: center;
+  text-decoration: none; /* supaya <Link> terlihat tombol */
+  cursor: pointer;
+  transition: background-color .18s ease, box-shadow .18s ease;
+  box-shadow: 0 1px 4px rgba(47,77,142,0.08);
+  border: none;
+  line-height: 1.2;
+  color: #fff !important; /* pastikan teks selalu putih */
+}
+
+/* Booking = biru utama */
+.btnPrimary {
+  background: #2f4d8e;
+}
+.btnPrimary:hover {
+  background: #233969;
+}
+
+/* On Going = abu-abu netral */
+.btnSecondary {
+  background: #6c757d;
+}
+.btnSecondary:hover {
+  background: #545b62;
+}
+
+.btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+/* Responsif tombol */
+@media (max-width: 520px) {
+  .actionsRow { flex-direction: column; }
+  .btn { max-width: none; width: 100%; }
+}
+
+/* Popup */
 .popupOverlay { position: fixed; z-index: 1400; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(40, 54, 82, 0.15); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2.2px); animation: popupfade 0.19s; }
 @keyframes popupfade { from { opacity: 0; } to { opacity: 1; } }
 .popupBox { background: #fff; border-radius: 22px; box-shadow: 0 4px 32px 0 rgba(60,60,60,0.10), 0 1.5px 6px 0 rgba(70,90,150,0.05); text-align: center; width: 97vw; max-width: 370px; padding: 36px 22px 28px 22px; box-sizing: border-box; animation: fadeinpop .23s cubic-bezier(0.23,1,0.32,1); position: relative; }
@@ -169,57 +262,4 @@
   .popupMsg { font-size: 1.03rem; }
   .popupIcon svg { width: 44px !important; height: 44px !important; }
   .cancelButton, .logoutButton { padding: 9px 0; min-width: 90px; font-size: .95rem; }
-}
-
-/* === ACTION BUTTONS (2 tombol sejajar di dalam kartu) === */
-.actionsRow{
-  width: 100%;
-  display: flex;
-  justify-content: center; 
-  gap: 22px;               
-  margin-top: 10px;
-}
-
-.btn{
-  display: inline-block;
-  flex: 1 1 0;
-  max-width: 240px;        
-  padding: 12px 18px;
-  border-radius: 12px;
-  font-weight: 800;
-  font-size: 16px;
-  letter-spacing: .2px;
-  text-align: center;
-  text-decoration: none;   
-  cursor: pointer;
-  transition: background-color .18s ease, box-shadow .18s ease, transform .02s;
-  box-shadow: 0 1px 4px rgba(47,77,142,0.08);
-  border: none;
-}
-
-.btnPrimary{
-  background: #233969;
-  color: #fff;
-}
-.btnSecondary{
-  background: #d4dcee;
-  color: #233969;
-}
-
-.btnPrimary:hover,
-.btnSecondary:hover{
-  background: #233969;
-}
-
-.btn:disabled{
-  opacity: .6;
-  cursor: not-allowed;
-}
-
-
-@media (max-width: 520px){
-  .actionsRow{
-    flex-direction: column;
-  }
-  .btn{ max-width: none; width: 100%; }
 }
