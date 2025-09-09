@@ -57,6 +57,7 @@ const STATUS_CONFIG = (s) => ({
   "2": { text: "Approved", className: s.statusApproved },
   "3": { text: "Rejected", className: s.statusRejected },
   "4": { text: "Finished", className: s.statusFinished },
+  "5": { text: "Cancelled", className: s.statusCancelled },
 });
 
 // Admin-style
@@ -129,6 +130,7 @@ export default function BookingDetailModal({
 
   const isApproved = Number(booking.status_id) === 2;
   const isFinished = Number(booking.status_id) === 4;
+  const isCancelled = Number(booking.status_id) === 5;
   const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
 
   const featureKey = resolveFeatureKey(booking);
@@ -484,6 +486,12 @@ export default function BookingDetailModal({
         {isRejected && (
           <div className={styles.rejectBox} style={{ marginTop: 16 }}>
             <div className={styles.rejectTitle}>Alasan Penolakan</div>
+            <div className={styles.rejectText}>{booking.rejection_reason}</div>
+          </div>
+        )}
+        {isCancelled && (
+          <div className={styles.rejectBox} style={{ marginTop: 16 }}>
+            <div className={styles.rejectTitle}>Alasan Pembatalan</div>
             <div className={styles.rejectText}>{booking.rejection_reason}</div>
           </div>
         )}

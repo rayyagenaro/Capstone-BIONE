@@ -2,18 +2,16 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import styles from './statusBooking.module.css';
-
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import RejectionBox from '@/components/RejectionBox/RejectionBox';
 import { FaArrowLeft, FaStar } from 'react-icons/fa';
-
 import BookingDetailModal from '@/components/BookingDetail/BookingDetailModal';
 import RatingModal from '@/components/BookingDetail/RatingModal';
-
 import { getNs } from '@/lib/ns';
 import { fetchAllBookings } from '@/lib/fetchBookings';
+
 
 /* ====== Status & Feature helpers ====== */
 const safeParse = (v) => {
@@ -683,7 +681,7 @@ export default function StatusBookingView() {
         <div className={styles.bookingBox}>
           <div className={styles.topRowPage}>
             <button className={styles.backBtn} onClick={() => router.back()} type="button">
-              <FaArrowLeft /> Kembali
+              <FaArrowLeft /> 
             </button>
             <div className={styles.title}>Status Booking</div>
           </div>
