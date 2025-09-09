@@ -36,7 +36,7 @@
   height: 50px;
   width: auto;
   object-fit: contain;
-  margin: 0 auto;
+  margin: auto;
 }
 .toggleBtn {
   display: none;

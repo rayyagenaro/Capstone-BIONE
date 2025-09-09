@@ -142,9 +142,8 @@ export default function EditProfile() {
       <main className={styles.mainContent}>
         <div className={styles.formBox}>
           <div className={styles.topRow}>
-            <button className={styles.backBtn}>
-              <FaArrowLeft />
-              <Link href={withNs('/User/HalamanUtama/hal-utamauser', ns)}>Kembali</Link>
+            <button className={styles.backBtn} onClick={() => router.back()} type="button">
+              <FaArrowLeft /> 
             </button>
             <div className={styles.title}>
               Edit Profile

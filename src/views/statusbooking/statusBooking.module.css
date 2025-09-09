@@ -194,6 +194,7 @@
   max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
+  padding: 8px;
 }
 
 .tabRow::-webkit-scrollbar {
@@ -202,31 +203,26 @@
 
 .tabBtn {
   flex: 0 0 auto;
-  /* ⬅ biar ukurannya tetap, tidak shrink */
   min-width: 110px;
-  /* ukuran minimum */
   text-align: center;
-  background: #fff;
-  color: #2F4D8E;
-  border: none;
-  font-weight: 600;
+  background: #f0f0f0;
+  color: #000000;
+  font-weight: 300;
   font-size: 15px;
-  border-radius: 21px;
   padding: 8px 16px;
   cursor: pointer;
-  box-shadow: 0 1px 6px 0 rgba(47, 77, 142, 0.10);
+  border-radius: 21px;
   transition: background 0.14s, color 0.14s;
 }
-
-.tabBtn:hover {
-  background: #e8f0fe;
-  color: #1c295a;
-}
-
 .tabActive {
   background: #2F4D8E !important;
   color: #fff !important;
-  box-shadow: 0 2px 8px rgba(47, 77, 142, 0.18);
+  outline: 2px solid #2F4D8E;
+  outline-offset: 2px;
+}
+.tabBtn:hover {
+  background: #2F4D8E;
+  color: #ffffff;
 }
 
 /* ================== LIST ================== */
@@ -1021,8 +1017,8 @@
   }
 
   .title {
-    margin-right: 0;
-    font-size: 1.3rem;
+    margin-right: 57px;
+    font-size: 25px;
     flex: 1;
     left: 50%;
     top: 50%;
@@ -1074,9 +1070,10 @@
   }
 
   .title {
-    font-size: 1rem;
+    font-size: 20px;
     top: 50%;
     text-align: center;
+    margin-right: 55px;
   }
 
   .backBtn {
@@ -1115,6 +1112,7 @@
 
   .tabBtn {
     font-size: 15px;
+    min-width: 70px;
   }
 
   .bookingCard {

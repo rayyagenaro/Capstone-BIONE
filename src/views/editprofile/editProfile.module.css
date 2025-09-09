@@ -1,11 +1,9 @@
 .background {
   min-height: 100vh;
-  /* Pakai posisi relative untuk overlay */
   position: relative;
   z-index: 0;
-  /* Tetap gunakan gradient agar efeknya sama */
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 /* Tambahkan ini di akhir file css kamu */
@@ -34,20 +32,7 @@
   pointer-events: none;
 }
 
-.sidebar {
-  width: 255px;
-  background: #fff;
-  border-right: 1px solid #ececec;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  min-height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 99;
-}
+
 .logoSidebar {
   display: flex;
   align-items: center;
@@ -94,20 +79,6 @@
 .navMenu li:hover {
   background: #2f4d8e;
   color: #fff;
-}
-.logout {
-  margin: 20px 0 28px 28px;
-  color: #ed6257;
-  font-weight: 600;
-  font-size: 17px;
-  cursor: pointer;
-  letter-spacing: 0.01em;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.logoutIcon {
-  font-size: 20px;
 }
 .logoBIWrapper {
   display: flex;
@@ -175,7 +146,7 @@
   color: #2F4D8E;
   font-weight: bold;
   letter-spacing: 0.8px;
-  margin-right: 155px;
+  margin-right: 75px;
 }
 .profileForm {
   width: 100%;
@@ -252,42 +223,6 @@
 .saveBtn:hover {
   background: #233969;
 }
-
-/* Responsive */
-@media (max-width: 1100px) {
-  .formBox {
-    padding: 18px 4vw 12px 4vw;
-  }
-  .title {
-    font-size: 27px;
-    margin-right: 10px;
-  }
-}
-@media (max-width: 800px) {
-  .sidebar {
-    display: none;
-  }
-  .mainContent {
-    margin-left: 0;
-    padding-top: 60px;
-  }
-  .header {
-    left: 0;
-    padding: 0 5px 0 5px;
-    height: 60px;
-  }
-  .formBox {
-    margin: 12px 0;
-    border-radius: 12px;
-    padding: 10px 2vw 10px 2vw;
-    min-width: 0;
-  }
-  .title {
-    font-size: 20px;
-    margin-right: 0;
-  }
-}
-
 .popupOverlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -409,4 +344,33 @@
   background: linear-gradient(90deg, #244073 70%, #3f65b7 100%);
   color: #fff;
   box-shadow: 0 2px 16px #d1e0ff3b;
+}
+/* Responsive */
+@media (max-width: 1200px) {
+  .formBox {
+    padding: 18px 4vw 12px 4vw;
+  }
+  .title {
+    font-size: 27px;
+    margin-right: 65px;
+  }
+  .mainContent {
+    margin: 30px auto auto 0;
+  }
+}
+
+@media (max-width:500px) {
+  .title {
+    font-size: 20px;
+  }
+  .formGroup label {
+    font-size: 14px;
+  }
+  .formGroup input {
+    font-size: 14px;
+  }
+  .saveBtn {
+    font-size: 16px;
+    padding: 11px 36px;
+  }
 }
