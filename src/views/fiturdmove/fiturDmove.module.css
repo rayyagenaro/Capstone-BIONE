@@ -717,7 +717,7 @@
     max-width: 15%;
   }
   .availabilityLabel {
-    font-size: 14px;
+    font-size: 12px;
   }
   .availabilitySection {
     width: 100%;
@@ -726,7 +726,7 @@
     text-align: right;
   }
   .availabilityDropdownBtn {
-    font-size: 14px;
+    font-size: 12px;
     height: 35px;
   }
   .availChevron {
@@ -757,14 +757,14 @@
   .formGroup input[type="number"],
   .formGroup select, 
   .formGroup textarea {
-    font-size: 14px;
+    font-size: 12px;
   }
   .multiSelectBox {
     font-size: 14px;
   }
 
   .bookingBtn {
-    font-size: 18px;
+    font-size: 14px;
     padding: 10px 50px;
   }
   
