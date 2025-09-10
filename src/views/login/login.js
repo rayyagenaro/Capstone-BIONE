@@ -57,9 +57,9 @@ export default function Login() {
           <button className={styles.button}>Masuk Sebagai Admin</button>
         </Link>
         <div className={styles.signupText}>
-          Belum memiliki akun?{' '}
+          Belum Memiliki Akun?{' '}
           <Link href="/SignUp/hal-signup" passHref legacyBehavior>
-            <span className={styles.signupLink}>Daftar di sini</span>
+            <span className={styles.signupLink}>Daftar di Sini</span>
           </Link>
         </div>
       </div>
