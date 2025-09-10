@@ -8,6 +8,7 @@ import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 
 import { BarChart } from '@mui/x-charts/BarChart';
+import { PieChart } from '@mui/x-charts/PieChart';
 import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine';
 import styles from './monitor.module.css';
 
@@ -28,6 +29,16 @@ const STATUS_COLORS = {
   approved: '#2196F3',
   rejected: '#E91E63',
   finished: '#4CAF50',
+};
+
+/* warna per modul untuk Pie */
+const MODULE_COLORS = {
+  bicare: '#2563eb',
+  bimeal: '#0ea5e9',
+  bimeet: '#f59e0b',
+  bistay: '#8b5cf6',
+  bimail: '#22c55e',
+  bidrive: '#ef4444',
 };
 
 const isAlias = (a, b) => a === b || (a === 'bimail' && b === 'bidocs') || (a === 'bidocs' && b === 'bimail');
@@ -91,7 +102,7 @@ const normStatus = (row) => {
   return 'approved';
 };
 
-/* ====== range waktu ====== */
+/* ====== range waktu & util tanggal ====== */
 const pad2 = (n) => String(n).padStart(2, '0');
 const fmtYMD = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const rangeFor = (key) => {
@@ -111,7 +122,6 @@ const rangeFor = (key) => {
   return { from, to };
 };
 
-/* ==== util tanggal ==== */
 const getRowDate = (r) => {
   const cands = [r?.booking_date, r?.created_at, r?.createdAt, r?.date, r?.request_date, r?.tanggal];
   for (const v of cands) {
@@ -120,6 +130,19 @@ const getRowDate = (r) => {
     if (!isNaN(d)) return d;
   }
   return null;
+};
+
+const filterRowsBySort = (rows, sortKey) => {
+  if (sortKey === 'all') return rows;
+  const { from, to } = rangeFor(sortKey);
+  const fromD = from ? new Date(from) : null;
+  const toD   = to   ? new Date(to)   : null;
+  return rows.filter(r => {
+    const d = getRowDate(r); if (!d) return false;
+    if (fromD && d < fromD) return false;
+    if (toD   && d > new Date(toD.getFullYear(), toD.getMonth(), toD.getDate(), 23, 59, 59, 999)) return false;
+    return true;
+  });
 };
 
 export default function Monitor({ initialRoleId = null, initialServiceIds = null }) {
@@ -183,10 +206,11 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     }
   }, [allowedModules, selectedModules.length]);
 
-  /* ===== sort by ===== */
-  const [sortBy, setSortBy] = useState('all');
+  /* ===== sort by (pisah) ===== */
+  const [sortByStatus, setSortByStatus] = useState('all'); // untuk bar/status
+  const [sortByPie, setSortByPie]       = useState('all'); // untuk pie
 
-  /* ===== fetch data ===== */
+  /* ===== fetch data (ambil semua supaya filter per-card bisa independen) ===== */
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
@@ -197,14 +221,14 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     const activeMods = allowedModules.filter((m) => selectedModules.includes(m.value));
     if (!activeMods.length) { setRows([]); return; }
 
-    const { from, to } = rangeFor(sortBy);
     const ac = new AbortController();
     setLoading(true); setErr('');
 
     (async () => {
       const settled = await Promise.allSettled(
         activeMods.map(async (m) => {
-          const query = qs({ module: m.value, from: from || undefined, to: to || undefined });
+          // tanpa from/to supaya all
+          const query = qs({ module: m.value });
           const url = withNs(`/api/admin/laporan/booking${query}`, ns);
           const res = await fetch(url, { cache: 'no-store', signal: ac.signal });
           let data = {};
@@ -226,12 +250,14 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     });
 
     return () => ac.abort();
-  }, [router.isReady, ns, allowedModules, selectedModules, sortBy]);
+  }, [router.isReady, ns, allowedModules, selectedModules]);
 
-  /* ===== agregasi untuk stacked bar ===== */
+  /* ===== agregasi untuk stacked bar (gunakan filter sortByStatus) ===== */
+  const rowsForStatus = useMemo(() => filterRowsBySort(rows, sortByStatus), [rows, sortByStatus]);
+
   const countsByModuleStatus = useMemo(() => {
     const m = new Map();
-    rows.forEach((r) => {
+    rowsForStatus.forEach((r) => {
       const fk = guessFeatureKey(r);
       const st = normStatus(r);
       if (fk === 'unknown' || !st) return;
@@ -239,7 +265,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
       m.get(fk)[st] += 1;
     });
     return m;
-  }, [rows]);
+  }, [rowsForStatus]);
 
   const barDataset = useMemo(() => {
     return MODULES
@@ -262,7 +288,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     [barDataset]
   );
 
-  /* ===== Overview monthly ===== */
+  /* ===== Overview monthly (tetap seperti sebelumnya) ===== */
   const [monthsWindow, setMonthsWindow] = useState(12);
   const [overviewService, setOverviewService] = useState('all');
 
@@ -323,8 +349,46 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     [monthlyAgg]
   );
 
+  /* ======== Pie: total booking per modul (filter sortByPie) ======== */
+  const rowsForPie = useMemo(() => filterRowsBySort(rows, sortByPie), [rows, sortByPie]);
+
+  const pieCountsMap = useMemo(() => {
+    const selectedKeys = new Set(
+      MODULES.filter(m => selectedModules.includes(m.value)).map(m => m.serviceKey)
+    );
+    const map = new Map([...selectedKeys].map(k => [k, 0]));
+    rowsForPie.forEach(r => {
+      const fk = guessFeatureKey(r);
+      if (selectedKeys.has(fk)) map.set(fk, (map.get(fk) || 0) + 1);
+    });
+    return map;
+  }, [rowsForPie, selectedModules]);
+
+  const pieDataByModule = useMemo(() => {
+    return MODULES
+      .filter(m => selectedModules.includes(m.value))
+      .map(m => ({
+        id: m.serviceKey,
+        label: m.label,
+        value: pieCountsMap.get(m.serviceKey) || 0,
+        color: MODULE_COLORS[m.serviceKey],
+      }))
+      .filter(d => d.value > 0);
+  }, [pieCountsMap, selectedModules]);
+
+  const pieTotal = useMemo(
+    () => pieDataByModule.reduce((s, d) => s + d.value, 0),
+    [pieDataByModule]
+  );
+
+  const pieValueFormatter = (item) => {
+    const pct = pieTotal ? Math.round((item.value / pieTotal) * 100) : 0;
+    return `${item.value.toLocaleString('id-ID')} (${pct}%)`; // tanpa item.label
+  };
+
   /* ===== mode & layout ===== */
-  const [openDetail, setOpenDetail] = useState(false);
+  const [openDetail, setOpenDetail] = useState(false);     // modal bar/waktu
+  const [openPieDetail, setOpenPieDetail] = useState(false); // modal pie
   const [chartMode, setChartMode] = useState('overview'); // 'overview' | 'status'
   const SidebarComp = roleId === 1 ? SidebarAdmin : SidebarFitur;
 
@@ -348,6 +412,135 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     </svg>
   );
 
+  const IconPie = ({ size = 18 }) => (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" fill="currentColor">
+      <path d="M11 2a1 1 0 0 1 1 1v9h9a1 1 0 0 1 .96 1.28A10 10 0 1 1 11 2z"/>
+      <path d="M13 2a10 10 0 0 1 9 9h-9V2z" opacity=".45"/>
+    </svg>
+  );
+
+  /* === HEATMAP: filter & util === */
+  const [hmService, setHmService] = useState('all');
+  const DOW_FULL_ID = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+  const [openHeatDetail, setOpenHeatDetail] = useState(false);
+
+  const hmYearOptions = useMemo(() => {
+    const ys = new Set();
+    rows.forEach((r) => { const d = getRowDate(r); if (d) ys.add(d.getFullYear()); });
+    if (!ys.size) {
+      const y = new Date().getFullYear();
+      return [y, y - 1, y - 2];
+    }
+    return Array.from(ys).sort((a, b) => a - b); // ascending agar awal tahun ke akhir
+  }, [rows]);
+  const [hmYear, setHmYear] = useState(() => new Date().getFullYear());
+
+  /* Count per-day (filter by layanan bila dipilih) */
+  const dailyCountMap = useMemo(() => {
+    const m = new Map();
+    rows
+      .filter((r) => hmService === 'all' || guessFeatureKey(r) === hmService)
+      .forEach((r) => {
+        const d = getRowDate(r); if (!d) return;
+        const ymd = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+        m.set(ymd, (m.get(ymd) || 0) + 1);
+      });
+    return m;
+  }, [rows, hmService]);
+
+  /* Kalender mingguan ala GitHub */
+  function startOfWeekSun(d) { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - x.getDay()); return x; } // Minggu
+  function endOfWeekSat(d)   { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() + (6 - x.getDay())); return x; }
+
+  const heatmapData = useMemo(() => {
+    const year = hmYear;
+    const start = startOfWeekSun(new Date(year, 0, 1));
+    const end   = endOfWeekSat(new Date(year, 11, 31));
+
+    const ONE = 24 * 3600 * 1000;
+    const days = Math.round((end - start) / ONE) + 1;
+    const weeksCount = Math.ceil(days / 7);
+
+    const cells = [];
+    let max = 0;
+    const cur = new Date(start);
+
+    for (let w = 0; w < weeksCount; w++) {
+      for (let d = 0; d < 7; d++) {
+        const ymd = fmtYMD(cur);
+        const inYear = cur.getFullYear() === year;
+        const count = inYear ? (dailyCountMap.get(ymd) || 0) : 0;
+        if (inYear && count > max) max = count;
+        cells.push({
+          key: ymd,
+          date: new Date(cur),
+          inYear,
+          count,
+        });
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+
+    const levelFor = (c) => {
+      if (c <= 0) return 0;
+      if (max <= 4) return Math.min(c, 4); // skala kecil
+      const t2 = Math.max(2, Math.round(max * 0.33));
+      const t3 = Math.max(3, Math.round(max * 0.66));
+      if (c === 1) return 1;
+      if (c <= t2) return 2;
+      if (c <= t3) return 3;
+      return 4;
+    };
+
+    const cellsWithLevel = cells.map((c) => ({ ...c, level: levelFor(c.count) }));
+
+    // posisi label bulan (kolom minggu tempat tanggal 1 berada)
+    const monthTicks = Array.from({ length: 12 }, (_, m) => {
+      const first = new Date(year, m, 1);
+      const col = Math.floor((first - start) / (ONE * 7));
+      return { col, label: first.toLocaleString('id-ID', { month: 'short' }) };
+    });
+
+    return { cells: cellsWithLevel, weeksCount, monthTicks, max };
+  }, [dailyCountMap, hmYear]);
+
+  const IconHeat = ({ size = 18 }) => (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" fill="currentColor">
+      <rect x="3" y="3" width="4" height="4" rx="1.2" />
+      <rect x="9.5" y="3" width="4" height="4" rx="1.2" />
+      <rect x="16" y="3" width="4" height="4" rx="1.2" />
+      <rect x="3" y="9.5" width="4" height="4" rx="1.2" />
+      <rect x="9.5" y="9.5" width="4" height="4" rx="1.2" />
+      <rect x="16" y="9.5" width="4" height="4" rx="1.2" />
+      <rect x="3" y="16" width="4" height="4" rx="1.2" />
+      <rect x="9.5" y="16" width="4" height="4" rx="1.2" />
+      <rect x="16" y="16" width="4" height="4" rx="1.2" />
+    </svg>
+  );
+
+  // ===== Tooltip ala GitHub untuk heatmap =====
+  const MONTHS_EN = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+  ];
+
+  function ordinal(n){
+    const v = n % 100;
+    if (v >= 11 && v <= 13) return `${n}th`;
+    const last = n % 10;
+    if (last === 1) return `${n}st`;
+    if (last === 2) return `${n}nd`;
+    if (last === 3) return `${n}rd`;
+    return `${n}th`;
+  }
+
+  function ghTooltipText(date, count){
+    const month = MONTHS_EN[date.getMonth()];
+    const day   = ordinal(date.getDate());
+    const plural = count === 1 ? 'booking' : 'bookings';
+    return `${count} ${plural} on ${month} ${day}.`;
+  }
+
   return (
     <div className={styles.background}>
       {!sbLoading && <SidebarComp />}
@@ -358,7 +551,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
           {loading && <div className={styles.loading} />}
 
           <div className={styles.cardsRow}>
-            {/* === Single Card (Overview/Status) === */}
+            {/* === Card 1: Overview / Status (Bar) === */}
             <section className={styles.card} style={{ '--chart-h': `${CHART_H}px` }}>
               <div className={styles.cardHeadRow}>
                 <div className={styles.cardHead} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -390,7 +583,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
                   ) : (
                     <div className={styles.sortGroup}>
                       <label htmlFor="sortBy">Sort by</label>
-                      <select id="sortBy" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                      <select id="sortBy" value={sortByStatus} onChange={(e) => setSortByStatus(e.target.value)}>
                         <option value="all">Semua</option>
                         <option value="today">Hari ini</option>
                         <option value="week">Minggu ini</option>
@@ -503,11 +696,166 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
                 </div>
               </div>
             </section>
+
+            {/* === Card 2: Pie Booking per Modul === */}
+            <section className={styles.card} style={{ '--chart-h': `${CHART_H}px` }}>
+              <div className={styles.cardHeadRow}>
+                <div className={styles.cardHead} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className={styles.kpiLogo}><IconPie /></span>
+                  Booking/Modul
+                </div>
+
+                <div className={styles.actions}>
+                  <div className={styles.sortGroup}>
+                    <label htmlFor="sortByPie">Sort by</label>
+                    <select id="sortByPie" value={sortByPie} onChange={(e)=>setSortByPie(e.target.value)}>
+                      <option value="all">Semua</option>
+                      <option value="today">Hari ini</option>
+                      <option value="week">Minggu ini</option>
+                      <option value="month">Bulan ini</option>
+                      <option value="year">Tahun ini</option>
+                    </select>
+                  </div>
+
+                  <button className={styles.viewBtn} onClick={() => setOpenPieDetail(true)}>Details</button>
+                </div>
+              </div>
+
+              <div className={styles.miniChartBox} style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
+                {pieDataByModule.length === 0 ? (
+                  <div className={styles.empty}>Tidak ada data untuk ditampilkan.</div>
+                ) : (
+                  <PieChart
+                    height={CHART_H}
+                    series={[{
+                      data: pieDataByModule.map(d => ({
+                        id: d.id,
+                        value: d.value,
+                        label: d.label,
+                        color: d.color,
+                      })),
+                      outerRadius: 120,
+                      /* === highlight ala MUI === */
+                      highlightScope: { fade: 'global', highlight: 'item' },
+                      faded: { innerRadius: 40, additionalRadius: -20, color: 'gray' },
+                      valueFormatter: pieValueFormatter,
+                      arcLabel: (item) =>
+                        pieTotal ? `${Math.round((item.value / pieTotal) * 100)}%` : '',
+                    }]}
+                    slotProps={{
+                      legend: { direction: 'column', position: { vertical: 'middle', horizontal: 'right' } },
+                    }}
+                    sx={{
+                      '--Charts-legend-itemWidth': 'auto',
+                      '& .MuiPieArc-root': { stroke: '#fff', strokeWidth: 1 },
+                      '& .MuiPieArc-faded': { opacity: 0.35 },
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* FOOT: tidak ada total booking untuk pie */}
+              <div className={styles.cardFoot}>
+                <div className={styles.footLeft}></div>
+                <div />
+              </div>
+            </section>
           </div>
+
+            <section className={styles.heatCard} style={{ '--chart-h': `${CHART_H}px` }}>
+              <div className={styles.cardHeadRow}>
+                <div className={styles.cardHead} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className={styles.kpiLogo}><IconHeat /></span>
+                  Booking/Kalender
+                </div>
+
+                <div className={styles.actions}>
+                  <select
+                    className={styles.kpiSelect}
+                    value={hmService}
+                    onChange={(e) => setHmService(e.target.value)}
+                  >
+                    <option value="all">Semua</option>
+                    {MODULES.map((m) => (
+                      <option key={m.serviceKey} value={m.serviceKey}>{m.label}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    className={styles.kpiSelect}
+                    value={hmYear}
+                    onChange={(e) => setHmYear(Number(e.target.value))}
+                    style={{ marginLeft: 8 }}
+                  >
+                    {hmYearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+
+                  <button className={styles.viewBtn} onClick={() => setOpenHeatDetail(true)}>
+                    Details
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.heatBox}>
+                {/* Pusatkan semua konten heatmap dengan wrapper */}
+                <div className={styles.heatInner}>
+                  {/* Label bulan di atas grid */}
+                  <div
+                    className={styles.heatMonthRow}
+                    style={{ gridTemplateColumns: `repeat(${heatmapData.weeksCount}, var(--heat-cell))` }}
+                  >
+                    {heatmapData.monthTicks.map((t) => (
+                      <span key={t.label + t.col} style={{ gridColumn: t.col + 1 }}>
+                        {t.label}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className={styles.heatWrap}>
+                    {/* Label hari: full Senin..Minggu */}
+                    <div className={styles.heatWeekdayColFull}>
+                      {DOW_FULL_ID.map((d) => (<span key={d}>{d}</span>))}
+                    </div>
+
+                    {/* Grid hari */}
+                    <div
+                      className={styles.heatGrid}
+                      style={{ gridTemplateColumns: `repeat(${heatmapData.weeksCount}, var(--heat-cell))` }}
+                    >
+                      {heatmapData.cells.map((c) => (
+                        <div key={c.key} className={styles.hmCell}>
+                          <div
+                            className={[
+                              styles.heatCell,
+                              c.inYear ? styles[`lv${c.level}`] : styles.outYear,
+                            ].join(' ')}
+                          />
+                          <span className={styles.hmTip}>{ghTooltipText(c.date, c.count)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Legend */}
+                  <div className={styles.heatLegend}>
+                    <span>Less</span>
+                    <i className={`${styles.heatSwatch} ${styles.lv0}`} />
+                    <i className={`${styles.heatSwatch} ${styles.lv1}`} />
+                    <i className={`${styles.heatSwatch} ${styles.lv2}`} />
+                    <i className={`${styles.heatSwatch} ${styles.lv3}`} />
+                    <i className={`${styles.heatSwatch} ${styles.lv4}`} />
+                    <span>More</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* FOOT kosong */}
+              <div className={styles.cardFoot}><div /></div>
+            </section>
         </div>
       </main>
 
-      {/* ===== Modal Detail ===== */}
+      {/* ===== Modal Detail: Bar/Waktu ===== */}
       {openDetail && (
         <div className={styles.modalOverlay} onClick={() => setOpenDetail(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -623,6 +971,138 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Modal Detail: Pie ===== */}
+      {openPieDetail && (
+        <div className={styles.modalOverlay} onClick={() => setOpenPieDetail(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHead}>
+              <div className={styles.modalTitle}>Detail Booking/Modul</div>
+              <button className={styles.closeBtn} onClick={() => setOpenPieDetail(false)}>×</button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div className={styles.modalChart} style={{ justifyContent:'center' }}>
+                {pieDataByModule.length === 0 ? (
+                  <div className={styles.empty}>Tidak ada data untuk ditampilkan.</div>
+                ) : (
+                  <PieChart
+                    height={CHART_H}
+                    series={[{
+                      data: pieDataByModule.map(d => ({
+                        id: d.id,
+                        value: d.value,
+                        label: d.label,
+                        color: d.color,
+                      })),
+                      outerRadius: 120,
+                      /* === highlight ala MUI === */
+                      highlightScope: { fade: 'global', highlight: 'item' },
+                      faded: { innerRadius: 40, additionalRadius: -20, color: 'gray' },
+                      valueFormatter: pieValueFormatter,
+                      arcLabel: (item) =>
+                        pieTotal ? `${Math.round((item.value / pieTotal) * 100)}%` : '',
+                    }]}
+                    slotProps={{
+                      legend: { direction: 'column', position: { vertical: 'middle', horizontal: 'right' } },
+                    }}
+                    sx={{
+                      '--Charts-legend-itemWidth': 'auto',
+                      '& .MuiPieArc-root': { stroke: '#fff', strokeWidth: 1 },
+                      '& .MuiPieArc-faded': { opacity: 0.35 },
+                    }}
+                  />
+                )}
+              </div>
+
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Layanan</th>
+                      <th>Jumlah</th>
+                      <th>%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {MODULES
+                      .filter((m) => selectedModules.includes(m.value))
+                      .map((m) => {
+                        const v = pieCountsMap.get(m.serviceKey) || 0;
+                        const pct = pieTotal ? Math.round((v / pieTotal) * 100) : 0;
+                        return (
+                          <tr key={m.serviceKey}>
+                            <td>{labelOf(m.serviceKey)}</td>
+                            <td>{v}</td>
+                            <td>{pct}%</td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openHeatDetail && (
+        <div className={styles.modalOverlay} onClick={() => setOpenHeatDetail(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHead}>
+              <div className={styles.modalTitle}>Detail Booking/Kalender</div>
+              <button className={styles.closeBtn} onClick={() => setOpenHeatDetail(false)}>×</button>
+            </div>
+
+            <div className={styles.modalBody} style={{ gridTemplateColumns: '1fr' }}>
+              <div className={styles.modalChart} style={{ minHeight: 'auto' }}>
+                <div className={`${styles.heatBox} ${styles.heatBig}`}>
+                  <div className={styles.heatInner}>
+                    <div
+                      className={styles.heatMonthRow}
+                      style={{ gridTemplateColumns: `repeat(${heatmapData.weeksCount}, var(--heat-cell))` }}
+                    >
+                      {heatmapData.monthTicks.map((t) => (
+                        <span key={t.label + t.col} style={{ gridColumn: t.col + 1 }}>
+                          {t.label}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className={styles.heatWrap}>
+                      <div className={styles.heatWeekdayColFull}>
+                        {DOW_FULL_ID.map((d) => (<span key={d}>{d}</span>))}
+                      </div>
+
+                      <div
+                        className={styles.heatGrid}
+                        style={{ gridTemplateColumns: `repeat(${heatmapData.weeksCount}, var(--heat-cell))` }}
+                      >
+                        {heatmapData.cells.map((c) => (
+                          <div key={c.key} className={styles.hmCell}>
+                            <div className={[styles.heatCell, c.inYear ? styles[`lv${c.level}`] : styles.outYear].join(' ')} />
+                            <span className={styles.hmTip}>{ghTooltipText(c.date, c.count)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className={styles.heatLegend}>
+                      <span>Less</span>
+                      <i className={`${styles.heatSwatch} ${styles.lv0}`} />
+                      <i className={`${styles.heatSwatch} ${styles.lv1}`} />
+                      <i className={`${styles.heatSwatch} ${styles.lv2}`} />
+                      <i className={`${styles.heatSwatch} ${styles.lv3}`} />
+                      <i className={`${styles.heatSwatch} ${styles.lv4}`} />
+                      <span>More</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
