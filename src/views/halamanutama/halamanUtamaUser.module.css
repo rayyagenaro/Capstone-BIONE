@@ -115,11 +115,12 @@
   text-align: center;
   margin-bottom: 22px;
   letter-spacing: 0.01em;
+  overflow: hidden;
 }
 
 .servicesBox { width: 100%; margin-top: 0; }
-.servicesTitle { font-size: 20px; font-weight: 700; color: #23263b; margin-bottom: 9px; text-align: left; }
-.servicesDesc { color: #828282; font-size: 15px; margin-bottom: 28px; }
+.servicesTitle { font-size: 20px; font-weight: 700; color: #23263b; margin-bottom: 9px; text-align: left; overflow: hidden; }
+.servicesDesc { color: #828282; font-size: 15px; margin-bottom: 28px; overflow: hidden; }
 
 .cardsGrid {
   display: grid;
@@ -229,6 +230,10 @@
   .popupMsg { font-size: 1.03rem; }
   .popupIcon svg { width: 44px !important; height: 44px !important; }
   .cancelButton, .logoutButton { padding: 9px 0; min-width: 90px; font-size: .95rem; }
+  .greeting {
+    font-size: 22px;
+    margin-bottom: 18px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -237,31 +242,6 @@
   .cardTitle { font-size: 15px;  }
   .cardDesc { font-size: 13px; min-height: 36px; }
   .btn { max-width: 160px; font-size: 12px; padding: 10px 14px; }
-}
-
-@media (max-width: 1000px) {
-  .cardTitle { font-size: 15px;  }
-  .cardDesc { font-size: 13px; min-height: 36px; }
-  .btn { max-width: 100%; font-size: 13px; padding: 10px 14px; }
-  .card {
-    min-height: 200px ;
-  }
-}
-
-@media (max-width: 1200px) {
-  .mainContent {
-    margin-left: 0px;
-    margin-top: 30px;
-    padding: 0 20px 20px 20px;
-  }
-  .header {
-    left: 0;
-    padding: 0 20px 0 20px;
-  }
-  .welcomeBox {
-    width: 100%;
-    padding : 24px 28px 26px 28px;
-  }
 }
 
 @media (max-width: 768px) {
@@ -290,5 +270,30 @@
     padding : 24px 28px 26px 28px;
   }
 }
+@media (max-width: 1000px) {
+  .cardTitle { font-size: 15px;  }
+  .cardDesc { font-size: 13px; min-height: 36px; }
+  .btn { max-width: 100%; font-size: 13px; padding: 10px 14px; }
+  .card {
+    min-height: 200px ;
+  }
+}
+
+@media (max-width: 1200px) {
+  .mainContent {
+    margin-left: 0px;
+    margin-top: 30px;
+    padding: 0 20px 20px 20px;
+  }
+  .header {
+    left: 0;
+    padding: 0 20px 0 20px;
+  }
+  .welcomeBox {
+    width: 100%;
+    padding : 24px 28px 26px 28px;
+  }
+}
+
 
 
