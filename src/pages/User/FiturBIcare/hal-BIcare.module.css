@@ -294,7 +294,7 @@
 .sessionListOff {
   margin-top: auto;
   font-size: 12px;
-  color: #8b93b0;
+  color: #ff0000;
 }
 .sessionBtn {
   width: 100%;
@@ -449,6 +449,10 @@
 
 /* Mobile */
 @media (max-width: 768px) {
+  .calWrap {
+    padding: 10px;
+    overflow: auto;
+  }
   .formGroup label {
     margin-top: 10px;
   }
@@ -494,5 +498,56 @@
     width: 100%;
     font-size: 18px;
     padding: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendarModalHeader {
+    padding: 12px 14px;
+  }
+  .calendarModalHeader h3 {
+    font-size: 1rem;
+  }
+  .calendarModalBox .calWrap {
+    padding: 6px;
+  }
+  .calendarModalBox .calGrid {
+    gap: 2px;
+  }
+  .calendarModalBox .calDayNames {
+    gap: 2px;
+    margin-bottom: 4px;
+  }
+  .calendarModalBox .calDayName::first-letter {
+    font-size: 11px;
+  }
+  .calendarModalBox .calDayName {
+    font-size: 0;
+  }
+  .calendarModalBox .calCell {
+    min-height: 75px;
+    padding: 4px;
+    border-radius: 6px;
+  }
+  .calendarModalBox .calDateNum {
+    font-size: 0.8rem;
+  }
+  .calendarModalBox .calBadgeOpen {
+    display: none;
+  }
+  .calendarModalBox .sessionList {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+  }
+  .calendarModalBox .sessionBtn {
+    width: 100%;
+    font-size: 9px;
+    padding: 4px 2px;
+    border-radius: 4px;
+  }
+  .calendarModalBox .sessionListOff {
+    font-size: 9px;
   }
 }
