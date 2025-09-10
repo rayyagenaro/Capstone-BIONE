@@ -335,7 +335,7 @@ export default function FiturDmove() {
                 <div className={styles.formBox}>
                     <div className={styles.topRow}>
                         <button className={styles.backBtn} onClick={() => router.back()} type="button">
-                            <FaArrowLeft /> Kembali
+                            <FaArrowLeft />
                         </button>
                         <div className={styles.logoDmoveWrapper}><Image src="/assets/D'MOVE.svg" alt="BI.DRIVE" width={180} height={85} priority /></div>
                         <AvailabilitySection />

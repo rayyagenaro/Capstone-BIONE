@@ -180,26 +180,26 @@
   z-index: 11;
 }
 .backBtn {
-  background: #f5f8ff;
+  flex-shrink: 0;
+  background: #fff;
   color: #2F4D8E;
   border: none;
-  font-family: inherit;
   font-weight: 600;
   font-size: 17px;
   border-radius: 21px;
-  padding: 8px 27px 8px 17px;
+  padding: 8px 20px;
   cursor: pointer;
-  box-shadow: 0 1px 6px 0 rgba(47,77,142,0.10);
+  box-shadow: 0 1px 6px rgba(47, 77, 142, 0.10);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   transition: background 0.14s, color 0.14s;
-  margin-bottom: 0;
-  outline: none;
+  max-width: 20%;
 }
-.backBtn:hover, .backBtn:focus {
-  background: #d8e2fc;
-  color: #233969;
+
+.backBtn:hover {
+  background: #e8f0fe;
+  color: #1c295a;
 }
 
 /* ================================= */
@@ -283,84 +283,6 @@
   background: #f8fafd;
 }
 
-/* RESPONSIVE */
-@media (max-width: 1000px) {
-  .header {
-    padding: 0 16px 0 255px;
-  }
-  .formBox {
-    padding: 20px 8vw 16px 8vw;
-    margin: 26px auto;
-  }
-  .formRow, .formRow3 {
-    gap: 12px;
-  }
-}
-@media (max-width: 900px) {
-  .topRow {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-  .logoDmoveWrapper {
-    justify-content: center;
-    margin-bottom: 7px;
-    min-width: 0;
-  }
-  .availabilitySection {
-    align-items: flex-end;
-    width: 100%;
-    margin-top: 6px;
-    margin-left: 0;
-    min-width: 0;
-  }
-}
-@media (max-width: 720px) {
-  .sidebar {
-    display: none;
-  }
-  .header {
-    left: 0;
-    padding: 0 4px 0 4px;
-    height: 60px;
-  }
-  .formBox {
-    padding: 10px 2vw 12px 2vw;
-    border-radius: 10px;
-    margin: 12px 0;
-    min-width: 0;
-  }
-  .formGrid {
-    gap: 13px;
-  }
-  .formRow, .formRow3 {
-    flex-direction: column;
-    gap: 7px;
-  }
-  .logoDmoveWrapper {
-    margin-bottom: 5px;
-  }
-  .bookingBtn {
-    width: 100%;
-    padding: 11px 0;
-    font-size: 18px;
-  }
-  .buttonWrapper {
-    justify-content: center;
-    margin-top: 9px;
-  }
-}
-@media (max-width: 600px) {
-  .availabilitySection {
-    width: 100%;
-    min-width: 0;
-    align-items: stretch;
-    text-align: right;
-  }
-  .logoDmoveWrapper {
-    min-width: 0;
-  }
-}
 .formGrid {
   width: 100%;
   display: flex;
@@ -741,7 +663,78 @@
 }
 
 /* Responsive */
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+  .header {
+    padding: 0 16px 0 255px;
+  }
+  .mainContent {
+    margin-left: 0;
+    padding-top: 60px;
+  }
+  .backBtn {
+    top: 50%;
+    left: 0px;
+  }
+  .formBox {
+    padding: 20px 8vw 16px 8vw;
+    margin: 26px auto;
+  }
+  .formRow, .formRow3 {
+    gap: 12px;
+  }
+}
+@media (max-width: 900px) {
+  .topRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .logoDmoveWrapper {
+    justify-content: center;
+    margin-bottom: 7px;
+    min-width: 0;
+  }
+  .availabilitySection {
+    align-items: flex-end;
+    width: 100%;
+    margin-top: 6px;
+    margin-left: 0;
+    min-width: 0;
+  }
+  .formRow {
+    flex-direction: column;
+  }
+  .backBtn {
+    max-width: 15%;
+  }
+
+}
 @media (max-width: 600px) {
+  .backBtn {
+    font-size: 15px;
+    padding: 6px 14px;
+    max-width: 15%;
+  }
+  .availabilityLabel {
+    font-size: 14px;
+  }
+  .availabilitySection {
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+    text-align: right;
+  }
+  .availabilityDropdownBtn {
+    font-size: 14px;
+    height: 35px;
+  }
+  .availChevron {
+    font-size: 14px;
+  }
+  .logoDmoveWrapper {
+    min-width: 0;
+  }
   .popupBox {
     max-width: 99vw;
     padding: 16px 8px 18px 8px;
@@ -758,4 +751,21 @@
     min-width: 90px;
     font-size: .95rem;
   }
+
+  .formGroup label, 
+  .formGroup input[type="text"],
+  .formGroup input[type="number"],
+  .formGroup select, 
+  .formGroup textarea {
+    font-size: 14px;
+  }
+  .multiSelectBox {
+    font-size: 14px;
+  }
+
+  .bookingBtn {
+    font-size: 18px;
+    padding: 10px 50px;
+  }
+  
 }
