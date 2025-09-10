@@ -2,13 +2,14 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaCalendarAlt } from 'react-icons/fa';
 import styles from './hal-BIcare.module.css';
 import SidebarUser from '@/components/SidebarUser/SidebarUser';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import idLocale from 'date-fns/locale/id';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 /* ===================== hooks & helpers ===================== */
 const useDropdown = (initial = false) => {
@@ -254,6 +255,8 @@ function DoctorCalendar({ slotMap, bookedMap, adminMap, onPick, minDate = new Da
 /* ===================== halaman utama ===================== */
 export default function FiturBICare() {
   const router = useRouter();
+  const isMobile = useIsMobile(768);
+  const [isCalendarOpen, setCalendarOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // peta dari API rules+bookings
@@ -460,6 +463,9 @@ export default function FiturBICare() {
 
   const handlePickSession = (date, time) => {
     setFields((p) => ({ ...p, tglPengobatan: date, pukulPengobatan: time }));
+    if (isMobile) {
+      setCalendarOpen(false);
+    }
     document.getElementById('tglPengobatan')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
@@ -520,20 +526,58 @@ export default function FiturBICare() {
             />
           </div>
 
-          {/* Kalender */}
-          <div className={styles.calendarBlockLarge}>
-            <h3 className={styles.calendarTitle}>Pilih Tanggal & Sesi</h3>
-            <DoctorCalendar
-              key={`cal-${doctorId}`}
-              slotMap={slotMap}
-              bookedMap={bookedMap}
-              adminMap={adminMap}
-              onPick={handlePickSession}
-              minDate={new Date()}
-              onMonthChange={(ym) => handleMonthChange(ym, doctorId)}
-            />
-            <p className={styles.calendarHint}>Tanggal & waktu pengobatan hanya dapat diubah dari kalender ini.</p>
-          </div>
+          {/* 1. Tampilan Kalender Inline (Hanya untuk Desktop) */}
+          {!isMobile && (
+            <div className={styles.calendarBlockLarge}>
+              <h3 className={styles.calendarTitle}>Pilih Tanggal & Sesi</h3>
+              <DoctorCalendar
+                key={`cal-desktop-${doctorId}`}
+                slotMap={slotMap}
+                bookedMap={bookedMap}
+                adminMap={adminMap}
+                onPick={handlePickSession}
+                minDate={new Date()}
+                onMonthChange={(ym) => handleMonthChange(ym, doctorId)}
+              />
+              <p className={styles.calendarHint}>Tanggal & waktu pengobatan hanya dapat diubah dari kalender ini.</p>
+            </div>
+          )}
+
+          {/* 2. Tombol Pemicu Kalender (Hanya untuk Mobile) */}
+          {isMobile && (
+            <div className={styles.formGroup}>
+               <label>Pilih Tanggal & Sesi</label>
+               <button type="button" className={styles.calendarTriggerBtn} onClick={() => setCalendarOpen(true)}>
+                  <FaCalendarAlt />
+                  <span>
+                    {prettyDate && fields.pukulPengobatan 
+                      ? `${prettyDate} • ${fields.pukulPengobatan}`
+                      : 'Buka Kalender'}
+                  </span>
+               </button>
+            </div>
+          )}
+
+          {/* 3. Modal Kalender (Hanya untuk Mobile & Saat Terbuka) */}
+          {isMobile && isCalendarOpen && (
+            <div className={styles.popupOverlay}>
+                <div className={styles.calendarModalBox}>
+                    <div className={styles.calendarModalHeader}>
+                        <h3>Pilih Tanggal & Sesi</h3>
+                        <button onClick={() => setCalendarOpen(false)} className={styles.popupClose}>×</button>
+                    </div>
+                    <DoctorCalendar
+                        key={`cal-mobile-${doctorId}`}
+                        slotMap={slotMap}
+                        bookedMap={bookedMap}
+                        adminMap={adminMap}
+                        onPick={handlePickSession}
+                        minDate={new Date()}
+                        onMonthChange={(ym) => handleMonthChange(ym, doctorId)}
+                    />
+                </div>
+            </div>
+          )}
 
           {/* Form */}
           <form className={styles.formGrid} onSubmit={onSubmit} autoComplete="off">

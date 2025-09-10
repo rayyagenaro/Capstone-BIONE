@@ -55,24 +55,11 @@
   line-height: 1.47;
 }
 
-@media (max-width: 600px) {
-  .popupBox {
-    max-width: 99vw;
-    padding: 16px 7px 16px 7px;
-    font-size: 0.99rem;
-  }
-  .popupMsg {
-    font-size: 0.95rem;
-  }
-  .popupIcon svg {
-    width: 40px !important;
-    height: 40px !important;
-  }
-}
-
-@media (max-width: 400px) {
+@media (max-width: 768px) {
   .popupBox {
     padding: 8px 2vw 10px 2vw;
     border-radius: 13px;
+    max-width: 200px;
   }
+
 }

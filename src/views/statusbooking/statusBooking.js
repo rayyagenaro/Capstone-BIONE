@@ -572,12 +572,14 @@ export default function StatusBookingView() {
         const count = isAll ? 0 : (badgeCounts[key] || 0);
         const showNumber = !isAll && count > 0;
 
+        // KODE BARU
         return (
           <button key={tabName} className={`${styles.tabBtn} ${currentTab === tabName ? styles.tabActive : ''}`} onClick={() => onTabChange(tabName)} type="button">
             <span className={styles.tabLabel}>{tabName}</span>
-            {!isAll && (showNumber
-              ? <span className={`${styles.tabBadge} ${styles.tabBadgeActive}`}>{count}</span>
-              : <span className={`${styles.tabDot} ${styles.tabDotIdle}`} aria-hidden="true" />
+            
+            {/* Tampilkan badge HANYA jika showNumber bernilai true */}
+            {showNumber && (
+              <span className={`${styles.tabBadge} ${styles.tabBadgeActive}`}>{count}</span>
             )}
           </button>
         );

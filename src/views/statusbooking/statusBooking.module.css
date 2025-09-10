@@ -212,6 +212,7 @@
   padding: 8px 16px;
   cursor: pointer;
   border-radius: 21px;
+  position: relative;
   transition: background 0.14s, color 0.14s;
 }
 .tabActive {
@@ -223,6 +224,34 @@
 .tabBtn:hover {
   background: #2F4D8E;
   color: #ffffff;
+}
+.tabLabel {
+  line-height: 1;
+}
+.tabBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  top: 4px;
+  right: 4px;
+}
+.tabBadgeActive {
+  background: #e53935;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(229,57,53,.25);
+}
+.tabDot {
+  border-radius: 999px;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.tabDotIdle {
+  background: #c9c9cf;
 }
 
 /* ================== LIST ================== */
