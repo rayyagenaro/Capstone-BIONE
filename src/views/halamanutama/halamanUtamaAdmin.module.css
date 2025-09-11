@@ -224,3 +224,33 @@
     height: 70px !important;
   }
 }
+
+/* halamanUtamaAdmin.module.css */
+
+.background {
+  /* biasanya sudah ada; pastikan min-height penuh layar */
+  min-height: 100vh;
+  background: #f8f9fb; /* opsional */
+}
+
+.mainContent {
+  margin-left: 255px;     /* ruang untuk sidebar desktop */
+  padding: 24px 28px;     /* sesuaikan dengan desainmu */
+}
+
+@media (max-width: 1200px) {
+  .mainContent {
+    margin-left: 0;       /* sidebar off-canvas */
+    padding: 24px 16px;
+    padding-top: 72px;    /* offset untuk mobile header 60px (+ruang) */
+  }
+}
+
+/* opsional: loader biar tetap center saat guard loading */
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  color: #2f4d8e;
+  font-weight: 600;
+}
