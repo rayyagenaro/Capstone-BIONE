@@ -344,3 +344,99 @@
   }
   .availabilityTables { flex-direction: column; gap: 8px; }
 }
+
+/* =========================
+   TITLE BAR: center title + back icon-only on mobile
+   ========================= */
+@media (max-width: 900px) {
+  /* jadikan bar judul grid: [ikon] [judul di tengah] [spacer] */
+  .titleBox {
+    display: grid !important;
+    grid-template-columns: 40px 1fr 40px;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0 8px 0;
+    width: 100%;
+  }
+  .titleBox::after { content: ""; } /* spacer kolom kanan */
+
+  /* judul benar2 center */
+  .title {
+    grid-column: 2;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    margin: 0;
+  }
+
+  /* back jadi icon-only, tetap bulat & center */
+  .backBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    aspect-ratio: 1 / 1;       /* bulat sempurna */
+    padding: 0;
+    border-radius: 9999px;
+
+    background: #fff !important;
+    border: 1px solid #eef1f7;
+    box-shadow: 0 1px 3px rgba(47,77,142,.12) !important;
+
+    /* sembunyikan teks "Kembali" tanpa ambil ruang */
+    font-size: 0;
+    line-height: 0;
+    gap: 0;
+    margin: 0;
+  }
+  .backBtn svg {
+    /* penting: override inline marginRight: 7 dari JSX */
+    margin: 0 !important;
+    display: block;           /* hilangkan offset baseline */
+    width: 18px;
+    height: 18px;
+    color: #2F4D8E;
+    transform: none;          /* hapus nudge sebelumnya jika ada */
+  }
+}
+
+/* =========================
+   FORM & KONTEN: padding + lebar
+   ========================= */
+@media (max-width: 900px) {
+  .mainContent { padding-left: 14px; padding-right: 14px; }
+  .detailCard  { padding: 18px 14px 16px; width: 100%; max-width: 100%; }
+
+  /* header meta & kolom detail lebih rapi di HP */
+  .headerMetaWrap { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .headerDates { grid-template-columns: 1fr; row-gap: 6px; }
+  .detailRow { gap: 10px; }
+  .detailLabel { font-size: 12px; }
+  .detailValue { font-size: 14px; }
+}
+
+/* =========================
+   BUTTONS: full-width di mobile
+   ========================= */
+@media (max-width: 900px) {
+  .btnSetujui,
+  .btnTolak,
+  .btnKirimPesan {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 18px;
+    border-radius: 22px;
+    font-size: 16px;
+  }
+}
+
+/* =========================
+   EXTRA SMALL
+   ========================= */
+@media (max-width: 480px) {
+  .title { font-size: 18px; }
+  .backBtn { width: 36px; }
+  .backBtn svg { width: 17px; height: 17px; }
+}
