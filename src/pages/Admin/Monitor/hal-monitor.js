@@ -288,27 +288,40 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     [barDataset]
   );
 
-  /* ===== Overview monthly (tetap seperti sebelumnya) ===== */
-  const [monthsWindow, setMonthsWindow] = useState(12);
+  /* ===== Booking Overview ===== */
+
+  // tahun untuk chart Booking/Waktu (Semua = semua tahun)
+  const [overviewYear, setOverviewYear] = useState('all');
+
+  const overviewYearOptions = useMemo(() => {
+    const ys = new Set();
+    rows.forEach(r => { const d = getRowDate(r); if (d) ys.add(d.getFullYear()); });
+    if (!ys.size) {
+      const y = new Date().getFullYear();
+      return [y, y - 1, y - 2];
+    }
+    // tampilkan dari terbaru ke lama
+    return Array.from(ys).sort((a, b) => b - a);
+  }, [rows]);
+
   const [overviewService, setOverviewService] = useState('all');
 
   const SERVICE_KEYS = ['bicare','bimeal','bimeet','bistay','bimail','bidrive'];
 
-  function buildMonthsForWindow(window) {
-    const now = new Date();
-    const yr  = now.getFullYear();
-    const monthsAll = Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(yr, i, 1);
-      return { key: `${yr}-${String(i+1).padStart(2,'0')}`, label: d.toLocaleString('id-ID', { month: 'short' }), index: i };
+  function buildMonths() {
+    // 12 label bulan tetap (Jan–Des)
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(2000, i, 1);
+      return {
+        key: String(i + 1).padStart(2, '0'),
+        label: d.toLocaleString('id-ID', { month: 'short' }),
+        index: i,
+      };
     });
-    if (window === 12) return monthsAll;
-    const end = now.getMonth();
-    const start = Math.max(0, end - (window - 1));
-    return monthsAll.slice(start, end + 1);
   }
 
   const monthlyAgg = useMemo(() => {
-    const months = buildMonthsForWindow(monthsWindow);
+    const months = buildMonths();
     const initBucket = () => ({ total:0, bicare:0, bimeal:0, bimeet:0, bistay:0, bimail:0, bidrive:0 });
     const counter = new Map(months.map(m => [m.key, initBucket()]));
 
@@ -316,9 +329,8 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
       .filter(r => overviewService === 'all' || guessFeatureKey(r) === overviewService)
       .forEach(r => {
         const d = getRowDate(r); if (!d) return;
-        const now = new Date();
-        if (d.getFullYear() !== now.getFullYear()) return;
-        const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        if (overviewYear !== 'all' && d.getFullYear() !== Number(overviewYear)) return; // filter tahun bila dipilih
+        const k = String(d.getMonth() + 1).padStart(2, '0'); // kelompokkan per-bulan
         if (!counter.has(k)) return;
         const fk = guessFeatureKey(r);
         const c  = counter.get(k);
@@ -337,7 +349,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     data.forEach((row, i) => { if (row.total > hiTotal) { hiTotal = row.total; hiIndex = i; } });
 
     return { data, hiIndex, max: hiTotal };
-  }, [rows, monthsWindow, overviewService]);
+  }, [rows, overviewService, overviewYear]);
 
   const maxTotal = useMemo(() => {
     const v = monthlyAgg.data[monthlyAgg.hiIndex]?.total;
@@ -570,14 +582,20 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
                           <option key={m.serviceKey} value={m.serviceKey}>{m.label}</option>
                         ))}
                       </select>
+
                       <select
                         className={styles.kpiSelect}
-                        value={monthsWindow}
-                        onChange={(e) => setMonthsWindow(Number(e.target.value))}
+                        value={overviewYear}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setOverviewYear(v === 'all' ? 'all' : Number(v));
+                        }}
                         style={{ marginLeft: 8 }}
                       >
-                        <option value={6}>6 bulan</option>
-                        <option value={12}>12 bulan</option>
+                        <option value="all">Semua</option>
+                        {overviewYearOptions.map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
                       </select>
                     </>
                   ) : (
@@ -633,7 +651,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
                       dataset={barDataset}
                       layout="horizontal"
                       height={CHART_H}
-                      margin={{ top: 10, right: 24, bottom: 40, left: 60 }}
+                      margin={{ top: 10, right: 30, bottom: 40, left: 60 }}
                       yAxis={[{
                         scaleType: 'band',
                         dataKey: 'module',

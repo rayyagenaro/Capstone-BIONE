@@ -380,6 +380,8 @@
   transition-delay: 0s;  /* no delay */
 }
 
+.hmTip{ z-index: 9999; }
+
 .hmCell:hover .hmTip{
   opacity: 1;
   transform: translate(-50%, -12px) scale(1);
