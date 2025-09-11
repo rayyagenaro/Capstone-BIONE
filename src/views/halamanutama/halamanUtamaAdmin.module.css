@@ -1,52 +1,30 @@
 /* ======================= */
-/*  BACKGROUND DAN OVERLAY */
+/*  BACKGROUND             */
 /* ======================= */
 .background {
   min-height: 100vh;
   position: relative;
   z-index: 0;
-  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
+  background: #2f4d8e;
   overflow: hidden;
 }
 
+/* Opsional overlay foto - aman untuk performa (fixed + cover) */
 .background::before {
   content: "";
   position: fixed;
-  left: 0; top: 0; right: 0; bottom: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  background: #2f4d8e;
   z-index: -2;
-  background: url('/assets/bankindonesia.png') center center / cover no-repeat;
-  opacity: 0.35;
   pointer-events: none;
 }
-
 .background::after {
   content: "";
   position: fixed;
-  left: 0; top: 0; right: 0; bottom: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  background: #2f4d8e;
   z-index: -1;
-  background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
-  opacity: 0.7;
   pointer-events: none;
-}
-
-/* ======================= */
-/*  SIDEBAR                */
-/* ======================= */
-.sidebar {
-  width: 255px;
-  background: #fff;
-  border-right: 1px solid #ececec;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  min-height: 100vh;
-  position: fixed;
-  top: 0; left: 0; bottom: 0;
-  z-index: 99;
 }
 
 /* ======================= */
@@ -57,9 +35,11 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: #2f4d8e;
-  min-height: 100vh;
-  margin-left: 255px;
+  min-height: 100dvh;
+  margin-left: 255px;    /* ruang sidebar desktop */
+  padding: 24px 28px;
+  /* gunakan latar putih/transparent? ini opsional:
+     background: transparent; */
 }
 
 /* ======================= */
@@ -80,7 +60,7 @@
   font-weight: 700;
   font-size: 28px;
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 14px;
   letter-spacing: 0.01em;
 }
 
@@ -90,14 +70,12 @@
   border-radius: 12px;
   padding: 4px 12px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   display: inline-block;
+  margin: 4px 0 18px 0;
 }
 
-.servicesBox {
-  width: 100%;
-}
-
+.servicesBox { width: 100%; }
 .servicesTitle {
   font-size: 20px;
   font-weight: 700;
@@ -105,32 +83,22 @@
   margin-bottom: 9px;
   text-align: left;
 }
-
 .servicesDesc {
   color: #828282;
   font-size: 15px;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 /* ======================= */
-/*  GRID KARTU             */
+/*  KARTU (kalau dipakai   */
+/*  oleh ServicesCards)    */
 /* ======================= */
 .cardsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 34px 24px;
+  gap: 24px;
   margin-top: 10px;
 }
-
-@media (max-width: 900px) {
-  .cardsGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ======================= */
-/*  CARD                   */
-/* ======================= */
 .card {
   background: #fafbff;
   border: 1.4px solid #dbe2f2;
@@ -139,23 +107,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 30px 22px 26px 22px;
+  padding: 26px 20px 22px 20px;
   min-height: 215px;
   transition: border .15s, box-shadow .15s, background .15s;
 }
-
 .card:hover {
   border-color: #2F4D8E;
   box-shadow: 0 2px 12px rgba(47,77,142,0.10);
   background: #f6f8ff;
 }
-
 .cardLogo {
-  width: 500px !important;
-  height: 100px !important;
+  width: 420px !important;
+  height: 90px !important;
   object-fit: contain;
 }
-
 .cardTitle {
   color: #2f4d8e;
   font-size: 16px;
@@ -164,7 +129,6 @@
   letter-spacing: 0.01em;
   margin-top: 6px;
 }
-
 .cardDesc {
   color: #6b6b6b;
   font-size: 14px;
@@ -172,81 +136,77 @@
   min-height: 36px;
   margin: 8px 0 16px 0;
 }
-
 .manageBtn {
   background: #2f4d8e;
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 0;
   width: 100%;
   font-size: 15px;
   font-weight: 700;
-  font-family: inherit;
   cursor: pointer;
   text-align: center;
-  transition: background 0.15s, box-shadow 0.18s;
-  box-shadow: 0 1px 4px 0 rgba(47,77,142,0.05);
+  transition: background .15s, box-shadow .18s;
+  box-shadow: 0 1px 4px rgba(47,77,142,0.06);
 }
-
 .manageBtn:hover {
   background: #233969;
   box-shadow: 0 2px 12px rgba(47,77,142,0.12);
 }
 
 /* ======================= */
-/*  RESPONSIVE             */
+/*  RESPONSIVE BREAKPOINTS */
 /* ======================= */
+
+/* Tablet & small laptop */
 @media (max-width: 1200px) {
+  .mainContent {
+    margin-left: 0;        /* sidebar off-canvas/hidden di mobile */
+    padding: 24px 16px;
+    padding-top: 72px;     /* ruang untuk mobile header hamburger */
+  }
   .welcomeBox {
-    padding: 16px 2vw 18px 2vw;
-    width: 98vw;
+    width: 100%;
+    padding: 24px 24px 26px 24px;
+    border-radius: 16px;
   }
 }
 
+/* Grid 1 kolom, tipografi turun sedikit */
+@media (max-width: 900px) {
+  .cardsGrid { grid-template-columns: 1fr; gap: 18px; }
+  .greeting { font-size: 24px; }
+  .servicesTitle { font-size: 18px; }
+  .servicesDesc { font-size: 14px; }
+  .cardLogo { width: 320px !important; height: 74px !important; }
+}
+
+/* Phone */
 @media (max-width: 700px) {
-  .sidebar {
-    display: none;
-  }
-  .mainContent {
-    margin-left: 0;
-  }
   .welcomeBox {
     margin: 8px 0;
-    border-radius: 10px;
-    padding: 10px 1vw 14px 1vw;
+    padding: 18px 16px 20px 16px;
+    border-radius: 12px;
   }
-  .greeting {
-    font-size: 20px;
-  }
-  .cardLogo {
-    width: 320px !important;
-    height: 70px !important;
-  }
+  .greeting { font-size: 21px; margin-bottom: 12px; }
+  .roleBadge { font-size: 12.5px; padding: 4px 10px; }
+  .servicesTitle { font-size: 16px; margin-bottom: 8px; }
+  .servicesDesc { font-size: 13px; margin-bottom: 16px; }
+  .card { padding: 20px 14px; min-height: 190px; }
+  .cardTitle { font-size: 15px; }
+  .cardDesc { font-size: 13px; }
 }
 
-/* halamanUtamaAdmin.module.css */
-
-.background {
-  /* biasanya sudah ada; pastikan min-height penuh layar */
-  min-height: 100vh;
-  background: #f8f9fb; /* opsional */
+/* Small phone */
+@media (max-width: 480px) {
+  .mainContent { padding-left: 14px; padding-right: 14px; }
+  .welcomeBox { padding: 16px 12px 18px 12px; }
+  .greeting { font-size: 19px; }
+  .cardLogo { width: 260px !important; height: 64px !important; }
 }
 
-.mainContent {
-  margin-left: 255px;     /* ruang untuk sidebar desktop */
-  padding: 24px 28px;     /* sesuaikan dengan desainmu */
-}
-
-@media (max-width: 1200px) {
-  .mainContent {
-    margin-left: 0;       /* sidebar off-canvas */
-    padding: 24px 16px;
-    padding-top: 72px;    /* offset untuk mobile header 60px (+ruang) */
-  }
-}
-
-/* opsional: loader biar tetap center saat guard loading */
+/* Loader tetap rapi */
 .loading {
   display: grid;
   place-items: center;
