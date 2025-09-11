@@ -2,7 +2,7 @@
    LAYER BACKGROUND
    ========================= */
 .background {
-  min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   z-index: 0;
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
@@ -13,11 +13,9 @@
   content: "";
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -2;
   background: url('/assets/bankindonesia.png') center center / cover no-repeat;
   opacity: 0.35;
+  z-index: -2;
   pointer-events: none;
 }
 
@@ -25,11 +23,9 @@
   content: "";
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -1;
   background: linear-gradient(140deg, #e7ebf5 0%, #b5c3e8 100%);
   opacity: 0.7;
+  z-index: -1;
   pointer-events: none;
 }
 
@@ -41,8 +37,9 @@
   display: flex;
   flex-direction: column;
   background: #2f4d8e;
-  min-height: 100vh;
-  margin-left: 255px; /* ada sidebar admin */
+  min-height: 100dvh;
+  margin-left: 255px;           /* ruang sidebar desktop */
+  padding: 24px 28px;
 }
 
 /* =========================
@@ -62,11 +59,12 @@
 
 /* =========================
    TOP ROW: Back + Title
-   (samakan dengan Status Booking)
    ========================= */
 .topRow {
   display: flex;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 22px;
 }
 
@@ -81,17 +79,12 @@
   padding: 8px 27px 8px 17px;
   cursor: pointer;
   box-shadow: 0 1px 6px rgba(47, 77, 142, 0.10);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
-  transition: background 0.14s, color 0.14s;
-  margin: 0 24px 8px 0;
+  transition: background 0.14s, color 0.14s, box-shadow .14s;
 }
-
-.backBtn:hover {
-  background: #e8f0fe;
-  color: #1c295a;
-}
+.backBtn:hover { background: #e8f0fe; color: #1c295a; }
 
 .title {
   flex: 1;
@@ -100,29 +93,25 @@
   font-size: 30px;
   font-weight: 800;
   letter-spacing: 0.8px;
-  margin-right: 150px;
-  margin-bottom: 3px;
+  margin: 0;                 /* hilangkan margin-right fix agar responsif */
   text-shadow: 0 2px 7px rgba(245, 246, 250, 0.26);
   user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
 }
 
 /* =========================
-   FILTER (dropdown Fitur/Layanan)
+   FILTER (dropdown Fitur)
    ========================= */
 .filterRow {
   margin: 6px 0 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;             /* biar rapi di mobile */
 }
 
 .label {
-  margin-right: 8px;
   color: #22335e;
-  font-weight: 400;
+  font-weight: 500;
   font-size: 15px;
 }
 
@@ -135,6 +124,7 @@
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
+  min-width: 160px;            /* touch target nyaman */
 }
 
 /* =========================
@@ -145,25 +135,26 @@
   align-items: center;
   justify-content: center;
   gap: 28px;
-  margin-bottom: 26px;
-  margin-top: 20px;
+  margin: 18px 0 24px;
 }
 
 .tabBtn {
-  padding: 10px 32px;
-  font-size: 18px;
+  padding: 10px 28px;
+  font-size: 16px;
   font-weight: 700;
   border: none;
   background: #f5f5fa;
   color: #777;
-  border-radius: 20px;
+  border-radius: 9999px;
   box-shadow: 0 2px 9px rgba(100, 110, 150, 0.11);
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition: background .12s, color .12s, box-shadow .12s;
   display: inline-flex;
   align-items: center;
   gap: 10px; /* label + dot */
+  white-space: nowrap;
 }
+.tabBtn:active { box-shadow: 0 0 0 rgba(0,0,0,0); }
 
 .tabActive {
   background: #2F4D8E !important;
@@ -171,9 +162,7 @@
   box-shadow: 0 4px 12px rgba(47, 77, 142, 0.10);
 }
 
-.tabLabel {
-  line-height: 1;
-}
+.tabLabel { line-height: 1; }
 
 .tabDot {
   width: 10px;
@@ -182,10 +171,7 @@
   display: inline-block;
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.02) inset;
 }
-
-.tabDotIdle {
-  background: #c9c9cf;
-}
+.tabDotIdle { background: #c9c9cf; }
 
 /* =========================
    LIST & CARD
@@ -209,14 +195,14 @@
   gap: 22px;
   cursor: pointer;
   user-select: none;
-  transition: box-shadow 0.13s, border 0.13s, background 0.16s;
+  transition: box-shadow .13s, border .13s, background .16s, transform .08s;
 }
-
 .cardLayanan:hover {
   border: 1.8px solid #3450a7;
   background: #f3f7ff;
   box-shadow: 0 4px 14px rgba(70, 90, 150, 0.13);
 }
+.cardLayanan:active { transform: scale(.995); }
 
 .cardLogo {
   width: 72px !important;
@@ -233,14 +219,18 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
 }
 
 .layananTitle {
-  font-size: 1.22rem;
+  font-size: 1.18rem;
   font-weight: 700;
   color: #222;
   margin-bottom: 4px;
   letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .layananSub {
@@ -249,41 +239,24 @@
   margin-bottom: 4px;
 }
 
-.cardVehicles {
-  font-size: 15px;
-  color: #1b1b1b;
-  margin-bottom: 2px;
-}
-
 .layananStatus {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   margin-top: 3px;
   letter-spacing: 0.04em;
 }
 
-.statusApproved {
-  color: #1ec877;
-}
-
-.statusRejected {
-  color: #e74c3c;
-}
-
-.statusPending {
-  color: #727272;
-}
-
-.statusFinished {
-  color: #6c63ff;
-}
+.statusApproved { color: #1ec877; }
+.statusRejected { color: #e74c3c; }
+.statusPending  { color: #727272; }
+.statusFinished { color: #6c63ff; }
 
 .emptyText {
   color: #2F4D8E;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   text-align: center;
-  margin-top: 28px;
+  margin-top: 24px;
 }
 
 /* =========================
@@ -301,6 +274,7 @@
   align-items: center;
   margin-bottom: 16px;
   padding: 0 10px;
+  gap: 16px;
 }
 
 .resultsText {
@@ -312,59 +286,172 @@
 /* =========================
    RESPONSIVE
    ========================= */
-@media (max-width: 1100px) {
-  .boxLayanan {
-    padding: 18px 5vw;
-  }
 
-  .title {
-    font-size: 1.3rem;
-    margin-right: 0;
-  }
-}
-
-@media (max-width: 900px) {
+/* Tablet & small laptop */
+@media (max-width: 1200px) {
   .mainContent {
-    margin-left: 0;
-    padding-top: 92px; /* compensate header */
+    margin-left: 0;         /* sidebar off-canvas */
+    padding: 24px 16px;
+    padding-top: 72px;      /* ruang untuk mobile header hamburger */
   }
-
   .boxLayanan {
-    width: 98vw;
-    border-radius: 12px;
+    width: 100%;
+    padding: 20px 24px 24px 24px;
+    border-radius: 16px;
   }
+  .title { font-size: 26px; }
 }
 
+/* Grid tabs jadi scrollable, control pagination stack */
+@media (max-width: 900px) {
+  .boxLayanan { border-radius: 14px; }
+
+  .tabRow {
+    justify-content: flex-start;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabRow::-webkit-scrollbar { display: none; }
+
+  .tabBtn { padding: 9px 18px; font-size: 14px; }
+
+  .paginationControls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .resultsText { text-align: center; }
+}
+
+/* Phone */
 @media (max-width: 700px) {
   .boxLayanan {
-    padding: 7px 1vw 13px;
+    padding: 12px 12px 16px;
     margin: 12px 0;
   }
 
+  .backBtn {
+    font-size: 14px;
+    padding: 8px 14px 8px 12px;
+  }
+
+  .title {
+    font-size: 22px;
+    line-height: 1.25;
+  }
+
+  .filterRow { gap: 8px; }
+  .itemsPerPageDropdown { min-width: 0; width: 100%; }
+
   .cardLayanan {
     flex-direction: column;
-    padding: 10px;
+    padding: 12px;
+    gap: 12px;
   }
-
   .cardLogo {
-    margin-bottom: 10px;
+    width: 64px !important;
+    height: 64px !important;
+    margin: 0 auto 6px;
   }
-
   .layananTitle {
     font-size: 1rem;
+    white-space: normal;           /* biar judul bisa wrap di layar kecil */
   }
-
   .layananSub,
-  .layananStatus {
-    font-size: 0.9rem;
+  .layananStatus { font-size: 0.9rem; }
+}
+
+/* Small phone */
+@media (max-width: 480px) {
+  .mainContent { padding-left: 12px; padding-right: 12px; }
+  .boxLayanan  { padding: 10px 10px 14px; border-radius: 12px; }
+  .tabBtn { padding: 8px 14px; font-size: 13px; }
+  .itemsPerPageDropdown { font-size: 14px; }
+}
+
+/* Loader */
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  color: #2f4d8e;
+  font-weight: 600;
+}
+
+/* Optional util */
+.liftUp { transform: translateY(-10px); }
+
+/* Back button icon-only & perfectly centered */
+@media (max-width: 700px) {
+  .backBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    aspect-ratio: 1 / 1;     /* selalu bulat sempurna */
+    padding: 0;
+    border-radius: 9999px;
+
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(47,77,142,.10);
+    border: 1px solid #eef1f7; /* ring tipis, opsional */
+    box-sizing: border-box;
+
+    /* sembunyikan teks tanpa ambil ruang */
+    font-size: 0;
+    line-height: 0;
+    gap: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .backBtn svg {
+    flex: 0 0 auto;
+    display: block;          /* hilangkan baseline offset */
+    width: 18px;
+    height: 18px;
+    color: #2F4D8E;
   }
 }
 
-/* optional: angkat konten sedikit */
-.liftUp {
-  transform: translateY(-10px);
+/* ===== Tabs: 3 di atas, 2 di bawah (4 & 5 berada di kolom tengah dan kanan) ===== */
+@media (max-width: 900px) {
+  .tabRow {
+    display: grid;
+    grid-template-columns: repeat(3, auto); /* tiga kolom */
+    justify-content: center;   /* center keseluruhan grid */
+    justify-items: center;     /* center isi tiap sel */
+    align-items: center;
+    gap: 12px 14px;
+    margin: 14px 0 18px;
+    overflow: visible;
+  }
+
+  .tabBtn {
+    padding: 9px 16px;
+    font-size: 14px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  .tabDot { width: 8px; height: 8px; }
+
+  /* Baris 1 */
+  .tabRow .tabBtn:nth-child(1) { grid-column: 1; grid-row: 1; }
+  .tabRow .tabBtn:nth-child(2) { grid-column: 2; grid-row: 1; }
+  .tabRow .tabBtn:nth-child(3) { grid-column: 3; grid-row: 1; }
+
+  /* Baris 2 (pusat & kanan) -> menghasilkan " 4  5 " */
+  .tabRow .tabBtn:nth-child(4) { grid-column: 2; grid-row: 2; }
+  .tabRow .tabBtn:nth-child(5) { grid-column: 3; grid-row: 2; }
 }
 
-/* ————— NOTE: class lama yang tidak dipakai (aman diabaikan) ————— */
-/* .topRowPersetujuan {} */
-/* .titleLayanan {} */
+/* Very small phones */
+@media (max-width: 480px) {
+  .tabBtn { padding: 8px 12px; font-size: 13px; }
+  .tabDot { width: 7px; height: 7px; }
+}
+
