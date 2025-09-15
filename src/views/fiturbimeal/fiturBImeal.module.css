@@ -266,9 +266,8 @@
 
 }
 /* ===== Pesanan (daftar dinamis) ===== */
-.orderGroup { 
-  /* tidak wajib, tetapi bisa dipakai jika ingin jarak ekstra */
-}
+/* .orderGroup { 
+} */
 
 .orderList {
   display: flex;

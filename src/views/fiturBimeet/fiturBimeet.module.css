@@ -331,6 +331,7 @@
   border-radius: 14px;
   padding: 14px;
   margin-top: 8px;
+  overflow: auto;
 }
 .calHeader {
   display: flex;
@@ -466,4 +467,67 @@
 @media (max-width: 640px) {
   .calDayNames, .calGrid { gap: 4px; }
   .sessionBtn { font-size: 12px; padding: 5px; }
+}
+
+/* Tambahkan blok ini di akhir file CSS Anda */
+
+@media (max-width: 480px) {
+  .formBox {
+    padding: 24px 16px; /* Kurangi padding di layar sangat kecil */
+  }
+  
+  /* Buat dropdown ketersediaan lebih ramah mobile */
+  .availabilityDropdown {
+    min-width: 100%; /* Dropdown memenuhi lebar */
+    padding: 8px;
+  }
+  .availabilityDropdown th,
+  .availabilityDropdown td {
+    padding: 8px 6px; /* Sesuaikan padding tabel */
+    font-size: 14px;
+  }
+  
+  /* Perkecil ukuran font dan padding pada form */
+  .formGroup label {
+    font-size: 15px;
+  }
+  .formGroup input[type="text"],
+  .formGroup input[type="number"],
+  .formGroup input[type="datetime-local"],
+  .formGroup select,
+  .formGroup textarea {
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+
+  .bookingBtn {
+    width: 100%;
+    padding: 14px;
+    font-size: 18px;
+  }
+
+  /*
+   * Buat kalender menjadi 1 kolom yang bisa di-scroll horizontal,
+   * sama seperti solusi di halaman BI.Care
+  */
+  .calGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 80px); /* Setiap kolom punya lebar tetap */
+    overflow-x: auto;
+    padding-bottom: 8px; /* Ruang untuk scrollbar */
+    -webkit-overflow-scrolling: touch;
+  }
+  .calDayName::first-letter {
+    font-size: 12px;
+  }
+  .calDayName {
+    font-size: 0;
+  }
+  .calCell {
+    min-height: 90px;
+  }
+  .sessionBtn {
+    font-size: 11px;
+    padding: 4px;
+  }
 }
