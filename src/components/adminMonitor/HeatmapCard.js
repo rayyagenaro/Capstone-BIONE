@@ -7,6 +7,7 @@ export default function HeatmapCard({
   hmService, setHmService,
   hmYear, setHmYear, hmYearOptions,
   onOpenDetail,
+  serviceOptions = [], // ← pakai daftar dari parent
 }) {
   return (
     <section className={styles.heatCard}>
@@ -17,10 +18,15 @@ export default function HeatmapCard({
         </div>
 
         <div className={styles.actions}>
-          <select className={styles.kpiSelect} value={hmService} onChange={(e) => setHmService(e.target.value)}>
+          <select
+            className={styles.kpiSelect}
+            value={hmService}
+            onChange={(e) => setHmService(e.target.value)}
+          >
             <option value="all">Semua</option>
-            {/* opsi layanan di-emit dari parent agar konsisten */}
-            {/* Parent bisa supply MODULES kalau mau spesifik */}
+            {serviceOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
 
           <select

@@ -1,3 +1,4 @@
+// /src/pages/Admin/Monitor/hal-monitor.js
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { getNsFromReq } from '@/lib/ns-server';
@@ -35,6 +36,10 @@ const qs = (o) => {
   return sp.toString() ? `?${sp}` : '';
 };
 
+// normalisasi ID → serviceKey
+const toServiceKey = (x) =>
+  typeof x === 'number' ? SERVICE_ID_MAP[x] : String(x || '');
+
 export default function Monitor({ initialRoleId = null, initialServiceIds = null }) {
   const router = useRouter();
 
@@ -53,6 +58,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
   const [allowedServiceIds, setAllowedServiceIds] = useState(initialServiceIds);
   const [sbLoading, setSbLoading] = useState(initialRoleId == null);
 
+  // Efek 1: set sidebar loading + peran (skip /api/me bila SSR sudah kasih role)
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -66,12 +72,13 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
         const rs = String(d?.payload?.role || d?.payload?.roleNormalized || '').toLowerCase();
         const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
         setRoleId(isSuper ? 1 : 2);
-        if (isSuper) setAllowedServiceIds(null);
-        else {
-          const ids = Array.isArray(d?.payload?.service_ids)
-            ? d.payload.service_ids.map((x) => SERVICE_ID_MAP[x] || null).filter(Boolean)
+        if (isSuper) {
+          setAllowedServiceIds(null);
+        } else {
+          const keys = Array.isArray(d?.payload?.service_ids)
+            ? d.payload.service_ids.map(toServiceKey).filter(Boolean)
             : [];
-          setAllowedServiceIds(ids);
+          setAllowedServiceIds(keys);
         }
       } catch {
         setRoleId(2); setAllowedServiceIds([]);
@@ -80,12 +87,49 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     return () => { alive = false; };
   }, [router.isReady, ns, initialRoleId]);
 
+  // Efek 2 (PENTING): hidrasi service_ids kalau masih kosong (kasus SSR tidak mengirim service_ids)
+  useEffect(() => {
+    if (!router.isReady) return;
+    // super admin: null = semua modul, tidak perlu fetch
+    if (allowedServiceIds === null) return;
+    // sudah punya izin modul → selesai
+    if (Array.isArray(allowedServiceIds) && allowedServiceIds.length > 0) return;
+
+    let alive = true;
+    (async () => {
+      try {
+        const url = ns ? `/api/me?scope=admin&ns=${encodeURIComponent(ns)}` : '/api/me?scope=admin';
+        const r = await fetch(url, { cache: 'no-store' });
+        const d = await r.json();
+        if (!alive) return;
+
+        const rl = Number(d?.payload?.role_id_num ?? d?.payload?.role_id ?? 0);
+        const rs = String(d?.payload?.role || d?.payload?.roleNormalized || '').toLowerCase();
+        const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
+        setRoleId(isSuper ? 1 : 2);
+
+        if (isSuper) {
+          setAllowedServiceIds(null);
+        } else {
+          const keys = Array.isArray(d?.payload?.service_ids)
+            ? d.payload.service_ids.map(toServiceKey).filter(Boolean)
+            : [];
+          setAllowedServiceIds(keys);
+        }
+      } catch {
+        // biarkan kosong; UI akan tampil tanpa modul
+      }
+    })();
+
+    return () => { alive = false; };
+  }, [router.isReady, ns, allowedServiceIds]);
+
   /* ===== modul diizinkan ===== */
   const allowedModules = useMemo(() => {
-    if (allowedServiceIds === null) return MODULES;
+    if (allowedServiceIds === null) return MODULES; // super admin
     if (!Array.isArray(allowedServiceIds) || allowedServiceIds.length === 0) return [];
-    const allowedKeys = allowedServiceIds.map((id) => SERVICE_ID_MAP[id] || null).filter(Boolean);
-    return MODULES.filter((m) => allowedKeys.some((k) => isAlias(m.serviceKey, k)));
+    const keys = allowedServiceIds.map(toServiceKey).filter(Boolean);
+    return MODULES.filter((m) => keys.some((k) => isAlias(m.serviceKey, k)));
   }, [allowedServiceIds]);
 
   /* ===== otomatis pilih semua modul yang boleh ===== */
@@ -142,10 +186,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
   }, [router.isReady, ns, allowedModules, selectedModules]);
 
   /* ===== Stacked bar (status) ===== */
-  const rowsForStatus = useMemo(() => {
-    const { rangeFor } = require('@/components/adminMonitor/shared');
-    return filterRowsBySort(rows, sortByStatus);
-  }, [rows, sortByStatus]);
+  const rowsForStatus = useMemo(() => filterRowsBySort(rows, sortByStatus), [rows, sortByStatus]);
 
   const countsByModuleStatus = useMemo(() => {
     const m = new Map();
@@ -160,10 +201,9 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
   }, [rowsForStatus]);
 
   const barDataset = useMemo(() => {
-    return MODULES
-      .filter((m) => selectedModules.includes(m.value))
-      .map((m) => {
-        const c = countsByModuleStatus.get(m.serviceKey) || { pending: 0, approved: 0, rejected: 0, finished: 0 };
+    return allowedModules
+      .map(m => {
+        const c = countsByModuleStatus.get(m.serviceKey) || { pending:0, approved:0, rejected:0, finished:0 };
         return {
           module: labelOf(m.serviceKey),
           pending:  c.pending,
@@ -172,8 +212,8 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
           finished: c.finished,
         };
       })
-      .filter((row) => row.pending || row.approved || row.rejected || row.finished);
-  }, [countsByModuleStatus, selectedModules]);
+      .filter(r => r.pending || r.approved || r.rejected || r.finished);
+  }, [countsByModuleStatus, allowedModules]);
 
   const totalAll = useMemo(
     () => barDataset.reduce((a, r) => a + r.pending + r.approved + r.rejected + r.finished, 0),
@@ -239,26 +279,24 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
   const windowTotal = useMemo(() => monthlyAgg.data.reduce((s, x) => s + x.total, 0), [monthlyAgg]);
 
   /* ===== Pie ===== */
-  const rowsForPie = useMemo(() => {
-    const { rangeFor } = require('@/components/adminMonitor/shared');
-    return filterRowsBySort(rows, sortByPie);
-  }, [rows, sortByPie]);
+  const rowsForPie = useMemo(() => filterRowsBySort(rows, sortByPie), [rows, sortByPie]);
+
+  const visibleKeys = useMemo(
+    () => new Set(allowedModules.map(m => m.serviceKey)),
+    [allowedModules]
+  );
 
   const pieCountsMap = useMemo(() => {
-    const selectedKeys = new Set(
-      MODULES.filter(m => selectedModules.includes(m.value)).map(m => m.serviceKey)
-    );
-    const map = new Map([...selectedKeys].map(k => [k, 0]));
+    const map = new Map([...visibleKeys].map(k => [k, 0]));
     rowsForPie.forEach(r => {
       const fk = guessFeatureKey(r);
-      if (selectedKeys.has(fk)) map.set(fk, (map.get(fk) || 0) + 1);
+      if (visibleKeys.has(fk)) map.set(fk, (map.get(fk) || 0) + 1);
     });
     return map;
-  }, [rowsForPie, selectedModules]);
+  }, [rowsForPie, visibleKeys]);
 
   const pieDataByModule = useMemo(() => {
-    return MODULES
-      .filter(m => selectedModules.includes(m.value))
+    return allowedModules
       .map(m => ({
         id: m.serviceKey,
         label: m.label,
@@ -266,7 +304,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
         color: MODULE_COLORS[m.serviceKey],
       }))
       .filter(d => d.value > 0);
-  }, [pieCountsMap, selectedModules]);
+  }, [pieCountsMap, allowedModules]);
 
   const pieTotal = useMemo(() => pieDataByModule.reduce((s, d) => s + d.value, 0), [pieDataByModule]);
   const pieValueFormatter = (item) => {
@@ -385,6 +423,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
               sortByStatus={sortByStatus}
               setSortByStatus={setSortByStatus}
               onOpenDetail={() => setOpenDetail(true)}
+              modules={allowedModules}
             />
 
             <PieCard
@@ -395,6 +434,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
               sortByPie={sortByPie}
               setSortByPie={setSortByPie}
               onOpenDetail={() => setOpenPieDetail(true)}
+              modules={allowedModules}
             />
           </div>
 
@@ -407,6 +447,7 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
             setHmYear={setHmYear}
             hmYearOptions={hmYearOptions}
             onOpenDetail={() => setOpenHeatDetail(true)}
+            serviceOptions={allowedModules.map(m => ({ value: m.serviceKey, label: m.label }))}
           />
         </div>
       </main>
