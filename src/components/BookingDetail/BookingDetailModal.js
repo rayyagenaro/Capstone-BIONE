@@ -124,17 +124,22 @@ export default function BookingDetailModal({
 
   if (!booking) return null;
 
-  const statusInfo =
+  const featureKey = resolveFeatureKey(booking);
+  const featureLabel = featureLabelOf(booking);
+  
+  let statusInfo =
     (STATUS_CONFIG(styles))[booking.status_id] ||
     { text: "Unknown", className: styles.statusPending };
 
+    if (featureKey === 'bicare' && booking.status?.toLowerCase() === 'booked') {
+    statusInfo.text = 'Booked';
+    }
   const isApproved = Number(booking.status_id) === 2;
   const isFinished = Number(booking.status_id) === 4;
   const isCancelled = Number(booking.status_id) === 5;
   const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
 
-  const featureKey = resolveFeatureKey(booking);
-  const featureLabel = featureLabelOf(booking);
+
 
   // validasi feedback (1..5)
   const ratingVal   = Number(feedback?.rating_overall);

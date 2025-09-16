@@ -275,47 +275,51 @@ export default function HalOrders({ initialUserName = 'User' }) {
   };
 
   const handleCardClick = useCallback(async (booking) => {
-      console.log('1. Card clicked. Initial booking data:', booking);
       try {
         const featureKey = resolveFeatureKey(booking, slug);
         const bid = numericIdOf(booking.id);
         
-        console.log(`2. Processing... Feature: '${featureKey}', Booking ID: ${bid}`);
         if (!Number.isFinite(bid)) throw new Error('ID booking tidak valid');
 
         let full;
         let apiUrl = '';
 
         switch (featureKey) {
-          // --- LOGIKA KHUSUS UNTUK BICARE ---
           case 'bicare': {
-            apiUrl = `/api/BIcare/my-bookings`; // Panggil API yang mengembalikan list
-            console.log(`3. Fetching list from URL for Bicare:`, apiUrl);
-            
+            apiUrl = `/api/BIcare/my-bookings`;
             const res = await fetch(apiUrl, { credentials: 'include' });
             if (!res.ok) throw new Error(`Gagal memuat daftar BI.CARE. Status: ${res.status}`);
             
             const responseData = await res.json();
             const allMyBookings = responseData.bookings;
 
+            console.log("Data dari /api/BIcare/my-bookings:", allMyBookings);
+
             if (!Array.isArray(allMyBookings)) {
-              throw new Error('Respons API BI.CARE tidak valid, properti "bookings" tidak ditemukan.');
+              throw new Error('Respons API BI.CARE tidak valid.');
             }
 
-            // Cari satu booking yang ID-nya cocok dengan ID kartu yang diklik
             const detailedBooking = allMyBookings.find(item => numericIdOf(item.id) === bid);
+
+            console.log("Hasil .find() untuk ID " + bid + ":", detailedBooking);
 
             if (!detailedBooking) {
               throw new Error(`Booking BI.CARE dengan ID ${bid} tidak ditemukan.`);
             }
-            full = { ...detailedBooking, feature_key: featureKey };
+            
+
+            if (detailedBooking.status && !detailedBooking.status_id) {
+              if (detailedBooking.status.toLowerCase() === 'booked') {
+                detailedBooking.status_id = 2; 
+              }
+            }
+
+            full = { ...booking, ...detailedBooking, _raw_bicare: detailedBooking, feature_key: featureKey };
             break;
           }
 
-          // --- LOGIKA UNTUK FITUR LAINNYA ---
           case 'bidrive': {
             apiUrl = `/api/bookings-with-vehicle?bookingId=${bid}`;
-            console.log('3. Fetching detail from URL:', apiUrl);
             const res = await fetch(apiUrl);
             if (!res.ok) throw new Error(`Gagal memuat detail BI.Drive. Status: ${res.status}`);
             full = await res.json();
@@ -323,11 +327,11 @@ export default function HalOrders({ initialUserName = 'User' }) {
             break;
           }
 
+          // --- Logika untuk fitur lainnya tetap sama ---
           case 'bimeet':
           case 'bimeal':
           case 'bistay':
           case 'bimail': {
-            // Logika ini mengasumsikan API mengembalikan satu item
             const featureName = featureKey.charAt(0).toUpperCase() + featureKey.slice(1);
             const featureDocName = featureKey === 'bimail' ? 'BI.Docs' : `BI.${featureName}`;
 
@@ -336,7 +340,6 @@ export default function HalOrders({ initialUserName = 'User' }) {
             if (featureKey === 'bistay') apiUrl = `/api/BIstaybook/bistaybooking?bookingId=${bid}&ns=${ns}`;
             if (featureKey === 'bimail') apiUrl = `/api/bimail/book?bookingId=${bid}&ns=${ns}`;
 
-            console.log(`3. Fetching detail from URL for ${featureName}:`, apiUrl);
             const res = await fetch(apiUrl, { credentials: 'include' });
             if (!res.ok) throw new Error(`Gagal memuat detail ${featureDocName}. Status: ${res.status}`);
             
@@ -351,17 +354,15 @@ export default function HalOrders({ initialUserName = 'User' }) {
           }
 
           default:
-            console.warn('Unknown featureKey:', featureKey);
             full = booking; 
             break;
         }
         
-        console.log('4. Fetch successful. Final data for modal:', full);
         setSelectedBooking(full);
 
       } catch (e) {
-        console.error('5. ERROR in handleCardClick:', e.message);
-        alert(`Gagal memuat detail pesanan: ${e.message}`);
+        console.error('Error di handleCardClick:', e.message);
+        alert(`Gagal memuat detail: ${e.message}`);
       }
   }, [ns, slug]);
 
