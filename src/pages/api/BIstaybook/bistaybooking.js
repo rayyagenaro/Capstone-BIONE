@@ -46,6 +46,7 @@ export default async function handler(req, res) {
                   b.status_id, b.created_at, b.updated_at
            FROM bistay_bookings b
            LEFT JOIN bistay_status_pegawai sp ON sp.id = b.status_pegawai_id
+           LEFT JOIN booking_statuses s ON s.id = b.status_id
            WHERE b.id = ? LIMIT 1`,
           [id]
         );
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
                 b.status_id, b.created_at, b.updated_at
          FROM bistay_bookings b
          LEFT JOIN bistay_status_pegawai sp ON sp.id = b.status_pegawai_id
+         LEFT JOIN booking_statuses s ON s.id = b.status_id
          ${whereSql}
          ORDER BY b.${sortField} ${sortDir}
          LIMIT ? OFFSET ?`,
@@ -134,8 +136,8 @@ export default async function handler(req, res) {
       if (!Number.isFinite(bookingId) || bookingId <= 0) {
         return res.status(400).json({ error: 'bookingId tidak valid' });
       }
-      if (![1, 2, 3, 4].includes(newStatusId)) {
-        return res.status(400).json({ error: 'newStatusId harus 1|2|3|4' });
+      if (![1, 2, 3, 4, 5].includes(newStatusId)) {
+        return res.status(400).json({ error: 'newStatusId harus 1|2|3|4|5' });
       }
 
       const [own] = await db.execute('SELECT id, user_id FROM bistay_bookings WHERE id = ? LIMIT 1', [bookingId]);

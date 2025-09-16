@@ -7,7 +7,7 @@ import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
-import { jwtVerify } from 'jose';
+import { verifyAuth } from '@/lib/auth';
 import { NS_RE } from '@/lib/ns-server';
 import { withNs } from '@/lib/ns';
 
@@ -291,36 +291,57 @@ export async function getServerSideProps(ctx) {
   const from = ctx.resolvedUrl || '/Admin/Fitur/[slug]/hal-queue';
 
   if (!nsValid) {
-    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+    return {
+      redirect: {
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
+        permanent: false,
+      },
+    };
   }
 
   const cookieName = `admin_session_${nsValid}`;
   const token = ctx.req.cookies?.[cookieName] || null;
   if (!token) {
-    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+    return {
+      redirect: {
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
+        permanent: false,
+      },
+    };
   }
 
   try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET), {
-      algorithms: ['HS256'], clockTolerance: 10
-    });
+    const payload = await verifyAuth(token);
 
     const rId = Number(payload?.role_id ?? 0);
     const rStr = String(payload?.role || '').toLowerCase();
-    const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
-    const isFitur = rId === 2 || ['admin_fitur','admin-fitur','admin'].includes(rStr);
+    const isSuper =
+      rId === 1 || ['super_admin', 'superadmin', 'super-admin'].includes(rStr);
+    const isFitur =
+      rId === 2 ||
+      ['admin_fitur', 'admin-fitur', 'admin'].includes(rStr);
 
     if (!isSuper && !isFitur) {
-      return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+      return {
+        redirect: {
+          destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
+          permanent: false,
+        },
+      };
     }
 
     return {
       props: {
         initialRoleId: isSuper ? 1 : 2,
         initialAdminName: payload?.name || 'Admin',
-      }
+      },
     };
   } catch {
-    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
+    return {
+      redirect: {
+        destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`,
+        permanent: false,
+      },
+    };
   }
 }

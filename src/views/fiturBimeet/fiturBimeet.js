@@ -486,7 +486,7 @@ export default function FiturBimeet() {
 
   const closeSuccess = () => {
     setShowSuccess(false);
-    replaceNs(router, "/User/StatusBooking/hal-statusBooking");
+    replaceNs(router, "/User/History/hal-history");
   };
 
   const handleLogout = async () => {

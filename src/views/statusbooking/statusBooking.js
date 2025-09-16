@@ -37,20 +37,18 @@ const withNs = (url, ns) =>
   ns ? `${url}${url.includes('?') ? '&' : '?'}ns=${encodeURIComponent(ns)}` : url;
 
 const STATUS_CONFIG = {
-  '1': { text: 'Pending',  className: styles.statusPending || styles.statusProcess },
-  '2': { text: 'Approved', className: styles.statusApproved },
   '3': { text: 'Rejected', className: styles.statusRejected },
   '4': { text: 'Finished', className: styles.statusFinished },
   '5': { text: 'Cancelled', className: styles.statusCancelled },
 };
-const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished', 'Cancelled'];
-const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4, Cancelled: 5 };
-const SEEN_KEYS = { Pending: 'pending', Approved: 'approved', Rejected: 'rejected', Finished: 'finished', Cancelled: 'cancelled' };
-const DEFAULT_SEEN = { pending: 0, approved: 0, rejected: 0, finished: 0, cancelled: 0 };
+const TABS = ['Semua', 'Rejected', 'Finished', 'Cancelled'];
+const TAB_TO_STATUS_ID = { Rejected: 3, Finished: 4, Cancelled: 5 };
+const SEEN_KEYS = { Rejected: 'rejected', Finished: 'finished', Cancelled: 'cancelled' };
+const DEFAULT_SEEN = { rejected: 0, finished: 0, cancelled: 0 };
 const seenStorageKey = (userId) => `statusTabSeen:${userId}`;
 
 const FEATURE_OPTIONS = [
-  { label: 'All', value: 'all' },
+  { label: 'Semua', value: 'semua' },
   { label: 'Drive', value: 'bidrive' },
   { label: 'Care',  value: 'bicare' },
   { label: 'Meal',  value: 'bimeal' },
@@ -180,7 +178,7 @@ async function updateServiceStatus(featureKey, bookingId, newStatusId = 4, ns) {
 }
 
 /* ====== Halaman ====== */
-export default function StatusBookingView() {
+export default function History() {
   const router = useRouter();
   const ns = getNs(router);
 
@@ -188,8 +186,8 @@ export default function StatusBookingView() {
   const [allBookings, setAllBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('All');
-  const [featureValue, setFeatureValue] = useState('all');
+  const [activeTab, setActiveTab] = useState('Semua');
+  const [featureValue, setFeatureValue] = useState('semua');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -201,6 +199,10 @@ export default function StatusBookingView() {
 
   const [ratingOpen, setRatingOpen] = useState(false);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const bookingsToShow = useMemo(() => {
+  const allowedStatusIds = [3, 4, 5];
+    return allBookings.filter(b => allowedStatusIds.includes(Number(b.status_id)));
+  }, [allBookings]);
   const [feedbackById, setFeedbackById] = useState({});
 
   useEffect(() => {
@@ -282,6 +284,7 @@ export default function StatusBookingView() {
   const BookingCard = React.memo(({ booking, onClick, driveRating }) => {
     const statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: styles.statusProcess };
     const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
+    const isCancelled = Number(booking.status_id) === 5 && !!booking.rejection_reason;
     const featureLabel = featureLabelOf(booking);
     const featureKey = resolveFeatureKey(booking);
     const isBidriveFinished = featureKey === 'bidrive' && Number(booking.status_id) === 4;
@@ -375,6 +378,11 @@ export default function StatusBookingView() {
               <RejectionBox reason={booking.rejection_reason} compact />
             </div>
           )}
+          {isCancelled && (
+            <div style={{ marginTop: 8 }}>
+              <RejectionBox reason={booking.rejection_reason} compact />
+            </div>
+          )}
         </div>
 
         {/* Kanan: status rating khusus BI.Drive Finished */}
@@ -456,25 +464,23 @@ export default function StatusBookingView() {
 
   /* Filter Tabs, Pagination */
   const tabCounts = useMemo(() => {
-    const c = { pending: 0, approved: 0, rejected: 0, finished: 0 };
+    const c = { rejected: 0, finished: 0, cancelled: 0 };
     for (const b of allBookings) {
-      if (b.status_id === 1) c.pending++;
-      else if (b.status_id === 2) c.approved++;
-      else if (b.status_id === 3) c.rejected++;
+      if (b.status_id === 3) c.rejected++;
       else if (b.status_id === 4) c.finished++;
+      else if (b.status_id === 5) c.cancelled++;
     }
     return c;
   }, [allBookings]);
 
   const badgeCounts = useMemo(() => ({
-    pending:  Math.max(0, tabCounts.pending  - (seenCounts.pending  || 0)),
-    approved: Math.max(0, tabCounts.approved - (seenCounts.approved || 0)),
     rejected: Math.max(0, tabCounts.rejected - (seenCounts.rejected || 0)),
     finished: Math.max(0, tabCounts.finished - (seenCounts.finished || 0)),
+    cancelled: Math.max(0, tabCounts.cancelled - (seenCounts.cancelled || 0)),
   }), [tabCounts, seenCounts]);
 
   const markTabSeen = useCallback((tabName) => {
-    if (!userId || tabName === 'All') return;
+    if (!userId || tabName === 'Semua') return;
     const key = SEEN_KEYS[tabName];
     const next = { ...seenCounts, [key]: tabCounts[key] };
     setSeenCounts(next);
@@ -493,13 +499,13 @@ export default function StatusBookingView() {
   }, []);
 
   const statusFiltered = useMemo(() => {
-    if (activeTab === 'All') return allBookings;
+    if (activeTab === 'Semua') return bookingsToShow;
     const statusId = TAB_TO_STATUS_ID[activeTab];
-    return allBookings.filter((item) => item.status_id === statusId);
-  }, [activeTab, allBookings]);
+    return bookingsToShow.filter((item) => Number(item.status_id) === statusId); 
+  }, [activeTab, bookingsToShow]);
 
   const filteredBookings = useMemo(() => {
-    if (featureValue === 'all') return statusFiltered;
+    if (featureValue === 'semua') return statusFiltered;
     return statusFiltered.filter((b) => resolveFeatureKey(b) === featureValue);
   }, [statusFiltered, featureValue]);
 
@@ -567,7 +573,7 @@ export default function StatusBookingView() {
   const TabFilter = React.memo(({ currentTab, onTabChange, badgeCounts }) => (
     <div className={styles.tabRow}>
       {TABS.map((tabName) => {
-        const isAll = tabName === 'All';
+        const isAll = tabName === 'Semua';
         const key = SEEN_KEYS[tabName];
         const count = isAll ? 0 : (badgeCounts[key] || 0);
         const showNumber = !isAll && count > 0;
@@ -731,7 +737,7 @@ export default function StatusBookingView() {
 
       <BookingDetailModal
         booking={selectedBooking}
-        feedback={selectedFeedback}              // null/undefined utk non-Drive
+        feedback={selectedFeedback}             
         onClose={closeModal}
         onFinish={markAsFinished}
         finishing={finishing}

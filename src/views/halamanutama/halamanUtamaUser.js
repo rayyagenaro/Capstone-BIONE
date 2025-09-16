@@ -54,37 +54,37 @@ export default function HalamanUtamaUser({ initialName = 'User' }) {
       logo: "/assets/D'MOVE.svg",
       title: 'Driver Booking System',
       bookingLink: "/User/FiturDmove/hal-dmove",
-      ongoingLink: "/User/FiturDmove/ongoing",
+      ongoingLink: "/User/OngoingBooking/bidrive/hal-orders",
     },
     {
       logo: "/assets/D'CARE.svg",
       title: 'Clinic Booking System',
       bookingLink: "/User/FiturBIcare/hal-BIcare",
-      ongoingLink: "/User/FiturBIcare/ongoing",
+      ongoingLink: "/User/OngoingBooking/bicare/hal-orders",
     },
     {
       logo: "/assets/D'MEAL.svg",
       title: 'Meal Booking System',
       bookingLink: "/User/FiturBImeal/hal-BImeal",
-      ongoingLink: "/User/FiturBImeal/ongoing",
+      ongoingLink: "/User/OngoingBooking/bimeal/hal-orders",
     },
     {
       logo: "/assets/D'ROOM.svg",
       title: 'Room Booking System',
       bookingLink: "/User/FiturBimeet/hal-bimeet",
-      ongoingLink: "/User/FiturBimeet/ongoing",
+      ongoingLink: "/User/OngoingBooking/bimeet/hal-orders",
     },
     {
       logo: "/assets/D'TRACK.svg",
       title: 'Docs Numbering System',
       bookingLink: "/User/FiturBImail/hal-BImail",
-      ongoingLink: "/User/FiturBImail/ongoing",
+      ongoingLink: "/User/OngoingBooking/bimail/hal-orders",
     },
     {
       logo: "/assets/D'REST.svg",
       title: 'Wisma Booking System',
       bookingLink: "/User/FiturBIstay/hal-BIstay",
-      ongoingLink: "/User/FiturBIstay/ongoing",
+      ongoingLink: "/User/OngoingBooking/bistay/hal-orders",
     },
   ];
 

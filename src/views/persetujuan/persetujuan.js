@@ -19,10 +19,11 @@ const STATUS_CONFIG = {
   '2': { text: 'Approved', className: styles.statusApproved },
   '3': { text: 'Rejected', className: styles.statusRejected },
   '4': { text: 'Finished', className: styles.statusFinished },
+  '5': { text: 'Cancelled', className: styles.statusCancelled },
 };
 
-const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished'];
-const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4 };
+const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished', 'Cancelled'];
+const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4, Cancelled: 5 };
 
 const FEATURE_OPTIONS = [
   { label: 'All',      value: 'all'     },

@@ -274,7 +274,7 @@ export default function FiturBICare() {
     const nsParam = typeof window !== 'undefined'
       ? new URLSearchParams(location.search).get('ns') || ''
       : '';
-    router.replace(`/User/StatusBooking/hal-statusBooking${nsParam ? `?ns=${encodeURIComponent(nsParam)}` : ''}`);
+    router.replace(`/User/History/hal-history${nsParam ? `?ns=${encodeURIComponent(nsParam)}` : ''}`);
   }, [router]);
   useEffect(() => {
     return () => {
