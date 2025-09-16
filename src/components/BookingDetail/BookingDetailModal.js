@@ -126,7 +126,7 @@ export default function BookingDetailModal({
 
   const featureKey = resolveFeatureKey(booking);
   const featureLabel = featureLabelOf(booking);
-  
+
   let statusInfo =
     (STATUS_CONFIG(styles))[booking.status_id] ||
     { text: "Unknown", className: styles.statusPending };
@@ -189,17 +189,26 @@ export default function BookingDetailModal({
             </div>
             <div className={styles.headerMetaWrap}>
               <div className={styles.headerDates}>
-                <div className={styles.metaRow}>
-                  <span className={styles.metaLabel}>TANGGAL PENGAJUAN</span>
-                  <span className={styles.metaValue}>{formatDate(booking?.created_at)}</span>
-                </div>
-                {isFinished && (
+                {featureKey === 'bimail' ? (
                   <div className={styles.metaRow}>
-                    <span className={styles.metaLabel}>TANGGAL SELESAI</span>
-                    <span className={styles.metaValue}>
-                      {formatDate(booking?.finished_at || booking?.end_date || booking?.updated_at)}
-                    </span>
+                    <span className={styles.metaLabel}>TANGGAL PENOMORAN</span>
+                    <span className={styles.metaValue}>{formatDate(booking?.tanggal_dokumen)}</span>
                   </div>
+                ) : (
+                  <>
+                    <div className={styles.metaRow}>
+                      <span className={styles.metaLabel}>TANGGAL PENGAJUAN</span>
+                      <span className={styles.metaValue}>{formatDate(booking?.created_at)}</span>
+                    </div>
+                    {isFinished && (
+                      <div className={styles.metaRow}>
+                        <span className={styles.metaLabel}>TANGGAL SELESAI</span>
+                        <span className={styles.metaValue}>
+                          {formatDate(booking?.finished_at || booking?.end_date || booking?.updated_at)}
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
               <span className={`${statusInfo.className} ${styles.headerStatus}`}>{statusInfo.text}</span>
