@@ -1,278 +1,160 @@
-/* ==== Halaman dasar ==== */
-.background { min-height: 100vh; background: #ffffff; }
-.main { flex: 1; min-width: 0; }
-.wrap { margin-left: var(--sidebarW, 250px); padding: 12px 16px 24px; }
-
-.title { margin: 0 0 14px; font-weight: 800; color: #111827; font-size: 22px; }
-
-.warning {
-  background: #fff8e1; border: 1px solid #ffe082; color: #7a5d2d;
-  padding: 10px 12px; border-radius: 12px; margin-bottom: 10px;
+/* ====== LAYOUT DASAR ====== */
+.background {
+  position: relative;           /* bikin stacking-context */
+  min-height: 100vh;
+  background: #ffffff;
 }
-.loading { height: 4px; border-radius: 999px; background: #e5e7eb; overflow: hidden; margin-bottom: 12px; }
-.loading::after { content: ""; display: block; height: 100%; width: 35%; background: #1976d2; border-radius: inherit; animation: lb 1s linear infinite; }
-@keyframes lb { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
 
-/* ===== Dua kartu berdampingan ===== */
-.cardsRow{
+.main { flex: 1; min-width: 0; }
+
+.wrap {
+  margin-left: var(--sidebarW, 250px); /* ruang sidebar (desktop) */
+  padding: 12px 16px 24px;
+}
+
+/* Sidebar (global) harus selalu di atas kartu & bisa diklik) */
+.background :global(.sidebar) {
+  position: fixed;              /* off-canvas / menempel kiri */
+  inset: 0 auto 0 0;
+  z-index: 2000 !important;     /* > semua konten halaman */
+  pointer-events: auto;         /* pastikan menerima klik */
+}
+
+/* Konten halaman di bawah z-index sidebar */
+.main, .wrap { position: relative; z-index: 1; }
+
+/* ====== GRID 2 KARTU ATAS ====== */
+.cardsRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   align-items: stretch;
 }
 @media (max-width: 980px){
-  .cardsRow{ grid-template-columns: 1fr; }
+  .cardsRow { grid-template-columns: 1fr; }
 }
 
-/* ==== Card umum ==== */
-.card, .kpiCard {
+/* ====== CARD UMUM ====== */
+.card, .kpiCard, .heatCard {
+  position: relative;
+  z-index: 2;                   /* di atas background, < sidebar */
   background: #fff;
   border: 1px solid #9b9b9b;
   border-radius: 14px;
   padding: 10px 10px;
 }
+.heatCard { margin-top: 8px; }
 
-.heatCard {
-  background: #fff;
-  border: 1px solid #9b9b9b;
-  border-radius: 14px;
-  margin-top: 8px;
-  padding: 10px 10px;
+.cardHeadRow{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-bottom:8px;
 }
+.cardHead{ font-weight:700; font-size:16px; color:#0f172a; }
+.chartBox{ display:flex; align-items:center; }
+.empty{ width:100%; padding:24px; text-align:center; color:#64748b; }
 
-.cardHeadRow {  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-bottom: 8px;}
-.cardHead { font-weight: 700; font-size: 16px; color: #0f172a; }
-.chartBox { display: flex; align-items: center; }
-.empty { width: 100%; padding: 24px; text-align: center; color: #64748b; }
-
-.actions { display: flex; align-items: center; gap: 10px; }
-.sortGroup { display: flex; align-items: center; gap: 8px; }
-.sortGroup label { font-size: 13px; color: #475569; }
+.actions{ display:flex; align-items:center; gap:10px; }
+.sortGroup{ display:flex; align-items:center; gap:8px; }
+.sortGroup label{ font-size:13px; color:#475569; }
 .sortGroup select,
 .kpiSelect{
-  appearance: none; border: 1px solid #e5e7eb; background: #fff; color: #111827;
-  padding: 6px 28px 6px 10px; border-radius: 10px; font-weight: 600; font-size: 13px;
-  background-image: linear-gradient(45deg, transparent 50%, #9ca3af 50%),
-                    linear-gradient(135deg, #9ca3af 50%, transparent 50%),
-                    linear-gradient(to right, transparent, transparent);
-  background-position: calc(100% - 16px) calc(50% - 3px), calc(100% - 10px) calc(50% - 3px), 100% 0;
-  background-size: 6px 6px, 6px 6px, 2.5em 2.5em; background-repeat: no-repeat;
+  appearance:none; border:1px solid #e5e7eb; background:#fff; color:#111827;
+  padding:6px 28px 6px 10px; border-radius:10px; font-weight:600; font-size:13px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #9ca3af 50%),
+    linear-gradient(135deg, #9ca3af 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 16px) calc(50% - 3px),
+    calc(100% - 10px) calc(50% - 3px),
+    100% 0;
+  background-size: 6px 6px, 6px 6px, 2.5em 2.5em;
+  background-repeat: no-repeat;
 }
 
-.viewBtn {
-  appearance: none; background: #2f6ef3; border: 1px solid #2f6ef3; color: #fff;
-  padding: 8px 12px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer;
+.viewBtn{
+  appearance:none; background:#2f6ef3; border:1px solid #2f6ef3; color:#fff;
+  padding:8px 12px; border-radius:10px; font-weight:700; font-size:13px; cursor:pointer;
 }
-.viewBtn:hover { filter: brightness(.95); }
+.viewBtn:hover{ filter:brightness(.95); }
 
-.footLeft{
-  font-size:13px;
-  color:#475569;
-}
+.footLeft{ font-size:13px; color:#475569; }
+.footLeft b{ margin-left:6px; color:#0f172a; }
+.footNote{ color:#475569; font-size:13px; }
 
-.footLeft b{
-  margin-left:6px;
-  color:#0f172a;
-}
-
-.footNote { color: #475569; font-size: 13px; }
-
-/* ==== KPI Card ==== */
-.kpiTop {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-bottom: 8px;
-}
-
-.kpiTitle { display:flex; align-items:center; gap:10px; font-weight:800; font-size:16px; color:#0f172a; }
-
-.kpiLogo { display:inline-flex; width:28px; height:28px; border-radius:10px; background:#2f4d8e; color:#e8efff; align-items:center; justify-content:center; }
-
-.kpiLogo svg { width:18px; height:18px; }
-
-.kpiDot{ width: 10px; height: 10px; border-radius: 9999px; background: #2f6ef3; display: inline-block; }
-
+/* ====== KPI CARD ====== */
+.kpiTop{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+.kpiTitle{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:16px; color:#0f172a; }
+.kpiLogo{ display:inline-flex; width:28px; height:28px; border-radius:10px; background:#2f4d8e; color:#e8efff; align-items:center; justify-content:center; }
+.kpiLogo svg{ width:18px; height:18px; }
+.kpiDot{ width:10px; height:10px; border-radius:9999px; background:#2f6ef3; display:inline-block; }
 .kpiRight{ display:flex; align-items:center; gap:8px; }
-
-.kpiSelect {
-  appearance:none;
-  border:1px solid #e5e7eb; background:#fff; color:#111827;
-  padding:6px 28px 6px 10px; border-radius:10px; font-weight:700; font-size:13px;
-  background-image: linear-gradient(45deg, transparent 50%, #9ca3af 50%),
-                    linear-gradient(135deg, #9ca3af 50%, transparent 50%),
-                    linear-gradient(to right, transparent, transparent);
-  background-position: calc(100% - 16px) calc(50% - 3px), calc(100% - 10px) calc(50% - 3px), 100% 0;
-  background-size: 6px 6px, 6px 6px, 2.5em 2.5em; background-repeat:no-repeat;
-}
-
-.kpiStats { display:flex; gap:18px; padding:2px 0 6px; }
-.statItem { color:#475569; font-size:13px; }
-.statItem b { margin-left:6px; color:#0f172a; }
-
+.kpiSelect{ font-weight:700; }
+.kpiStats{ display:flex; gap:18px; padding:2px 0 6px; }
+.statItem{ color:#475569; font-size:13px; }
+.statItem b{ margin-left:6px; color:#0f172a; }
 .deltaUp{ color:#17a34a; font-weight:700; margin-left:6px; }
-
 .deltaDown{ color:#e11d48; font-weight:700; margin-left:6px; }
+.miniChartBox{ min-height:40px; }
 
-.miniChartBox{ min-height: 40px; }
+/* ====== MODAL (HEADER BIRU) ====== */
+.modalOverlay{ position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center; z-index:3000; }
+.modal{ width:min(1250px,96vw); background:#fff; border-radius:14px; overflow:hidden; border:1px solid #e6e8f2; box-shadow:0 30px 80px rgba(2,6,23,.35); }
+.modalHead{ display:flex; align-items:center; justify-content:space-between; background:#2f4d8e; color:#fff; padding:12px 16px; border-bottom:none; }
+.modalTitle{ color:#fff; font-weight:750; font-size:16px; }
+.closeBtn{ appearance:none; border:1px solid rgba(255,255,255,.35); background:transparent; color:#fff; width:32px; height:32px; border-radius:8px; font-size:20px; cursor:pointer; }
+.closeBtn:hover{ background:rgba(255,255,255,.15); border-color:rgba(255,255,255,.45); }
+.modalBody{ display:grid; grid-template-columns:1fr; gap:12px; padding:12px; }
+@media (min-width:980px){ .modalBody{ grid-template-columns:56% 1fr; } }
+.modalChart{ min-height:380px; display:flex; align-items:center; }
+.tableWrap{ overflow:auto; }
+.table{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
+.table thead th{ position:sticky; top:0; background:#f8fafc; z-index:1; font-weight:800; text-align:left; padding:10px 10px; border-bottom:1px solid #e2e8f0; }
+.table tbody td{ padding:10px; border-bottom:1px solid #eef2f7; }
+.table tbody tr:hover{ background:#f9fafb; }
 
-/* ==== Modal (warna biru di header sesuai permintaan sebelumnya) ==== */
-.modalOverlay { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; z-index: 1300; }
-.modal { width: min(1250px, 96vw); background: #fff; border-radius: 14px; overflow: hidden; border: 1px solid #e6e8f2; box-shadow: 0 30px 80px rgba(2,6,23,.35); }
-.modalHead { display: flex; align-items: center; justify-content: space-between; background:#2f4d8e; color:#fff; padding: 12px 16px; border-bottom:none; }
-.modalTitle { color:#fff; font-weight:750; font-size:16px; }
-.closeBtn { appearance:none; border:1px solid rgba(255,255,255,.35); background:transparent; color:#fff; width:32px; height:32px; border-radius:8px; font-size:20px; cursor:pointer; }
-.closeBtn:hover { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.45); }
-
-.modalBody { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 12px; }
-@media (min-width: 980px) { .modalBody { grid-template-columns: 56% 1fr; } }
-.modalChart { min-height: 380px; display: flex; align-items: center; }
-.tableWrap { overflow: auto; }
-.table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
-.table thead th { position: sticky; top: 0; background: #f8fafc; z-index: 1; font-weight: 800; text-align: left; padding: 10px 10px; border-bottom: 1px solid #e2e8f0; }
-.table tbody td { padding: 10px; border-bottom: 1px solid #eef2f7; }
-.table tbody tr:hover { background: #f9fafb; }
-
-/* Responsif */
-@media (max-width: 720px) {
-  .wrap { margin-left: 0; padding: 10px; }
-}
-
-/* segmented icon switch */
-.segGroup{
-  display:flex; align-items:center; gap:8px;
-  padding:4px; border-radius:999px;
-  background:#f3f4f6; border:1px solid #e5e7eb;
-}
-.segBtn{
-  width:34px; height:34px; border-radius:999px;
-  display:inline-flex; align-items:center; justify-content:center;
-  border:1px solid transparent; background:transparent; color:#64748b;
-  cursor:pointer; transition: all .15s ease;
-}
+/* ====== SEGMENTED SWITCH (kalau dipakai) ====== */
+.segGroup{ display:flex; align-items:center; gap:8px; padding:4px; border-radius:999px; background:#f3f4f6; border:1px solid #e5e7eb; }
+.segBtn{ width:34px; height:34px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; border:1px solid transparent; background:transparent; color:#64748b; cursor:pointer; transition:all .15s ease; }
 .segBtn svg{ width:18px; height:18px; }
 .segBtn:hover{ background:#fff; color:#334155; }
-.segBtnActive{
-  background:#2f6ef3; color:#fff; box-shadow:0 6px 12px rgba(47,110,243,.2);
-}
+.segBtnActive{ background:#2f6ef3; color:#fff; box-shadow:0 6px 12px rgba(47,110,243,.2); }
 
-/* --- Card footer --- */
-.cardFoot{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:0px 2px 2px;
-}
+/* ====== SWITCH TABS DI FOOTER KARTU ====== */
+.cardFoot{ display:flex; justify-content:space-between; align-items:center; padding:0 2px 2px; }
+.switchWrap{ display:flex; align-items:center; }
 
-.switchWrap{
-  display:flex;
-  align-items:center;
-}
-
-/* Wadah gelap oval */
 .switchTrack{
-  display:inline-flex;
-  gap:4px;
-  padding:4px;
-  border-radius:9999px;
-  background:#dfdfdf;
+  display:inline-flex; gap:4px; padding:4px;
+  border-radius:9999px; background:#dfdfdf;
 }
-
-/* Tombol di dalam wadah gelap */
 .switchTrack .tabBtn{
-  border:0;                                  /* buang border putih lama */
-  background:transparent;
-  color:#525252;                              /* teks abu terang */
-  padding:6px 10px;                          /* sedikit lebih tebal */
-  border-radius:9999px;
-  font-weight:800;
+  border:0; background:transparent; color:#525252;
+  padding:6px 10px; border-radius:9999px; font-weight:800;
   transition:transform .14s ease, background .14s ease, color .14s ease;
-  box-shadow:none;                            /* default tanpa shadow */
 }
-
-/* Hover tombol (non-aktif) -> tidak jadi putih */
-.switchTrack .tabBtn:hover{
-  background:rgba(255,255,255,.06);
-  color:#f8fafc;
-}
-
-/* Aktif: tetap biru seperti sebelumnya */
-.switchTrack .tabBtnActive{
-  background:#2f6ef3;                         /* biru */
-  color:#fff;
-}
-
-/* Hover saat aktif -> tetap biru (tidak memutih) */
-.switchTrack .tabBtnActive:hover{
-  background:#2f6ef3;
-  color:#fff;
-}
-
-/* Ikon mengikuti warna teks */
+.switchTrack .tabBtn:hover{ background:rgba(255,255,255,.06); color:#f8fafc; }
+.switchTrack .tabBtnActive{ background:#2f6ef3; color:#fff; }
+.switchTrack .tabBtnActive:hover{ background:#2f6ef3; color:#fff; }
 .switchTrack .tabIcon{ display:inline-flex; width:16px; height:16px; }
 .switchTrack .tabIcon svg{ width:16px; height:16px; }
-
-/* (Opsional) sentuhan feedback klik */
-.switchTrack .tabBtn:active{ transform: translateY(1px); }
-
-/* Hapus style lama kalau ada (agar tidak bentrok) */
-.switchBar{ display:none; }  /* kalau sebelumnya masih ada kelas ini */
+.switchTrack .tabBtn:active{ transform:translateY(1px); }
 
 .tabBtn{
-  display:inline-flex;
-  align-items:center;
-  gap:2px;
-  padding:8px 12px;
-  border-radius:999px;
-  border:1px solid #e5e7eb;
-  background:#fff;
-  color:#334155;
-  font-weight:700;
-  font-size:13px;
-  cursor:pointer;
+  display:inline-flex; align-items:center; gap:2px;
+  padding:8px 12px; border-radius:999px; border:1px solid #e5e7eb;
+  background:#fff; color:#334155; font-weight:700; font-size:13px; cursor:pointer;
   transition:all .15s ease;
 }
-
 .tabBtn:hover{ background:#f8fafc; }
-
-.tabBtnActive{
-  background:#2f6ef3;
-  color:#fff;
-  border-color:#2f6ef3;
+.tabBtnActive{ background:#2f6ef3; color:#fff; border-color:#2f6ef3; }
+.tabBtn:not(.tabBtnActive):hover{ background:#f8fafc; color:#334155; border-color:#e5e7eb; }
+.tabBtnActive:hover, .tabBtnActive:focus-visible{
+  background:#2f6ef3; color:#fff; border-color:#2f6ef3; filter:brightness(.97);
 }
-
-/* Hover hanya untuk tombol yang TIDAK aktif */
-.tabBtn:not(.tabBtnActive):hover{
-  background:#f8fafc;
-  color:#334155;
-  border-color:#e5e7eb;
-}
-
-/* Saat tombol aktif di-hover, tetap biru */
-.tabBtnActive:hover,
-.tabBtnActive:focus-visible{
-  background:#2f6ef3;
-  color:#fff;
-  border-color:#2f6ef3;
-  filter: brightness(.97); /* opsional efek hover halus */
-}
-
-/* (opsional) pastikan ikon ikut warna teks */
-.tabBtn svg { fill: currentColor; }
-
+.tabBtn svg{ fill:currentColor; }
 .tabIcon{ display:inline-flex; width:16px; height:16px; }
 .tabIcon svg{ width:16px; height:16px; }
-
-/* (yang lama – segmented icon switch di header) optional kalau tidak dipakai bisa dibiarkan */
-.segGroup{ display:none; } /* disembunyikan karena kita pindah ke footer */
-
-/* Pastikan wrapper mengikuti tinggi variabel */
-.miniChartBox,
-.chartBox {
-  height: var(--chart-h);
-  /* kalau sebelumnya kamu pakai align-items:center bikin ruang kosong, matikan: */
-  display: block;           /* ganti dari flex */
-  /* align-items: center;  <-- hapus kalau ada */
-}
 
 /* === Heatmap (ala GitHub) === */
 .heatBox{
@@ -421,4 +303,136 @@
 .heatMonthRow span{
   white-space: nowrap;      /* jangan terbungkus */
   justify-self: start;      /* mulai dari kolomnya */
+}
+
+/* ====== WARNING & LOADING BAR ====== */
+.title{ margin:0 0 14px; font-weight:800; color:#111827; font-size:22px; }
+.warning{
+  background:#fff8e1; border:1px solid #ffe082; color:#7a5d2d;
+  padding:10px 12px; border-radius:12px; margin-bottom:10px;
+}
+.loading{ height:4px; border-radius:999px; background:#e5e7eb; overflow:hidden; margin-bottom:12px; }
+.loading::after{
+  content:""; display:block; height:100%; width:35%; background:#1976d2; border-radius:inherit; animation:lb 1s linear infinite;
+}
+@keyframes lb{ 0%{ transform:translateX(-100%); } 100%{ transform:translateX(300%); } }
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 1200px){
+  /* konten full-width + beri ruang untuk header/hamburger */
+  .wrap{
+    margin-left: 0 !important;
+    padding: 24px 16px;
+    padding-top: 92px;          /* tinggi header mobile */
+  }
+}
+
+@media (max-width: 700px){
+  .wrap{ padding:12px; }
+  .card, .kpiCard, .heatCard{ border-radius:12px; padding:10px; }
+  .cardHead{ font-size:15px; }
+}
+
+/* pastikan halaman jadi stacking context */
+.background { position: relative; }
+
+/* Sidebar (off-canvas) selalu di atas kartu & bisa diklik */
+.background :global(.sidebar) {
+  position: fixed;            /* menempel kiri */
+  inset: 0 auto 0 0;
+  z-index: 2000 !important;   /* di atas konten & kartu */
+  pointer-events: auto;
+}
+
+/* Jika sidebar punya header/topbar sendiri, naikkan juga z-index nya */
+.background :global(.sidebar header),
+.background :global(.sidebar .topbar),
+.background :global(.sidebar .header),
+.background :global(.sidebar .navbar) {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 2100 !important;
+  pointer-events: auto;
+}
+
+/* Konten full-width & beri ruang untuk header pada tablet/HP */
+@media (max-width: 1200px) {
+  .wrap {
+    margin-left: 0 !important;
+    /* ruang atas fleksibel (min 84px – max 110px) */
+    padding: clamp(84px, 12vw, 110px) 16px 24px;
+  }
+}
+
+/* Amankan layering konten vs sidebar */
+.main, .wrap { position: relative; z-index: 1; }
+.card, .kpiCard, .heatCard { position: relative; z-index: 10; }
+
+/* make cards fully fluid */
+.card,
+.kpiCard,
+.heatCard{
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+  overflow:hidden;              /* prevent horizontal scroll from tooltips/legends */
+}
+
+/* chart container defaults */
+.chartBox{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.chartBox > *{ min-width:0; }
+
+/* action area wraps nicely */
+.actions,
+.kpiRight{
+  flex-wrap:wrap;
+  gap:8px 10px;
+}
+
+/* Tablet – stack chart pieces when narrow */
+@media (max-width: 980px){
+  .cardsRow{ grid-template-columns:1fr; }
+
+  .chartBox{
+    flex-direction:column;      /* chart then legend under it */
+    align-items:stretch;
+    gap:14px;
+  }
+  .chartBox > *{
+    flex:0 0 auto;
+    width:100% !important;      /* force 100% width for both chart and legend */
+  }
+}
+
+/* Phone – tighten paddings & form controls full width */
+@media (max-width: 700px){
+  .card,
+  .kpiCard,
+  .heatCard{ border-radius:12px; padding:10px; }
+
+  .cardHead{ font-size:15px; }
+
+  .viewBtn,
+  .kpiSelect,
+  .sortGroup select{ width:100%; }
+
+  /* pie legend: make it two columns if it’s a list */
+  .chartBox ul,
+  .chartBox ol,
+  .chartBox .legend,
+  .chartBox [data-legend]{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:8px 12px;
+  }
+}
+
+/* Very small phones – allow graceful overflow inside chart area only */
+@media (max-width: 420px){
+  .chartBox{ overflow-x:auto; }
 }

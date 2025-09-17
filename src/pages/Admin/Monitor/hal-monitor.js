@@ -397,7 +397,11 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
 
   return (
     <div className={styles.background}>
-      {!sbLoading && <SidebarComp />}
+      {!sbLoading && (
+        <div className={styles.sidebarWrap}>
+          <SidebarComp />
+        </div>
+      )}
 
       <main className={styles.main}>
         <div className={styles.wrap}>

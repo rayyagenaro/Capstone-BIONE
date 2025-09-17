@@ -528,3 +528,169 @@
 .sessionBtn[data-state="open"] {
   cursor: pointer;
 }
+
+/* ====== RESPONSIVE TABS & TABLE CONTROLS ====== */
+
+/* Tablet ↓ : pusatkan & izinkan wrapping */
+@media (max-width: 1024px) {
+  .mainTabs {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 12px;
+  }
+  .mainTabBtn {
+    flex: 0 1 220px;        /* dua kolom kalau sempit */
+    justify-content: center;
+  }
+
+  .subTabs {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 10px;
+  }
+  .subTabBtn {
+    flex: 0 1 200px;
+    justify-content: center;
+  }
+
+  .paginateControls {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+}
+
+/* Mobile ↓ : grid rapi & benar-benar di tengah */
+@media (max-width: 700px) {
+  /* Main tab: 2×2 grid */
+  .mainTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    justify-items: center;
+  }
+  .mainTabBtn {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  /* Sub tab: auto-fit, selalu center */
+  .subTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+    gap: 8px;
+    justify-items: center;
+  }
+  .subTabBtn {
+    width: 100%;
+    padding: 9px 10px;
+    font-size: 13.5px;
+  }
+
+  /* Dropdown & kalender */
+  .selectRow { justify-content: stretch; }
+  .selectWrap { width: 100%; }
+
+  /* Table wrapper: padding lebih kecil & scroll mulus */
+  .tableWrapper { padding: 0; }
+  .dataTable th, .dataTable td { padding: 10px 12px; font-size: 13px; }
+
+  /* Tombol aksi */
+  .addRow { justify-content: center; }
+  .btnCreate { width: 100%; max-width: 420px; }
+
+  /* Pagination kolom */
+  .paginateControls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .resultsText { text-align: center; margin-bottom: 6px; }
+  .itemsPerPageDropdown { width: 100%; }
+}
+
+/* Extra small ↓ : sedikit kecilkan tipografi */
+@media (max-width: 420px) {
+  .mainTabBtn { font-size: 13px; }
+  .subTabBtn  { font-size: 12.5px; }
+  .dataTable th, .dataTable td { font-size: 12px; padding: 8px 10px; }
+}
+
+/* ====== Fix penataan tab di mobile/tablet: seragam & center ====== */
+
+/* Tablet ↓: jadikan grid 2 kolom dan samakan lebar tombol */
+@media (max-width: 1024px) {
+  .mainTabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    gap: 12px;
+    justify-items: center;         /* grid-nya berada di tengah */
+  }
+  .mainTabBtn {
+    width: 100%;
+    max-width: 260px;              /* semua tombol lebar sama */
+    min-height: 44px;
+    padding: 12px 14px;
+    justify-content: center;       /* ikon + teks benar2 center */
+    text-align: center;
+    gap: 8px;
+  }
+
+  /* Sub tabs (Driver/Vehicle, dst) juga center & seragam */
+  .subTabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    gap: 10px 12px;
+    justify-items: center;
+  }
+  .subTabBtn {
+    width: 100%;
+    max-width: 220px;
+    min-height: 40px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* Tombol tambah biar tidak “menggantung” di kiri saat layar sempit */
+  .addRow { justify-content: center; }
+  .btnCreate { width: 100%; max-width: 480px; }
+}
+
+/* Phone ↓: kecilkan tipografi & padding agar tidak turun baris */
+@media (max-width: 480px) {
+  .mainTabs {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .mainTabBtn { font-size: 14px; padding: 10px 12px; }
+  .subTabBtn  { font-size: 13px; padding: 8px 10px; }
+}
+
+/* ===== Tablet & small laptop (samakan dengan page lain) ===== */
+@media (max-width: 1200px) {
+  /* sembunyikan komponen sidebar (class nya di-hash, pakai substring) */
+  .background :global([class*="sidebar"]) {
+    display: none !important;
+  }
+
+  /* buang ruang kosong 255px di kiri */
+  .mainContent {
+    margin-left: 0 !important;
+    padding: 24px 16px;
+    padding-top: 72px; /* ruang untuk topbar hamburger */
+  }
+
+  /* rapikan kontainer konten */
+  .cardContainer {
+    width: 98vw;
+    margin: 16px auto;
+    padding: 18px 4vw;
+    border-radius: 12px;
+  }
+
+  /* tabs biar rapi saat melipat */
+  .mainTabs,
+  .subTabs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
