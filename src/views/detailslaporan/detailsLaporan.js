@@ -12,7 +12,6 @@ import RejectReasonPopup from '@/components/RejectReasonPopup/RejectReasonPopup'
 import RejectVerificationPopup from '@/components/rejectVerification/RejectVerification';
 import KontakDriverPopup from '@/components/KontakDriverPopup/KontakDriverPopup';
 import PopupAdmin from '@/components/PopupAdmin/PopupAdmin';
-import FinishConfirmPopup from '@/components/FinishConfirmPopup/FinishConfirmPopup';
 
 // SECTION COMPONENTS (per modul)
 import BiDriveSection from '@/components/DetailsLaporan/bidrive/BiDriveSection';
@@ -254,7 +253,6 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
   const [showKontakPopup, setShowKontakPopup] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [finishing, setFinishing] = useState(false);
-  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
 
   const detailRef = useRef(null);
 
@@ -536,15 +534,6 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
     }
   };
 
-  // buka popup konfirmasi
-  const openFinishConfirm = () => setShowFinishConfirm(true);
-  
-  // eksekusi finish setelah dikonfirmasi
-  const confirmFinish = async () => {
-    await handleFinishBidrive();
-    setShowFinishConfirm(false);
-  };
-
   /* ===== UI guard ===== */
   if (isLoading) return (
     <div className={styles.loadingState} role="status" aria-live="polite">
@@ -592,12 +581,10 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
               booking={booking}
               isUpdating={isUpdating}
               exporting={exporting}
-              finishing={finishing}
               onRequestReject={() => setShowRejectReason(true)}
               onRequestApprove={() => setShowPopup(true)}
               onOpenKontak={() => setShowKontakPopup(true)}
               onExportPDF={handleExportPDF}
-              onFinishBooking={openFinishConfirm}
               STATUS_CONFIG={STATUS_CONFIG}
               formatDateTime={formatDateTime}
               formatDateOnly={formatDateOnly}
@@ -682,14 +669,6 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
         onClose={() => setShowKontakPopup(false)}
         drivers={booking?.assigned_drivers || []}
         booking={booking || {}}
-      />
-
-      <FinishConfirmPopup
-        show={showFinishConfirm}
-        onCancel={() => setShowFinishConfirm(false)}
-        onConfirm={confirmFinish}
-        loading={finishing}
-        styles={styles}
       />
 
       <LogoutPopup open={showLogoutPopup} onCancel={() => setShowLogoutPopup(false)} onLogout={doLogout} />
