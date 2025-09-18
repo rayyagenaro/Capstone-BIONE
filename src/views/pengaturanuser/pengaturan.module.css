@@ -1036,3 +1036,127 @@
 .tabRejectedActive:hover {
   filter: brightness(1.04);
 }
+
+/* 1) Tabel: biar memanjang & swipe ke kanan, header tetap nempel */
+.tableWrapper{
+  overflow-x: auto;           /* geser kanan-kiri */
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.dataTable{
+  width: max-content;         /* jangan dipaksa 100%, biar ikut isi kolom */
+  min-width: 100%;            /* tapi minimum selebar viewport */
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.dataTable thead th{
+  position: sticky; top: 0; z-index: 1;
+}
+.dataTable thead th,
+.dataTable tbody td{
+  white-space: nowrap;        /* kolom tidak turun ke bawah */
+}
+
+/* 2) Tabs & kontrol: boleh wrap di layar sempit */
+.tabsRow{
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.tabBtn{ min-height: 36px; }
+
+/* 3) Kolom Aksi: rapi di desktop, menumpuk di HP */
+@media (max-width: 900px){
+  .actionCell{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .editGhostBtn,
+  .splitGroup{ width: 100%; }
+  .splitBtn{ justify-content: center; flex: 1; }
+}
+
+/* 4) Header/Sidebar & konten: ruang aman di mobile */
+@media (max-width: 750px){
+  .sidebar{ display: none; }                 /* sidebar disembunyikan */
+  .mainContent{
+    margin-left: 0;
+    padding-top: 72px;                       /* ruang untuk header */
+  }
+  .tableBox{
+    margin: 10px 0;
+    padding: 6vw 3vw;                        /* padding lebih ringkas */
+    border-radius: 12px;
+  }
+  .dataTable th, .dataTable td{
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}
+
+/* 5) Pagination: stack di HP */
+@media (max-width: 750px){
+  .paginationControls{
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+}
+
+/* 6) Toast & popup tetap muat layar kecil */
+.popupBox{
+  max-width: 96vw;
+}
+
+/* ==== FIX: Sidebar gap & header di tablet/HP ==== */
+@media (max-width: 1200px) {
+  /* header tidak lagi menggeser 255px */
+  .header {
+    left: 0 !important;
+    padding: 0 16px !important;   /* buang padding-left 255px dari rule lama */
+    height: 72px;
+  }
+
+  /* konten full-width + ruang untuk header */
+  .mainContent {
+    margin-left: 0 !important;
+    padding-top: 92px;            /* tinggi topbar */
+  }
+}
+
+/* ==== FIX: Gutter & lebar kartu supaya tidak mepet ==== */
+.tableBox {
+  width: 100%;
+  max-width: 980px;                          /* biar rapi di desktop lebar */
+  margin: 16px auto;
+  padding: clamp(16px, 3vw, 28px);           /* gutter responsif */
+  border-radius: 18px;
+}
+
+/* tabel bisa di-scroll horizontal bila kolom banyak */
+.tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tabs & tombol rapih saat sempit */
+@media (max-width: 900px) {
+  .tabsRow { flex-wrap: wrap; gap: 10px; }
+}
+
+@media (max-width: 750px) {
+  .tableBox {
+    max-width: 640px;                        /* jangan terlalu lebar di HP landscape */
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+  .dataTable th,
+  .dataTable td {
+    font-size: 13px;
+    padding: 8px 6px;
+  }
+}
+
+/* (Opsional) header judul biar tidak nempel kiri di HP */
+.tableTopRow { padding: 0 2px; }
+.tableTitle   { text-align: left; }

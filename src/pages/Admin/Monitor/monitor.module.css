@@ -436,3 +436,137 @@
 @media (max-width: 420px){
   .chartBox{ overflow-x:auto; }
 }
+
+/* Scroll container */
+.heatBox{
+  overflow-x: auto;                 /* --> bisa geser kanan–kiri */
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;/* momentum scrolling iOS */
+  padding-bottom: 6px;              /* ruang utk scrollbar */
+}
+
+/* Konten heatmap lebarnya mengikuti isi grid */
+.heatInner{
+  width: max-content;               /* biar melebihi lebar card */
+}
+
+/* Mobile: jangan center, mulai dari kiri supaya langsung terlihat */
+@media (max-width: 900px){
+  .heatInner{ margin: 0; }          /* override margin: 0 auto; */
+}
+
+/* Desktop: tetap center seperti semula */
+@media (min-width: 901px){
+  .heatInner{ margin: 0 auto; }
+}
+
+/* Sedikit mengecilkan sel di layar kecil agar pas */
+@media (max-width: 700px){
+  .heatBox{ --heat-cell: 14px; --heat-gap: 2px; }
+}
+@media (max-width: 420px){
+  .heatBox{ --heat-cell: 12px; --heat-gap: 2px; }
+}
+
+/* (Opsional) scrollbar tipis & halus */
+.heatBox::-webkit-scrollbar{ height: 6px; }
+.heatBox::-webkit-scrollbar-thumb{ background: #e2e8f0; border-radius: 8px; }
+.heatBox{ scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
+
+/* beri sedikit ruang di pinggir layar kecil */
+.modalOverlay {
+  padding: 10px;
+}
+
+/* modal fleksibel + batas tinggi layar + scroll internal */
+.modal {
+  width: min(980px, 96vw);
+  max-height: min(88vh, 100%);
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;           /* biar header sticky rapi */
+}
+
+/* header selalu kelihatan saat scroll isi */
+.modalHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* body jadi area scroll utama */
+.modalBody {
+  overflow: auto;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1fr; /* default: 1 kolom */
+  gap: 12px;
+}
+
+/* tablet/desktop: 2 kolom */
+@media (min-width: 980px) {
+  .modalBody {
+    grid-template-columns: 56% 1fr;
+  }
+}
+
+/* tinggi chart adaptif */
+.modalChart {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+}
+@media (max-width: 820px) {
+  .modalChart { min-height: 260px; }
+}
+@media (max-width: 480px) {
+  .modalChart { min-height: 220px; }
+}
+
+/* tabel di dalam modal tak bikin modal memanjang */
+.tableWrap {
+  max-height: 52vh;     /* batas tinggi tabel agar tetap di dalam modal */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* rapikan sel & header tabel di layar kecil */
+@media (max-width: 700px) {
+  .table thead th,
+  .table tbody td {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}
+
+/* tombol/segmented switch di header modal boleh wrap */
+.modalHead .segGroup,
+.modalHead .actions {
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+/* === Heatmap di modal: bisa geser kanan-kiri di HP === */
+.modalBody .heatBox {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+}
+.modalBody .heatInner {
+  width: max-content;
+  margin: 0;             /* mulai dari kiri saat sempit */
+}
+@media (min-width: 901px) {
+  .modalBody .heatInner { margin: 0 auto; } /* center lagi di desktop */
+}
+
+/* full-screen feel di HP kecil */
+@media (max-width: 420px) {
+  .modal {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
