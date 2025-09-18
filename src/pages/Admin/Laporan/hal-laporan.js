@@ -1,8 +1,10 @@
 // /src/pages/Admin/Laporan/hal-laporan.js
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import styles from './laporan.module.css';
 
@@ -78,6 +80,19 @@ function looksDateKey(k) {
 
 export default function HalLaporan({ initialRoleId = null, initialServiceIds = null }) {
   const router = useRouter();
+
+  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+  const handleLogout = async () => {
+    try {
+      const ns = new URLSearchParams(location.search).get('ns');
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ area: 'admin', ns }),
+      });
+    } catch {}
+    router.replace('/Signin/hal-signAdmin');
+  };
 
   // ==== NS dari query/asPath ====
   const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
@@ -346,7 +361,7 @@ export default function HalLaporan({ initialRoleId = null, initialServiceIds = n
 
   return (
     <div className={styles.background}>
-      {!sbLoading && <SidebarComp />}
+      {!sbLoading && <SidebarComp onLogout={() => setShowLogoutPopup(true)} />}
       <main className={styles.mainContent}>
         <div className={styles.tableBox}>
           <div className={styles.tableTopRow}>
@@ -571,6 +586,13 @@ export default function HalLaporan({ initialRoleId = null, initialServiceIds = n
           </div>
         </div>
       )}
+
+      {/* ===== Logout Popup ===== */} 
+      <LogoutPopup
+        open={showLogoutPopup}
+        onCancel={() => setShowLogoutPopup(false)}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }

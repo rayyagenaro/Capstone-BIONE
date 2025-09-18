@@ -7,6 +7,7 @@ import { withNs, NS_RE } from '@/lib/ns';
 
 import SidebarAdmin from '@/components/SidebarAdmin/SidebarAdmin';
 import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
+import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import styles from './monitor.module.css';
 
 /* Komponen pecahan */
@@ -42,6 +43,19 @@ const toServiceKey = (x) =>
 
 export default function Monitor({ initialRoleId = null, initialServiceIds = null }) {
   const router = useRouter();
+
+  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+  const handleLogout = async () => {
+    try {
+      const ns = new URLSearchParams(location.search).get('ns');
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ area: 'admin', ns }),
+      });
+    } catch {}
+    router.replace('/Signin/hal-signAdmin');
+  };
 
   /* ===== ns ===== */
   const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
@@ -399,7 +413,8 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
     <div className={styles.background}>
       {!sbLoading && (
         <div className={styles.sidebarWrap}>
-          <SidebarComp />
+          {/* Pass onLogout agar tombol di sidebar bisa manggil popup */}
+          <SidebarComp onLogout={() => setShowLogoutPopup(true)} /> {/* <— CHANGE */}
         </div>
       )}
 
@@ -486,6 +501,13 @@ export default function Monitor({ initialRoleId = null, initialServiceIds = null
         onClose={() => setOpenHeatDetail(false)}
         heatmapData={heatmapData}
       />
+
+    {/* ===== Logout Popup ===== */} 
+    <LogoutPopup
+      open={showLogoutPopup}
+      onCancel={() => setShowLogoutPopup(false)}
+      onLogout={handleLogout}
+    />
     </div>
   );
 }
