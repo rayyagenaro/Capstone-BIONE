@@ -142,7 +142,23 @@ const TabFilter = React.memo(({ currentTab, onTabChange }) => (
 TabFilter.displayName = 'TabFilter';
 
 const BookingCard = React.memo(({ booking, onClick }) => {
-  const statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: '' };
+  const featureKey = resolveFeatureKey(booking);
+  let statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: '' }
+
+  if (featureKey === 'bicare') {
+    switch (String(booking.status_id)) {
+      case '2': // default Approved
+        statusInfo = { text: 'Booked', className: styles.statusApproved };
+        break;
+      case '4': // Finished tetap
+        statusInfo = { text: 'Finished', className: styles.statusFinished };
+        break;
+      default:
+        // fallback supaya aman
+        statusInfo = { text: booking.status || 'Unknown', className: '' };
+    }
+  }
+
   const featureLabel = featureLabelOf(booking);
 
   return (

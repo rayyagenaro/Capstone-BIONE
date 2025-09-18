@@ -250,6 +250,7 @@
 .statusRejected { color: #e74c3c; }
 .statusPending  { color: #727272; }
 .statusFinished { color: #6c63ff; }
+.statusCancelled { color: #f97316; }
 
 .emptyText {
   color: #2F4D8E;

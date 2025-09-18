@@ -62,6 +62,7 @@ const STATUS_CONFIG = {
   '2': { text: 'Approved',  className: styles.statusApproved, dot: styles.dotApproved },
   '3': { text: 'Rejected',  className: styles.statusRejected, dot: styles.dotRejected },
   '4': { text: 'Finished',  className: styles.statusFinished, dot: styles.dotFinished },
+  '5': { text: 'Cancelled',  className: styles.statusCancelled, dot: styles.dotCancelled },
 };
 
 const statusPegawaiData = [
@@ -83,7 +84,7 @@ const META = {
 const ALLOWED_SLUGS = ['bidrive', 'bicare', 'bimeet', 'bimail', 'bistay', 'bimeal', 'dmove'];
 const getPlate = (v) => v?.plate || v?.plat_nomor || v?.nopol || v?.no_polisi || String(v?.id ?? '-');
 
-function mapStatus(detail) {
+function mapStatus(detail, slug) {
   if (!detail) return null;
   let id = detail.status_id;
   const s = (detail.status || detail.status_name || '').toString().toLowerCase();
@@ -92,6 +93,11 @@ function mapStatus(detail) {
     else if (s.includes('appr') || s.includes('book')) id = 2;
     else if (s.includes('reject') || s.includes('decline') || s.includes('cancel')) id = 3;
     else if (s.includes('finish') || s.includes('done') || s.includes('selesai')) id = 4;
+  }
+  if (slug === 'bicare') {
+    if (id === 2) return { text: 'Booked', className: styles.statusApproved, dot: styles.dotApproved };
+    if (id === 4) return { text: 'Finished', className: styles.statusFinished, dot: styles.dotFinished };
+    return { text: detail?.status || '-', className: styles.statusPending, dot: styles.dotPending };
   }
   const info = STATUS_CONFIG[String(id || '1')];
   return info || null;
@@ -107,6 +113,9 @@ const isPendingGeneric = (slug, d) => {
       .find((t) => t);
     return !!(txt && (txt.includes('pend') || txt.includes('menunggu') || txt.includes('await') || txt.includes('diajukan') || txt.includes('submit')));
   };
+  if (s === 'bicare') {
+    return false;
+  }
   if (s === 'bimeal') { const n = numish(d.status_id); return n === 1 || n === 0; }
   if (s === 'bimeet') { if (d.status_id == null) return true; const n = numish(d.status_id); return n === 1 || n === 0; }
   if (s === 'bistay') { const n = numish(d.status_id ?? d.booking_status_id ?? d.state); if (n != null) return n === 1 || n === 0; return byText(); }
@@ -252,15 +261,16 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
 
   const [showKontakPopup, setShowKontakPopup] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [finishing, setFinishing] = useState(false);
 
+  // In DetailsLaporanView
   const detailRef = useRef(null);
 
-  // 🔴 POPUP REJECT BARU (2 langkah)
-  const [showRejectReason, setShowRejectReason] = useState(false);
-  const [showRejectSend, setShowRejectSend] = useState(false);
-  const [pendingRejectReason, setPendingRejectReason] = useState('');
+  // State for Reject/Cancel process
+  const [isCancelling, setIsCancelling] = useState(false);
   const [rejectLoading, setRejectLoading] = useState(false);
+  const [pendingReason, setPendingReason] = useState(''); // Unified reason state
+  const [showRejectSend, setShowRejectSend] = useState(false); // For the second step of reject
+  const [reasonPopupConfig, setReasonPopupConfig] = useState(null); // Controls the reason popup
 
   // ✅ Notifikasi (PopupAdmin)
   const [showNotif, setShowNotif] = useState(false);
@@ -365,11 +375,32 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
       setShowPopup(false);
     }
   };
+  // In src/views/detailslaporan/detailsLaporan.js
+
+  // This function will open the popup in "Reject" mode
+  const openRejectPopup = () => {
+    setReasonPopupConfig({
+      title: `Alasan Penolakan ${META[slug]?.title || ''}`,
+      placeholder: 'Contoh: Dokumen tidak lengkap',
+      actionButtonText: 'Lanjut Tolak',
+      onNext: handleRejectStep1Done, // Your existing reject handler
+    });
+  };
+
+  // This function will open the popup in "Cancel" mode
+  const openCancelPopup = () => {
+    setReasonPopupConfig({
+      title: `Alasan Pembatalan ${META[slug]?.title || ''}`,
+      placeholder: 'Contoh: Perubahan jadwal mendadak',
+      actionButtonText: 'Lanjut Batalkan',
+      onNext: handleCancelStep1Done, // Your existing cancel handler
+    });
+  };
 
   /* ========= REJECT (2 langkah) ========= */
   const handleRejectStep1Done = (reasonText) => {
-    setPendingRejectReason(reasonText);
-    setShowRejectReason(false);
+    setPendingReason(reasonText); // <-- Use the new state setter
+    setReasonPopupConfig(null); // <-- Close the popup by clearing the config
     setShowRejectSend(true);
   };
 
@@ -405,11 +436,50 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
       openNotif('Permohonan berhasil ditolak.', 'success');
       setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
       setShowRejectSend(false);
-      setPendingRejectReason('');
+      setPendingReason('');
     } catch (e) {
       openNotif(`Error: ${e.message || e}`, 'error');
     } finally {
       setRejectLoading(false);
+    }
+  };
+
+  /* ========= CANCEL (2 steps) ========= */
+  const handleCancelStep1Done = (reasonText) => {
+    if (!reasonText.trim()) {
+      openNotif('Alasan pembatalan wajib diisi.', 'error');
+      return;
+    }
+    setPendingReason(reasonText); // <-- Use the new state setter
+    setReasonPopupConfig(null); // <-- Close the popup by clearing the config
+    handleCancelStep2Submit(reasonText); 
+  };
+
+  const handleCancelStep2Submit = async (reason) => {
+    setIsCancelling(true);
+    try {
+      const res = await fetch(`/api/admin/cancel/${apiSlug}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(id), reason }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal membatalkan booking.');
+
+      // Update UI optimistically
+      if (slug === 'bidrive') {
+        setBooking(prev => prev ? { ...prev, status_id: 5, rejection_reason: reason } : null);
+      } else {
+        setDetail(prev => prev ? { ...prev, status_id: 5, rejection_reason: reason } : null);
+      }
+
+      openNotif('Booking berhasil dibatalkan.', 'success');
+      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
+
+    } catch (err) {
+      openNotif(`Error: ${err.message}`, 'error');
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -473,66 +543,6 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
     }
   };
 
-  // ===== Finish booking BI-DRIVE (optimistic + soft-timeout) =====
-  const handleFinishBidrive = async () => {
-    if (slug !== 'bidrive' || !booking || Number(booking.status_id) !== 2) return;
-
-    const bid = numericIdOf(id);
-    if (!Number.isFinite(bid)) { openNotif('ID booking tidak valid.', 'error'); return; }
-
-    setFinishing(true);
-
-    // ambil ID yang ditugaskan
-    const driverIds  = (booking.assigned_drivers  || []).map(d => d.id).filter(Boolean);
-    const vehicleIds = (booking.assigned_vehicles || []).map(v => v.id).filter(Boolean);
-
-    // 1) Optimistic UI — tandai selesai dulu
-    const nowIso = new Date().toISOString();
-    setBooking(prev => prev ? { ...prev, status_id: 4, finished_at: nowIso } : prev);
-
-    try {
-      // 2) Kirim semua request paralel, batasi waktu tunggu supaya UI tidak “nyangkut”
-      const reqs = [
-        fetch('/api/booking', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: bid, newStatusId: 4, ns }),
-          keepalive: true,
-          credentials: 'include',
-        }),
-        ...driverIds.map(did =>
-          fetch('/api/updateDriversStatus', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ driverId: Number(did), newStatusId: 1 }),
-            keepalive: true,
-          })
-        ),
-        ...vehicleIds.map(vid =>
-          fetch('/api/updateVehiclesStatus', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vehicleId: Number(vid), newStatusId: 1 }),
-            keepalive: true,
-          })
-        )
-      ];
-
-      await Promise.race([
-        Promise.allSettled(reqs),
-        new Promise((resolve) => setTimeout(resolve, 1800)) // soft-timeout
-      ]);
-
-      openNotif('Booking BI-DRIVE berhasil ditandai selesai.', 'success');
-      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1000);
-    } catch (e) {
-      // rollback kecil jika benar-benar gagal
-      setBooking(prev => prev ? { ...prev, status_id: 2 } : prev);
-      openNotif(e.message || 'Gagal finish booking.', 'error');
-    } finally {
-      setFinishing(false);
-    }
-  };
 
   /* ===== UI guard ===== */
   if (isLoading) return (
@@ -581,7 +591,9 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
               booking={booking}
               isUpdating={isUpdating}
               exporting={exporting}
-              onRequestReject={() => setShowRejectReason(true)}
+              onRequestReject={openRejectPopup}   // <-- Use the new function here
+              onRequestCancel={openCancelPopup} // <-- Add this new prop
+              isCancelling={isCancelling}       // <-- Add this new prop
               onRequestApprove={() => setShowPopup(true)}
               onOpenKontak={() => setShowKontakPopup(true)}
               onExportPDF={handleExportPDF}
@@ -602,11 +614,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
                 detail={detail}
                 formatDateOnly={formatDateOnly}
                 formatDateTime={formatDateTime}
-                mapStatus={mapStatus}
-                isPendingGeneric={isPendingGeneric}
-                isUpdatingGeneric={isUpdatingGeneric}
-                onRequestReject={() => setShowRejectReason(true)}
-                onApproveGeneric={handleApproveGeneric}
+                mapStatus={(d) => mapStatus(d, 'bicare')}
               />
             )}
             {slug === 'bimeet' && (
@@ -618,7 +626,9 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
                 mapStatus={mapStatus}
                 isPendingGeneric={isPendingGeneric}
                 isUpdatingGeneric={isUpdatingGeneric}
-                onRequestReject={() => setShowRejectReason(true)}
+                onRequestReject={openRejectPopup}   // <-- Use the new function here
+                onRequestCancel={openCancelPopup} // <-- Add this new prop
+                isCancelling={isCancelling}       // <-- Add this new prop
                 onApproveGeneric={handleApproveGeneric}
               />
             )}
@@ -631,7 +641,9 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
                 mapStatus={mapStatus}
                 isPendingGeneric={isPendingGeneric}
                 isUpdatingGeneric={isUpdatingGeneric}
-                onRequestReject={() => setShowRejectReason(true)}
+                onRequestReject={openRejectPopup}   // <-- Use the new function here
+                onRequestCancel={openCancelPopup} // <-- Add this new prop
+                isCancelling={isCancelling}       // <-- Add this new prop
                 onApproveGeneric={handleApproveGeneric}
                 statusPegawaiList={statusPegawaiData}
               />
@@ -655,7 +667,9 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
                 mapStatus={mapStatus}
                 isPendingGeneric={isPendingGeneric}
                 isUpdatingGeneric={isUpdatingGeneric}
-                onRequestReject={() => setShowRejectReason(true)}
+                onRequestReject={openRejectPopup}   // <-- Use the new function here
+                onRequestCancel={openCancelPopup} // <-- Add this new prop
+                isCancelling={isCancelling}       // <-- Add this new prop
                 onApproveGeneric={handleApproveGeneric}
               />
             )}
@@ -684,10 +698,12 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
 
       {/* Step 1: input alasan */}
       <RejectReasonPopup
-        show={showRejectReason}
-        onClose={() => setShowRejectReason(false)}
-        onNext={handleRejectStep1Done}
-        title={`Alasan Penolakan ${META[slug]?.title || ''}`}
+        show={!!reasonPopupConfig}
+        onClose={() => setReasonPopupConfig(null)}
+        onNext={reasonPopupConfig?.onNext}
+        title={reasonPopupConfig?.title}
+        placeholder={reasonPopupConfig?.placeholder}
+        actionButtonText={reasonPopupConfig?.actionButtonText}
       />
 
       {/* Step 2: kirim WA + simpan */}
@@ -700,7 +716,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
         titleText={`Kirimkan Pesan Penolakan ${META[slug]?.title || ''}`}
         infoText="Periksa / ubah pesan yang akan dikirim via WhatsApp. Klik 'Tolak & Kirim' untuk menyimpan dan (opsional) mengirim."
         previewBuilder={(person, r) => buildRejectPreview(slug, person, r)}
-        initialReason={pendingRejectReason}
+        initialReason={pendingReason}
       />
 
       {/* Notifikasi Global */}

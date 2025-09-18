@@ -21,6 +21,8 @@ export default function BiDriveSection({
   // actions dari parent
   onRequestReject,
   onRequestApprove,
+  onRequestCancel,
+  isCancelling,
   onOpenKontak,
   onExportPDF,
   onFinishBooking,
@@ -231,6 +233,17 @@ export default function BiDriveSection({
             </p>
           </div>
 
+          {/* Tombol Cancel Booking (admin) */}
+          <button
+            type="button"
+            className={styles.btnCancel}
+            onClick={onRequestCancel}
+            disabled={isCancelling}
+            title="Batalkan booking yang sudah disetujui"
+          >
+            {isCancelling ? 'Memproses...' : 'Batalkan Booking'}
+          </button>
+
           {/* Tombol Finish Booking (admin) */}
           <button
             type="button"
@@ -243,6 +256,7 @@ export default function BiDriveSection({
           </button>
         </div>
       )}
+
     </div>
   );
 }

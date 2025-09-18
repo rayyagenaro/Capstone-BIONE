@@ -189,10 +189,13 @@
 .statusApproved { color: #22a455; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-left: 12px; }
 .statusRejected { color: #ed6257; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-left: 12px; }
 .statusFinished { color: #6c63ff; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-left: 12px; }
+.statusCancelled { color: #f97316; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-left: 12px; }
+
 .dotPending  { width: 10px; height: 10px; background: #338ef7;  border-radius: 50%; display: inline-block; }
 .dotApproved { width: 10px; height: 10px; background: #22a455;  border-radius: 50%; display: inline-block; }
 .dotRejected { width: 10px; height: 10px; background: #ed6257;  border-radius: 50%; display: inline-block; }
 .dotFinished { width: 10px; height: 10px; background: #6c63ff;  border-radius: 50%; display: inline-block; }
+.dotCancelled { width: 10px; height: 10px; background: #f97316;  border-radius: 50%; display: inline-block; }
 
 .detailRow { display: flex; flex-direction: row; gap: 40px; margin-bottom: 26px; }
 .detailColLeft, .detailColRight { flex: 1; display: flex; flex-direction: column; gap: 4px; }
@@ -279,9 +282,9 @@
 /* ===== Bar Aksi (Approved state) ===== */
 .actionBtnRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;   /* 2 kolom sama lebar */
+  grid-template-columns: 1fr 1fr;  /* default 2 kolom */
   gap: 18px;
-  align-items: start;
+  align-items: center;
   justify-items: stretch;
   margin-top: 10px;
 }
@@ -290,6 +293,50 @@
   flex-direction: column;
   align-items: stretch;             /* tombol full width kolom */
 }
+.actionBtnRow .kirimPesanWrapper {
+  grid-column: 1 / -1;   /* span semua kolom */
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* tengah */
+}
+.actionBtnRow .btnKirimPesan {
+  width: 60%;            /* biar agak kecil di tengah */
+  min-width: 280px;
+  max-width: 420px;
+  justify-content: center;
+}
+.kirimPesanNote {
+  text-align: center;
+}
+/* ===== Tombol Cancel Booking ===== */
+.btnCancel {
+  background: #DC3545;         /* merah bootstrap style */
+  color: #fff;
+  border: none;
+  border-radius: 18px;
+  padding: 11px 46px;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(220,53,69,0.18);
+  transition: background 0.15s ease, transform 0.06s ease;
+}
+.btnCancel:hover {
+  background: #c82333;
+}
+.btnCancel:active {
+  transform: translateY(1px);
+}
+
+/* agar sejajar di actionBtnRow */
+.actionBtnRow .btnCancel {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 24px;
+  padding: 0 28px;
+}
+
 .actionBtnRow .btnKirimPesan,
 .actionBtnRow .btnSetujui {
   width: 100%;
