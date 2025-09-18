@@ -314,7 +314,7 @@ export default function FiturDmove() {
 
     const closeSuccess = () => {
         setShowSuccess(false);
-        router.push(`/User/History/hal-history?ns=${ns}`);
+        router.push(`/User/OngoingBooking/bidrive/hal-orders?ns=${ns}`);
     };
     const handleLogout = async () => {
         try {

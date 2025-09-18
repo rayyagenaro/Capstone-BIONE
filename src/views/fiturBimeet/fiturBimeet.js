@@ -6,7 +6,6 @@ import { FaArrowLeft } from "react-icons/fa";
 import DatePicker from "react-datepicker";
 import idLocale from "date-fns/locale/id";
 import "react-datepicker/dist/react-datepicker.css";
-
 import { getNs, withNs, replaceNs } from "@/lib/ns";
 import styles from "./fiturBimeet.module.css";
 import SidebarUser from "@/components/SidebarUser/SidebarUser";
@@ -486,7 +485,7 @@ export default function FiturBimeet() {
 
   const closeSuccess = () => {
     setShowSuccess(false);
-    replaceNs(router, "/User/History/hal-history");
+    router.push(`/User/OngoingBooking/bimeet/hal-orders?ns=${ns}`);
   };
 
   const handleLogout = async () => {

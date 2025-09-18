@@ -447,16 +447,14 @@ export default function HalOrders({ initialUserName = 'User' }) {
         try { const j = await res.json(); if (j?.error) msg = j.error; } catch {}
         throw new Error(msg);
       }
-      setSelectedFeedback({
-        rating_overall: payload.rating_overall,
-        tags: payload.tags || [],
-        comment_text: payload.comment_text || '',
-      });
-      setRatingOpen(false);
+
+      // --- REDIRECT ADDED HERE ---
+      // After the rating is submitted successfully, redirect the user
+      router.push(`/User/History/hal-history?ns=${ns}`);
+
     } catch (e) {
       alert(e.message || 'Gagal mengirim penilaian.');
-    } finally {
-      setRatingSubmitting(false);
+      setRatingSubmitting(false); // Only set this back on error
     }
   };
 
@@ -578,8 +576,6 @@ export default function HalOrders({ initialUserName = 'User' }) {
     </div>
   );
 }
-
-
 
 /* ========= SSR guard (hanya role user / role_id=3) ========= */
 export async function getServerSideProps(ctx) {

@@ -26,16 +26,27 @@ const useDropdown = (initial = false) => {
 };
 
 const SuccessPopup = ({ onClose }) => (
-  <div className={styles.popupOverlay} role="dialog" aria-modal="true">
+  <div className={styles.popupOverlay}>
     <div className={styles.popupBox}>
-      <button className={styles.popupClose} onClick={onClose} aria-label="Tutup">×</button>
+      <button className={styles.popupClose} onClick={onClose}>
+        &times;
+      </button>
       <div className={styles.popupIcon}>
-        <svg width="70" height="70" viewBox="0 0 70 70" aria-hidden="true">
+        <svg width="70" height="70" viewBox="0 0 70 70">
           <circle cx="35" cy="35" r="35" fill="#7EDC89" />
-          <polyline points="23,36 33,46 48,29" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+          <polyline
+            points="23,36 33,46 48,29"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </div>
-      <div className={styles.popupMsg}><b>Booking Klinik Berhasil!</b></div>
+      <div className={styles.popupMsg}>
+        <b>Pengajuan BI.Care Berhasil!</b>
+      </div>
     </div>
   </div>
 );
@@ -274,7 +285,7 @@ export default function FiturBICare() {
     const nsParam = typeof window !== 'undefined'
       ? new URLSearchParams(location.search).get('ns') || ''
       : '';
-    router.replace(`/User/History/hal-history${nsParam ? `?ns=${encodeURIComponent(nsParam)}` : ''}`);
+    router.replace(`/User/OngoingBooking/bicare/hal-orders${nsParam ? `?ns=${encodeURIComponent(nsParam)}` : ''}`);
   }, [router]);
   useEffect(() => {
     return () => {

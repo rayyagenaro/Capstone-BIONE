@@ -14,8 +14,7 @@ import { FaExclamationTriangle } from 'react-icons/fa';
  *  - loading: boolean (ikut state `finishing`)
  *  - styles: CSS module (agar tombol konsisten: btnTolak & btnSetujui)
  */
-export default function FinishConfirmPopup({ show, onCancel, onConfirm, loading, styles }) {
-  if (!show) return null;
+export default function FinishConfirmPopup({ onCancel, onConfirm, finishing, styles }) {
 
   return (
     <div style={overlayStyle} role="dialog" aria-modal="true" aria-labelledby="finishTitle">
@@ -44,7 +43,7 @@ export default function FinishConfirmPopup({ show, onCancel, onConfirm, loading,
             onClick={onCancel}
             className={styles?.btnTolak}
             style={{ minWidth: 160 }}
-            disabled={loading}
+            disabled={finishing}
           >
             Batal Finish
           </button>
@@ -53,9 +52,9 @@ export default function FinishConfirmPopup({ show, onCancel, onConfirm, loading,
             onClick={onConfirm}
             className={styles?.btnSetujui}
             style={{ minWidth: 200 }}
-            disabled={loading}
+            disabled={finishing}
           >
-            {loading ? 'Memproses…' : 'Ya, Finish Booking'}
+            {finishing ? 'Memproses…' : 'Ya, Finish Booking'}
           </button>
         </div>
       </div>
@@ -65,7 +64,7 @@ export default function FinishConfirmPopup({ show, onCancel, onConfirm, loading,
 
 /* ==== Inline styles (ringan & tidak bentrok CSS Module) ==== */
 const overlayStyle = {
-  position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', zIndex: 1000,
+  position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', zIndex: 9999,
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
 };
 const modalStyle = {

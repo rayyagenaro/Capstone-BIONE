@@ -240,7 +240,7 @@ export default function FiturBIstay() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-
+  const { ns } = router.query;
   const [fields, setFields] = useState({
     nama: '',
     nip: '',
@@ -370,7 +370,10 @@ export default function FiturBIstay() {
     }
   };
 
-  const closeSuccess = () => setShowSuccess(false);
+  const closeSuccess = () => {
+    setShowSuccess(false);
+    router.push(`/User/OngoingBooking/bistay/hal-orders?ns=${ns}`);
+  }
 
   const handleLogout = async () => {
     try { await fetch('/api/logout', { method: 'POST' }); } catch {}

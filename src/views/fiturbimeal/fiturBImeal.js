@@ -259,7 +259,7 @@ export default function FiturBImeal() {
 
     const closeSuccess = () => {
       setShowSuccess(false);
-      router.push(`/User/History/hal-history?ns=${ns}`);
+      router.push(`/User/OngoingBooking/bimeal/hal-orders?ns=${ns}`);
   };
 
   const handleLogout = async () => {

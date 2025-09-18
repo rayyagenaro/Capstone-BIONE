@@ -1,7 +1,8 @@
 // src/components/BookingDetail/BookingDetailModal.js
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { FaTimes, FaStar } from "react-icons/fa";
 import styles from "@/views/statusbooking/statusBooking.module.css";
+import FinishConfirmPopup from "../FinishConfirmPopup/FinishConfirmPopup";
 
 /* ===== util ===== */
 const norm = (s) => String(s || "").trim().toLowerCase();
@@ -115,6 +116,7 @@ export default function BookingDetailModal({
   finishing,
   onOpenRating,      // <-- optional, dipakai khusus BI.Drive
 }) {
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   useEffect(() => {
     if (!booking) return;
     const onKey = (e) => e.key === "Escape" && onClose();
@@ -127,6 +129,7 @@ export default function BookingDetailModal({
   const featureKey = resolveFeatureKey(booking);
   const featureLabel = featureLabelOf(booking);
 
+
   let statusInfo =
     (STATUS_CONFIG(styles))[booking.status_id] ||
     { text: "Unknown", className: styles.statusPending };
@@ -138,8 +141,6 @@ export default function BookingDetailModal({
   const isFinished = Number(booking.status_id) === 4;
   const isCancelled = Number(booking.status_id) === 5;
   const isRejected = Number(booking.status_id) === 3 && !!booking.rejection_reason;
-
-
 
   // validasi feedback (1..5)
   const ratingVal   = Number(feedback?.rating_overall);
@@ -586,13 +587,27 @@ export default function BookingDetailModal({
             <button
               type="button"
               className={styles.finishButton}
-              onClick={() => onFinish(booking)}
+              onClick={() => {
+                console.log('clicked')
+                setIsConfirmOpen(true)}}
               disabled={finishing}
               title="Tandai booking ini sudah selesai"
             >
-              {finishing ? "Memproses..." : "Finish Booking"}
+              Finish Booking
             </button>
           </div>
+        )}
+        {isConfirmOpen && (
+          <FinishConfirmPopup
+            booking={booking}
+            isFinishing={finishing}
+            onConfirm={() => {
+              setIsConfirmOpen(false);
+              onFinish(booking);
+            }}
+            onClose={() => setIsConfirmOpen(false)}
+            styles={styles}
+          />
         )}
       </div>
     </div>

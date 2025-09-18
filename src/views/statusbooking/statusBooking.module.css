@@ -425,6 +425,49 @@
   margin-top: 28px;
 }
 
+.btnSetujui,
+.btnTolak {
+  /* Shared styles for both buttons */
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnSetujui:disabled,
+.btnTolak:disabled {
+  /* Shared disabled state */
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Styles for the "Confirm" button */
+.btnSetujui {
+  background-color: #2F4D8E; /* A strong blue */
+  color: white;
+  border: 1px solid transparent;
+}
+
+.btnSetujui:hover:not(:disabled) {
+  background-color: #21315d; /* A darker blue for hover */
+}
+
+/* Styles for the "Cancel" button */
+.btnTolak {
+  background-color: #fff;
+  color: #4B5563; /* A dark gray text color */
+  border: 1px solid #D1D5DB; /* A light gray border */
+}
+
+.btnTolak:hover:not(:disabled) {
+  background-color: #e9e7e7; /* A very light gray for hover */
+}
+
 /* ================== PAGINATION ================== */
 .paginationContainer {
   margin-top: 32px;
