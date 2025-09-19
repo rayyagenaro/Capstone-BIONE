@@ -614,7 +614,6 @@ input:focus {
 /* Konten utama: offset pakai var, padding top hanya di mobile */
 .mainContent {
   min-height: 100vh;
-  background: transparent;
   margin-left: var(--sidebar-space);
   padding: calc(var(--header-h) + 8px) 0 24px;
 }
