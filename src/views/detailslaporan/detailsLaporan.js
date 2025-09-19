@@ -271,6 +271,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
   const [pendingReason, setPendingReason] = useState(''); // Unified reason state
   const [showRejectSend, setShowRejectSend] = useState(false); // For the second step of reject
   const [reasonPopupConfig, setReasonPopupConfig] = useState(null); // Controls the reason popup
+  const [finishing, setFinishing] = useState(false);
 
   // ✅ Notifikasi (PopupAdmin)
   const [showNotif, setShowNotif] = useState(false);
@@ -375,7 +376,34 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
       setShowPopup(false);
     }
   };
-  // In src/views/detailslaporan/detailsLaporan.js
+
+  const handleFinishBooking = async () => {
+    if (!booking) return;
+    setFinishing(true);
+    try {
+      const res = await fetch(`/api/admin/finish/${apiSlug}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(id) }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menandai selesai.');
+
+      // update UI optimistis
+      setBooking(prev => prev ? { 
+        ...prev, 
+        status_id: 4, 
+        finished_at: new Date().toISOString() 
+      } : null);
+
+      openNotif('Booking berhasil diselesaikan', 'success');
+      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
+    } catch (err) {
+      openNotif(`Error: ${err.message || err}`, 'error');
+    } finally {
+      setFinishing(false);
+    }
+  };
 
   // This function will open the popup in "Reject" mode
   const openRejectPopup = () => {
@@ -595,6 +623,8 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
               onRequestCancel={openCancelPopup} // <-- Add this new prop
               isCancelling={isCancelling}       // <-- Add this new prop
               onRequestApprove={() => setShowPopup(true)}
+              finishing={finishing}
+              onFinishBooking={handleFinishBooking}
               onOpenKontak={() => setShowKontakPopup(true)}
               onExportPDF={handleExportPDF}
               STATUS_CONFIG={STATUS_CONFIG}

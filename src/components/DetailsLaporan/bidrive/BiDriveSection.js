@@ -1,43 +1,32 @@
 // src/components/DetailsLaporan/bidrive/BiDriveSection.js
 import React from 'react';
+import { useState } from 'react';
 import { FaFilePdf, FaWhatsapp } from 'react-icons/fa';
+import FinishConfirmPopup from '@/components/FinishConfirmPopup/FinishConfirmPopup';
 
 /**
  * Komponen presentational untuk BI-DRIVE (alias: dmove).
  * Tidak punya side-effect / fetch — semua aksi lewat props.
  */
 export default function BiDriveSection({
-  // styling
   styles,
-
-  // data
   booking,
-
-  // state dari parent
   isUpdating,
-  exporting,
   finishing,
-
-  // actions dari parent
   onRequestReject,
   onRequestApprove,
   onRequestCancel,
   isCancelling,
   onOpenKontak,
-  onExportPDF,
   onFinishBooking,
-
-  // helpers dikirim dari view agar tidak ubah util global
   STATUS_CONFIG,
   formatDateTime,
-  formatDateOnly,
   formatDuration,
   getPlate,
-
-  // opsional: untuk konsistensi guard status (fallback ke booking.status_id)
   getStatusId,
 }) {
   if (!booking) return <div className={styles.emptyText}>Data belum tersedia.</div>;
+  const [showFinishPopup, setShowFinishPopup] = useState(false);
 
   const statusId = Number(
     typeof getStatusId === 'function' ? getStatusId(booking, null) : booking?.status_id
@@ -248,13 +237,25 @@ export default function BiDriveSection({
           <button
             type="button"
             className={styles.btnSetujui}
-            onClick={onFinishBooking}
+            onClick={() => setShowFinishPopup(true)}
             disabled={!!finishing}
             title="Tandai booking sebagai selesai"
           >
             {finishing ? 'Memproses...' : 'Finish Booking'}
           </button>
         </div>
+      )}
+      {/* Render Popup */}
+      {showFinishPopup && (
+        <FinishConfirmPopup
+          styles={styles}
+          finishing={finishing}
+          onCancel={() => setShowFinishPopup(false)}
+          onConfirm={() => {
+            setShowFinishPopup(false);
+            onFinishBooking();
+          }}
+        />
       )}
 
     </div>

@@ -1,12 +1,18 @@
 import React from 'react';
 
 export default function BiMealSection({
-  styles, id, detail,
-  formatDateTime, mapStatus,
-  isPendingGeneric, isUpdatingGeneric,
-  onRequestReject, onApproveGeneric,
+  styles,
+  id, 
+  detail,
+  formatDateTime, 
+  mapStatus,
+  isUpdatingGeneric,
+  onRequestCancel,
+  isCancelling,
+  onFinishBooking,
 }) {
   const status = mapStatus(detail);
+  const statusId = detail?.status_id;
   const slug = 'bimeal';
 
   return (
@@ -36,7 +42,7 @@ export default function BiMealSection({
             <div className={styles.detailColRight}>
               <L styles={styles} label="Waktu Pesanan" v={formatDateTime(detail.waktu_pesanan)} />
               <L styles={styles} label="Unit Kerja" v={detail.unit_kerja || '-'} />
-              <L styles={styles} label="Status" v={detail.status_name || (detail.status_id === 1 ? 'Pending' : detail.status_id ?? '-')} />
+              <L styles={styles} label="Status" v={detail.status_name || (statusId === 1 ? 'Booked' : statusId ?? '-')} />
             </div>
           </div>
 
@@ -55,13 +61,28 @@ export default function BiMealSection({
             </div>
           </div>
 
-          {isPendingGeneric(slug, detail) && (
-            <div className={styles.actionBtnRow} style={{ marginTop: 16 }}>
-              <button className={styles.btnTolak} onClick={onRequestReject} disabled={isUpdatingGeneric}>
-                {isUpdatingGeneric ? 'Memproses...' : 'Tolak'}
+          {statusId === 2 && (
+            <div className={styles.actionBtnRow} style={{ gap: 12, flexWrap: 'wrap' }}>
+              {/* Tombol Cancel */}
+              <button
+                type="button"
+                className={styles.btnTolak}
+                onClick={onRequestCancel}
+                disabled={isCancelling}
+                title="Batalkan pesanan yang sudah disetujui"
+              >
+                {isCancelling ? 'Memproses...' : 'Batalkan Pesanan'}
               </button>
-              <button className={styles.btnSetujui} onClick={onApproveGeneric} disabled={isUpdatingGeneric}>
-                {isUpdatingGeneric ? 'Memproses...' : 'Setujui'}
+
+              {/* Tombol Finish */}
+              <button
+                type="button"
+                className={styles.btnSetujui}
+                onClick={onFinishBooking}
+                disabled={isUpdatingGeneric}
+                title="Tandai pesanan sebagai selesai"
+              >
+                {isUpdatingGeneric ? 'Memproses...' : 'Finish Pesanan'}
               </button>
             </div>
           )}
@@ -71,4 +92,11 @@ export default function BiMealSection({
   );
 }
 
-function L({ styles, label, v }) { return (<><div className={styles.detailLabel}>{label}</div><div className={styles.detailValue}>{v}</div></>); }
+function L({ styles, label, v }) { 
+  return (
+    <>
+      <div className={styles.detailLabel}>{label}</div>
+      <div className={styles.detailValue}>{v}</div>
+    </>
+  ); 
+}

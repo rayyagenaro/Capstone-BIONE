@@ -18,8 +18,15 @@ export async function getServerSideProps(ctx) {
   const id = Number(Array.isArray(idRaw) ? idRaw[0] : idRaw);
 
   const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
-  const slugValid =
-    typeof slug === 'string' && ALLOWED_SLUGS.has(slug.toLowerCase()) ? slug.toLowerCase() : null;
+
+  // 🔑 normalize slug "dmove" jadi "bidrive"
+  const normalizedSlug = typeof slug === 'string'
+    ? slug.toLowerCase() === 'dmove'
+      ? 'bidrive'
+      : slug.toLowerCase()
+    : null;
+
+  const slugValid = ALLOWED_SLUGS.has(normalizedSlug) ? normalizedSlug : null;
   const idValid = Number.isFinite(id) && id > 0 ? id : null;
 
   const from = ctx.resolvedUrl || '/Admin/Fitur/[slug]/detail';
@@ -48,7 +55,7 @@ export async function getServerSideProps(ctx) {
 
   return {
     props: {
-      slug: slugValid,
+      slug: slugValid, // 👉 sekarang UI selalu dapat "bidrive"
       ns: nsValid,
       id: idValid,
     },
