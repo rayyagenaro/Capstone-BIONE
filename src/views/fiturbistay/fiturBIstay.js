@@ -461,8 +461,14 @@ export default function FiturBIstay() {
         <div className={styles.formBox}>
           {/* Header */}
           <div className={styles.topRow}>
-            <button className={styles.backBtn} onClick={() => router.back()} type="button">
-              <FaArrowLeft /> Kembali
+            <button
+              className={styles.backBtn}
+              onClick={() => router.back()}
+              type="button"
+              aria-label="Kembali"
+            >
+              <FaArrowLeft aria-hidden="true" />
+              <span className={styles.backText}>Kembali</span>
             </button>
 
             <div className={styles.logoStayWrapper}>

@@ -513,8 +513,14 @@ export default function FiturBimeet() {
         <div className={styles.formBox}>
           {/* TOP ROW */}
           <div className={styles.topRow}>
-            <button className={styles.backBtn} onClick={() => router.back()} type="button">
-              <FaArrowLeft /> Kembali
+            <button
+              type="button"
+              className={styles.backBtn}
+              onClick={() => router.back()}
+              aria-label="Kembali"
+            >
+              <FaArrowLeft aria-hidden="true" />
+              <span className={styles.backText}>Kembali</span>
             </button>
 
             <div className={styles.logoWrapper}>

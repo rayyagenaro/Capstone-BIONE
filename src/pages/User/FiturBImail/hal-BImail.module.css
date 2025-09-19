@@ -818,3 +818,101 @@
 .spinOnce .refreshIcon {
   animation: bimail-spin-once 1s linear 1;
 }
+
+/* ========== VARIABEL LOKAL (AMAN UNTUK CSS MODULES) ========== */
+.background {
+  /* Mobile-first: sidebar overlay (tanpa offset kiri) */
+  --sidebar-space: 0px;
+  --header-h: 60px; /* tinggi header mobile, sesuaikan jika perlu */
+}
+
+/* ========== MAIN LAYOUT ========== */
+.mainContent {
+  min-height: 100vh;
+  margin-left: var(--sidebar-space);
+  /* top padding hanya saat mobile/tablet utk menghindari header fixed */
+  padding: calc(var(--header-h) + 8px) 0 24px;
+}
+
+/* Card putih: full-bleed di mobile, centered di desktop */
+.formBox {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(47,77,142,.11);
+  width: auto;
+  max-width: 100%;
+  margin: 12px 16px 20px;  /* gutter kiri/kanan di mobile */
+  padding: 20px 16px 24px;
+}
+
+/* ========== DESKTOP (SIDEBAR DOCKED) ========== */
+@media (min-width: 1201px) {
+  .background { --sidebar-space: 255px; --header-h: 92px; } /* sidebar fixed + header tinggi */
+  .mainContent { padding: calc(var(--header-h) + 6px) 16px 28px; }
+  .formBox {
+    border-radius: 22px;
+    width: 93%;
+    max-width: 1050px;
+    margin: 10px auto 28px; /* rapet dari header */
+    padding: 38px 42px 34px;
+  }
+}
+
+/* ========== TOMBOL KEMBALI: ikon saja di mobile, tidak melebar penuh ========== */
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #f5f8ff;
+  color: #2F4D8E;
+  border: none;
+  font-weight: 600;
+  font-size: 16.5px;
+  border-radius: 21px;
+  padding: 8px 27px 8px 17px;
+  cursor: pointer;
+  box-shadow: 0 1px 6px rgba(47,77,142,.10);
+  width: auto;           /* jangan full width */
+  flex: 0 0 auto;        /* jangan grow */
+  align-self: flex-start;/* kalau parent stretch */
+}
+
+.backBtn:hover { background:#d8e2fc; color:#233969; }
+
+@media (max-width: 780px) {
+  .backBtn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 12px;
+    justify-content: center;
+    gap: 0;
+  }
+  .backBtn svg { font-size: 18px; }
+
+  /* Sembunyikan teks tapi tetap accessible */
+  .backText {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0);
+    white-space: nowrap; border: 0;
+  }
+}
+
+/* ========== ROW & GRID RESPONSIVE (rapikan form di hp) ========== */
+@media (max-width: 900px) {
+  .topRow { flex-direction: column; align-items: stretch; gap: 8px; }
+}
+
+@media (max-width: 720px) {
+  .formGrid { gap: 14px; }
+  .formRow  { flex-direction: column; gap: 10px; }
+  .formBox  { margin: 12px 12px 18px; padding: 16px 14px; }
+}
+
+.mainContent {
+  min-height: 100vh;
+  margin-left: 255px;       /* kalau desktop sidebar docked */
+  padding: 0 16px 28px;     /* ⬅️ no top padding di desktop */
+}
