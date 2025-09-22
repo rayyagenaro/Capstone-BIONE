@@ -51,10 +51,10 @@ const calculateDays = (start, end) => {
 
 const META = {
   bidrive: { title: "BI.DRIVE", logo: "/assets/D'MOVE.svg" },
-  bicare:  { title: "BI.CARE",  logo: "/assets/BI-CARE.svg" },
+  bicare:  { title: "BI.CARE",  logo: "/assets/D'CARE.svg" },
   bimeal:  { title: "BI.MEAL",  logo: "/assets/D'MEAL.svg" },
   bimeet:  { title: "BI.MEET",  logo: "/assets/D'ROOM.svg" },
-  bimail:  { title: "BI.DOCS",  logo: "/assets/BI-MAIL.svg" },
+  bimail:  { title: "BI.DOCS",  logo: "/assets/D'TRACK.svg" },
   bistay:  { title: "BI.STAY",  logo: "/assets/D'REST.svg" },
 };
 
