@@ -282,3 +282,78 @@
   .layananSub, .layananStatus { font-size: 12px; }
   .backBtn { padding: 7px 16px 7px 12px; font-size: 14px; }
 }
+
+/* ==== Sidebar integration (desktop vs mobile) ==== */
+@media (min-width: 901px) {
+  .mainContent { margin-left: 255px; } /* sidebar 255px di desktop */
+}
+
+/* Sidebar fixed agar selalu di atas konten */
+.background :global(.sidebar),
+.background :global(.sidebar header),
+.background :global(.sidebar .topbar),
+.background :global(.sidebar .header) {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 2000 !important;
+}
+
+/* Tablet: konten turun sedikit karena header sidebar */
+@media (max-width: 1200px) {
+  .mainContent { margin-left: 0; padding-top: 82px; } /* tinggi header sidebar ~82px */
+}
+
+/* HP: sembunyikan sidebar & turunkan konten sesuai header mobile */
+@media (max-width: 750px) {
+  .background :global(.sidebar) { display: none !important; }
+  .mainContent { padding-top: 70px; }
+}
+
+/* ==== Card container: grid di tablet, single column di HP ==== */
+@media (min-width: 700px) and (max-width: 1100px) {
+  .cardList {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .cardLayanan { height: 100%; }
+}
+
+/* ==== Box putih: mobile gutters biar tidak mepet tepi ==== */
+@media (max-width: 780px) {
+  .boxLayanan {
+    width: auto;
+    max-width: 100%;
+    margin: 12px 16px 20px;  /* gutter kiri/kanan */
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+}
+
+/* ==== Back button: di HP hanya ikon (bukan full width) ==== */
+@media (max-width: 780px) {
+  .backBtn{
+    width: 44px; height: 44px;
+    padding: 0;
+    border-radius: 12px;
+    justify-content: center;
+    gap: 0;
+    font-size: 0;              /* sembunyikan teks "Kembali" */
+  }
+  .backBtn svg{ margin: 0; }   /* rapikan ikon */
+}
+
+/* Title selalu di tengah */
+.headerRow{ grid-template-columns: 1fr auto 1fr; }
+.titleLayanan{ text-align: center; }
+
+/* Elemen kecil disesuaikan untuk HP */
+@media (max-width: 600px) {
+  .greeting { font-size: 18px; margin-top: 13px; }
+  .cardLayanan { flex-direction: column; align-items: flex-start; gap: 7px; padding: 11px 10px; }
+  .cardLogo { width: 54px !important; height: 54px !important; }
+  .layananTitle { font-size: 14px; }
+  .layananSub, .layananStatus { font-size: 12px; }
+  .paginationControls { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .itemsPerPageDropdown { padding: 7px 10px; font-size: 14px; }
+}
