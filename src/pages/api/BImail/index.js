@@ -87,7 +87,7 @@ export default async function handler(req, res) {
 
       const tanggal   = b.tanggal_dokumen ? new Date(b.tanggal_dokumen) : null;
       const kodeJenis = (b.kategori_code || '').trim();
-      const unitCode  = (b.unit_code || '').trim();
+      const unitCode  = (b.unit_code || '').trim().toUpperCase();
       const tipe      = (b.tipe_dokumen || '').trim(); // 'B' | 'RHS'
       const perihal   = (b.perihal || '').trim();
       const dari      = (b.dari || '').trim();
@@ -134,25 +134,29 @@ export default async function handler(req, res) {
           }
 
           // upsert counter
+          const unit = unitCode || '';
           await conn.query(
-            `INSERT INTO bimail_counters (jenis_id, tahun, last_number)
-             VALUES (?, ?, 0)
-             ON DUPLICATE KEY UPDATE last_number = last_number`,
-            [jenisId, tahun]
+            `INSERT INTO bimail_counters (jenis_id, tahun, unit_code, last_number)
+              VALUES (?, ?, ?, 0)
+              ON DUPLICATE KEY UPDATE last_number = last_number`,
+            [jenisId, tahun, unit]
           );
 
           // lock counter
           const [[rowLock]] = await conn.query(
             `SELECT last_number FROM bimail_counters
-             WHERE jenis_id = ? AND tahun = ?
-             FOR UPDATE`,
-            [jenisId, tahun]
+              WHERE jenis_id = ? AND tahun = ? AND unit_code = ?
+              FOR UPDATE`,
+            [jenisId, tahun, unit]
           );
+          
           const nextNumber = Number(rowLock?.last_number || 0) + 1;
 
           await conn.query(
-            `UPDATE bimail_counters SET last_number = ? WHERE jenis_id = ? AND tahun = ?`,
-            [nextNumber, jenisId, tahun]
+            `UPDATE bimail_counters
+              SET last_number = ?
+              WHERE jenis_id = ? AND tahun = ? AND unit_code = ?`,
+            [nextNumber, jenisId, tahun, unit]
           );
 
           // nomor final

@@ -136,6 +136,8 @@ export default function HalBIMail() {
      Form state & helpers
      ======================= */
 
+  const normUnit = (s) => String(s || '').trim().toUpperCase();
+
   const [fields, setFields] = useState({
     tanggalDokumen: new Date(),
     jenisDokumen: '',
@@ -161,7 +163,7 @@ export default function HalBIMail() {
 
   const getUnitCode = useCallback(() => {
     const u = unitOptions.find(x => x.label === fields.unitKerja);
-    return (u?.code || '').trim();
+    return normUnit(u?.code || ''); // '' jika tanpa unit
   }, [fields.unitKerja, unitOptions]);
 
   useEffect(() => {
@@ -174,6 +176,7 @@ export default function HalBIMail() {
     if (!fields.jenisDokumen || !fields.tanggalDokumen) return;
     const jenisCode = getJenisCode();
     const year = fields.tanggalDokumen.getFullYear();
+    const unitCode = getUnitCode();
     if (!jenisCode) return;
     if (isFetchingRef.current) return;
 
@@ -183,10 +186,8 @@ export default function HalBIMail() {
     setLoadingNext(true);
     const ac = new AbortController();
     try {
-      const res = await fetch(
-        `/api/BImail/nextNumber?kategoriCode=${encodeURIComponent(jenisCode)}&tahun=${year}`,
-        { cache: 'no-store', signal: ac.signal }
-      );
+      const url = `/api/BImail/nextNumber?kategoriCode=${encodeURIComponent(jenisCode)}&tahun=${year}&unitCode=${encodeURIComponent(unitCode)}`;
+      const res = await fetch(url, { cache: 'no-store', signal: ac.signal });
       if (!res.ok) throw new Error('gagal');
       const data = await res.json();
       setNextNumber(data?.next_number ?? null);
@@ -197,7 +198,7 @@ export default function HalBIMail() {
       isFetchingRef.current = false;
     }
     return () => ac.abort();
-  }, [fields.jenisDokumen, fields.tanggalDokumen, getJenisCode, startSpinOnce]);
+  }, [fields.jenisDokumen, fields.tanggalDokumen, fields.unitKerja, getJenisCode, getUnitCode, startSpinOnce]);
 
   useEffect(() => {
     setNextNumber(null);
@@ -215,7 +216,7 @@ export default function HalBIMail() {
         intervalRef.current = null;
       }
     };
-  }, [fields.jenisDokumen, fields.tanggalDokumen, fetchEstimasi]);
+  }, [fields.jenisDokumen, fields.tanggalDokumen, fields.unitKerja, fetchEstimasi]);
 
   useEffect(() => {
     const onVis = () => {
