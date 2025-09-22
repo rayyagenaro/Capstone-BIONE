@@ -31,45 +31,35 @@ export default function EditProfile() {
   });
 
   useEffect(() => {
+    // 1) seed dari localStorage dulu biar form langsung terisi
+    try {
+      const ls = JSON.parse(localStorage.getItem('user') || '{}');
+      setProfile(prev => ({
+        email: ls.email ?? prev.email ?? '',
+        name:  ls.name  ?? prev.name  ?? '',
+        hp:    (ls.phone ?? ls.hp ?? prev.hp ?? '') + '',
+      }));
+    } catch {}
+
+    // 2) override dari /api/me
     (async () => {
       try {
-        const res = await fetch('/api/me');
-        const data = await res.json();
-
+        const res = await fetch('/api/me?scope=user', { cache: 'no-store', credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
         const p = data?.hasToken ? (data.payload ?? {}) : {};
-        const fromLS = JSON.parse(localStorage.getItem('user') || '{}');
 
-        // Ambil email/name dari token, fallback ke localStorage
-        const email = p.email ?? fromLS.email ?? '';
-        const name  = p.name  ?? fromLS.name  ?? '';
+        const email = p.email ?? '';
+        const name  = p.name  ?? '';
+        const hp    = (p.phone ?? p.hp ?? p.no_hp ?? p.telepon ?? '') + '';
 
-        // Karena /api/me kamu tidak kirim 'phone', fallback ke beberapa kemungkinan + localStorage
-        const phone =
-          p.phone ?? p.hp ?? p.no_hp ?? p.telepon ??
-          fromLS.phone ?? fromLS.hp ?? '';
-
-        setProfile({
-          email,
-          name,
-          hp: phone != null ? String(phone) : ''
-        });
-
-        // Opsional: sinkronkan localStorage biar next time tetap kebaca
-        localStorage.setItem('user', JSON.stringify({
-          ...fromLS,
-          email,
-          name,
-          phone: phone != null ? String(phone) : ''
-        }));
-      } catch (err) {
-        console.error('Error memuat profil:', err);
-        // Fallback penuh ke localStorage bila /api/me error
-        const fromLS = JSON.parse(localStorage.getItem('user') || '{}');
-        setProfile({
-          email: fromLS.email ?? '',
-          name:  fromLS.name  ?? '',
-          hp:    (fromLS.phone ?? fromLS.hp ?? '') + ''
-        });
+        if (email || name || hp) {
+          setProfile({ email, name, hp });
+          // sinkronkan LS
+          const prev = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem('user', JSON.stringify({ ...prev, email, name, phone: hp }));
+        }
+      } catch {
+        // diamkan; sudah ada seed dari LS
       }
     })();
   }, []);
@@ -89,8 +79,9 @@ export default function EditProfile() {
 
   function validate() {
     const err = {};
-    if (!profile.name) err.name = 'Nama wajib diisi';
-    if (!profile.hp) err.hp = 'No Handphone wajib diisi';
+    if (!profile.email?.trim()) err.email = 'Email tidak ditemukan. Silakan login ulang.';
+    if (!profile.name?.trim())  err.name  = 'Nama wajib diisi';
+    if (!profile.hp?.trim())    err.hp    = 'No Handphone wajib diisi';
     return err;
   }
 
@@ -100,39 +91,55 @@ export default function EditProfile() {
     const err = validate();
     setErrors(err);
     setSubmitted(true);
-    if (Object.keys(err).length > 0) return;
+    if (Object.keys(err).length) return;
+
+    // normalisasi hp (hapus spasi/tanda)
+    const hpNorm = (profile.hp || '').replace(/[^\d+]/g, '');
+
+    const payload = {
+      email: profile.email.trim(),
+      name:  profile.name.trim(),
+      hp:    hpNorm,               // <-- server baca "hp", bukan "phone"
+    };
 
     try {
-      const response = await fetch('/api/updateProfile', {
+      const res = await fetch('/api/updateProfile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profile),
+        credentials: 'include',
+        body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
-        setShowSuccess(true);
-        const updatedUser = { ...JSON.parse(localStorage.getItem('user')), name: profile.name, phone: profile.hp };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-      } else {
-        alert('Gagal memperbarui profil');
+      if (!res.ok) {
+        let msg = `Gagal (HTTP ${res.status})`;
+        try {
+          const ct = res.headers.get('content-type') || '';
+          msg = ct.includes('json') ? (await res.json())?.error || msg : await res.text() || msg;
+        } catch {}
+        throw new Error(msg);
       }
+
+      setShowSuccess(true);
+
+      // sinkronkan LS
+      const prev = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem('user', JSON.stringify({ ...prev, name: payload.name, phone: payload.hp }));
     } catch (error) {
-      console.error('Gagal mengirim data ke API:', error);
-      alert('Terjadi kesalahan saat mengupdate profil');
+      console.error('Update profile error:', error);
+      alert(error.message || 'Terjadi kesalahan saat mengupdate profil');
     }
   };
 
   // Fungsi Logout
   const handleLogout = async () => {
     try {
-     const ns = new URLSearchParams(location.search).get('ns');
-     await fetch('/api/logout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ area: 'admin', ns }), 
-    });
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ area: 'user', ns }),   // <-- user
+      });
     } catch {}
-    router.replace('/Signin/hal-signAdmin');
+    router.replace('/Signin/hal-sign');               // <-- signin user
   };
 
   return (
@@ -163,6 +170,7 @@ export default function EditProfile() {
                 readOnly
                 style={{ background: '#f5f5f5', color: '#888' }}
               />
+              {submitted && errors.email && <span className={styles.errorMsg}>{errors.email}</span>}
             </div>
             <div className={styles.formGroup}>
               <label htmlFor="name">Nama Lengkap</label>
