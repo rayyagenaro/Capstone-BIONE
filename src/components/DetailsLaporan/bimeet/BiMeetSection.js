@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
+import FinishConfirmPopup from '@/components/FinishConfirmPopup/FinishConfirmPopup';
 
 export default function BiMeetSection({
   styles, id, detail,
   formatDateTime, mapStatus,
   isPendingGeneric, isUpdatingGeneric,
   onRequestReject, onApproveGeneric,
+  onRequestCancel,   // 👈 tambah handler cancel
+  isCancelling,      // 👈 state cancel
+  onFinishBooking,   // 👈 tambah handler finish
+  finishing,         // 👈 state finish
 }) {
+  const [showFinishPopup, setShowFinishPopup] = useState(false);
+
   const status = mapStatus(detail);
   const slug = 'bimeet';
 
@@ -26,6 +33,7 @@ export default function BiMeetSection({
         <div className={styles.emptyText}>Data belum tersedia.</div>
       ) : (
         <>
+          {/* ===== Detail Info ===== */}
           <div className={styles.detailRow}>
             <div className={styles.detailColLeft}>
               <L styles={styles} label="ID" v={detail.id} />
@@ -49,6 +57,7 @@ export default function BiMeetSection({
             </div>
           </div>
 
+          {/* ===== Aksi Pending ===== */}
           {isPendingGeneric(slug, detail) && (
             <div className={styles.actionBtnRow} style={{ marginTop: 16 }}>
               <button className={styles.btnTolak} onClick={onRequestReject} disabled={isUpdatingGeneric}>
@@ -59,10 +68,53 @@ export default function BiMeetSection({
               </button>
             </div>
           )}
+
+          {/* ===== Aksi Approved ===== */}
+          {Number(detail?.status_id) === 2 && (
+            <div className={styles.actionBtnRow} style={{ marginTop: 16, gap: 12, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={styles.btnCancel}
+                onClick={onRequestCancel}
+                disabled={isCancelling}
+              >
+                {isCancelling ? 'Memproses...' : 'Batalkan Booking'}
+              </button>
+
+              <button
+                type="button"
+                className={styles.btnSetujui}
+                onClick={() => setShowFinishPopup(true)}
+                disabled={!!finishing}
+              >
+                {finishing ? 'Memproses...' : 'Finish Booking'}
+              </button>
+            </div>
+          )}
+
+          {/* ===== Popup Finish ===== */}
+          {showFinishPopup && (
+            <FinishConfirmPopup
+              styles={styles}
+              finishing={finishing}
+              onCancel={() => setShowFinishPopup(false)}
+              onConfirm={() => {
+                setShowFinishPopup(false);
+                onFinishBooking();
+              }}
+            />
+          )}
         </>
       )}
     </div>
   );
 }
 
-function L({ styles, label, v }) { return (<><div className={styles.detailLabel}>{label}</div><div className={styles.detailValue}>{v}</div></>); }
+function L({ styles, label, v }) {
+  return (
+    <>
+      <div className={styles.detailLabel}>{label}</div>
+      <div className={styles.detailValue}>{v}</div>
+    </>
+  );
+}

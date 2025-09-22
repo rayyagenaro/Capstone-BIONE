@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import FinishConfirmPopup from '@/components/FinishConfirmPopup/FinishConfirmPopup';
 
 export default function BiMealSection({
   styles,
@@ -10,7 +11,10 @@ export default function BiMealSection({
   onRequestCancel,
   isCancelling,
   onFinishBooking,
+  finishing,
 }) {
+  const [showFinishPopup, setShowFinishPopup] = useState(false);
+
   const status = mapStatus(detail);
   const statusId = detail?.status_id;
   const slug = 'bimeal';
@@ -61,6 +65,7 @@ export default function BiMealSection({
             </div>
           </div>
 
+          {/* Aksi Approved */}
           {statusId === 2 && (
             <div className={styles.actionBtnRow} style={{ gap: 12, flexWrap: 'wrap' }}>
               {/* Tombol Cancel */}
@@ -78,13 +83,26 @@ export default function BiMealSection({
               <button
                 type="button"
                 className={styles.btnSetujui}
-                onClick={onFinishBooking}
-                disabled={isUpdatingGeneric}
+                onClick={() => setShowFinishPopup(true)}
+                disabled={!!finishing}
                 title="Tandai pesanan sebagai selesai"
               >
-                {isUpdatingGeneric ? 'Memproses...' : 'Finish Pesanan'}
+                {finishing ? 'Memproses...' : 'Finish Pesanan'}
               </button>
             </div>
+          )}
+
+          {/* Popup Konfirmasi Finish */}
+          {showFinishPopup && (
+            <FinishConfirmPopup
+              styles={styles}
+              finishing={finishing}
+              onCancel={() => setShowFinishPopup(false)}
+              onConfirm={() => {
+                setShowFinishPopup(false);
+                onFinishBooking();
+              }}
+            />
           )}
         </>
       )}

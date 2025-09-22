@@ -378,7 +378,6 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
   };
 
   const handleFinishBooking = async () => {
-    if (!booking) return;
     setFinishing(true);
     try {
       const res = await fetch(`/api/admin/finish/${apiSlug}`, {
@@ -390,20 +389,29 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
       if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal menandai selesai.');
 
       // update UI optimistis
-      setBooking(prev => prev ? { 
-        ...prev, 
-        status_id: 4, 
-        finished_at: new Date().toISOString() 
-      } : null);
+      if (slug === 'bidrive') {
+        setBooking(prev => prev ? { 
+          ...prev, 
+          status_id: 4, 
+          finished_at: new Date().toISOString() 
+        } : null);
+      } else {
+        setDetail(prev => prev ? { 
+          ...prev, 
+          status_id: 4, 
+          finished_at: new Date().toISOString() 
+        } : null);
+      }
 
       openNotif('Booking berhasil diselesaikan', 'success');
-      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
+      setTimeout(() => router.push(withNs('/Admin/Persetujuan/hal-persetujuan', ns)), 1200);
     } catch (err) {
       openNotif(`Error: ${err.message || err}`, 'error');
     } finally {
       setFinishing(false);
     }
   };
+
 
   // This function will open the popup in "Reject" mode
   const openRejectPopup = () => {
@@ -660,6 +668,9 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
                 onRequestCancel={openCancelPopup} // <-- Add this new prop
                 isCancelling={isCancelling}       // <-- Add this new prop
                 onApproveGeneric={handleApproveGeneric}
+                onFinishBooking={handleFinishBooking}
+                finishing={finishing}
+
               />
             )}
             {slug === 'bistay' && (
@@ -676,6 +687,8 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
                 isCancelling={isCancelling}       // <-- Add this new prop
                 onApproveGeneric={handleApproveGeneric}
                 statusPegawaiList={statusPegawaiData}
+                finishing={finishing}
+                onFinishBooking={handleFinishBooking}
               />
             )}
             {slug === 'bimail' && (
@@ -701,6 +714,8 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
                 onRequestCancel={openCancelPopup} // <-- Add this new prop
                 isCancelling={isCancelling}       // <-- Add this new prop
                 onApproveGeneric={handleApproveGeneric}
+                finishing={finishing}
+                onFinishBooking={handleFinishBooking}
               />
             )}
           </div>

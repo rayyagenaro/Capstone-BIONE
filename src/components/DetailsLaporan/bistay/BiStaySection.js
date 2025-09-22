@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import FinishConfirmPopup from '@/components/FinishConfirmPopup/FinishConfirmPopup';
 
 // statusPegawaiList adalah prop baru yang berisi array data status
 // Contoh: [{ id: 1, status: 'Pegawai' }, { id: 2, status: 'Pensiun' }]
@@ -7,20 +8,21 @@ export default function BiStaySection({
   formatDateTime, mapStatus,
   isPendingGeneric, isUpdatingGeneric,
   onRequestReject, onApproveGeneric,
-  statusPegawaiList, // <-- PROPS BARU: Daftar status pegawai
+  onRequestCancel,   // <-- baru
+  isCancelling,      // <-- baru
+  onFinishBooking,   // <-- baru
+  finishing,         // <-- baru
+  statusPegawaiList, // <-- daftar status pegawai
 }) {
+  const [showFinishPopup, setShowFinishPopup] = useState(false);
+
   const status = mapStatus(detail);
   const slug = 'bistay';
 
-  // <-- LOGIKA BARU: Fungsi untuk mencari nama status berdasarkan ID
+  // Fungsi untuk mencari nama status pegawai berdasarkan ID
   const getStatusPegawaiText = (statusId) => {
-    // Jika tidak ada list status atau ID, kembalikan strip
     if (!statusPegawaiList || !statusId) return '-';
-    
-    // Cari status di dalam array berdasarkan ID
     const foundStatus = statusPegawaiList.find(s => s.id === statusId);
-    
-    // Jika ditemukan, kembalikan teks statusnya. Jika tidak, tampilkan pesan fallback.
     return foundStatus ? foundStatus.status : `ID (${statusId}) tidak ditemukan`;
   };
 
@@ -47,7 +49,6 @@ export default function BiStaySection({
               <L styles={styles} label="Nama Pemesan" v={detail.nama_pemesan || '-'} />
               <L styles={styles} label="NIP" v={detail.nip || '-'} />
               <L styles={styles} label="No WA" v={detail.no_wa || '-'} />
-              {/* <-- PERUBAHAN DI SINI --> */}
               <L styles={styles} label="Status Pegawai" v={getStatusPegawaiText(detail.status_pegawai_id)} />
               <L styles={styles} label="Asal KPw" v={detail.asal_kpw || '-'} />
               <L styles={styles} label="Keterangan" v={detail.keterangan || '-'} />
@@ -61,6 +62,7 @@ export default function BiStaySection({
             </div>
           </div>
 
+          {/* Aksi Pending */}
           {isPendingGeneric(slug, detail) && (
             <div className={styles.actionBtnRow} style={{ marginTop: 16 }}>
               <button className={styles.btnTolak} onClick={onRequestReject} disabled={isUpdatingGeneric}>
@@ -71,10 +73,57 @@ export default function BiStaySection({
               </button>
             </div>
           )}
+
+          {/* Aksi Approved */}
+          {Number(detail?.status_id) === 2 && (
+            <div className={styles.actionBtnRow} style={{ marginTop: 16, gap: 12, flexWrap: 'wrap' }}>
+              {/* Cancel */}
+              <button
+                type="button"
+                className={styles.btnTolak}
+                onClick={onRequestCancel}
+                disabled={isCancelling}
+                title="Batalkan booking"
+              >
+                {isCancelling ? 'Memproses...' : 'Batalkan Booking'}
+              </button>
+
+              {/* Finish */}
+              <button
+                type="button"
+                className={styles.btnSetujui}
+                onClick={() => setShowFinishPopup(true)}
+                disabled={!!finishing}
+                title="Tandai booking sebagai selesai"
+              >
+                {finishing ? 'Memproses...' : 'Finish Booking'}
+              </button>
+            </div>
+          )}
+
+          {/* Popup konfirmasi finish */}
+          {showFinishPopup && (
+            <FinishConfirmPopup
+              styles={styles}
+              finishing={finishing}
+              onCancel={() => setShowFinishPopup(false)}
+              onConfirm={() => {
+                setShowFinishPopup(false);
+                onFinishBooking();
+              }}
+            />
+          )}
         </>
       )}
     </div>
   );
 }
 
-function L({ styles, label, v }) { return (<><div className={styles.detailLabel}>{label}</div><div className={styles.detailValue}>{v}</div></>); }
+function L({ styles, label, v }) {
+  return (
+    <>
+      <div className={styles.detailLabel}>{label}</div>
+      <div className={styles.detailValue}>{v}</div>
+    </>
+  );
+}
