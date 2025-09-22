@@ -238,8 +238,15 @@ export default function HalBIMail() {
   };
 
   const closeSuccess = () => {
-    setShowSuccess(false);
-    router.push(`/User/StatusBooking/hal-statusBooking?ns=${ns}`);
+    const nsStr = typeof ns === 'string' ? ns : Array.isArray(ns) ? ns[0] : '';
+    if (!nsStr || !/^[A-Za-z0-9_-]{3,32}$/.test(nsStr)) {
+      router.replace('/Login/hal-sign'); // fallback kalau ns tidak valid
+      return;
+    }
+    router.push({
+      pathname: '/User/OngoingBooking/bimail/hal-orders',
+      query: { ns: nsStr },
+    });
   };
 
   // ===== Validasi wajib untuk 4 field: perihal, dari, kepada, linkDokumen =====
@@ -573,14 +580,6 @@ export default function HalBIMail() {
                 <label htmlFor="linkDokumen">
                   Link Dokumen (SharePoint) <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>
                 </label>
-                <a
-                  href="https://www.office.com/launch/sharepoint"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "#2667c7", fontWeight: 500, fontSize: 15 }}
-                >
-                  Buka SharePoint
-                </a>
               </div>
               <input
                 id="linkDokumen"
