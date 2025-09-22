@@ -19,10 +19,10 @@ async function releaseBidriveResources(bookingId) {
   const vehicleIds = assignments.map(a => a.vehicle_id).filter(Boolean);
 
   if (driverIds.length > 0) {
-    await db.query('UPDATE bidrive_drivers SET status_id = 1 WHERE id IN (?)', [driverIds]);
+    await db.query('UPDATE bidrive_drivers SET driver_status_id = 1 WHERE id IN (?)', [driverIds]);
   }
   if (vehicleIds.length > 0) {
-    await db.query('UPDATE bidrive_vehicles SET status_id = 1 WHERE id IN (?)', [vehicleIds]);
+    await db.query('UPDATE bidrive_vehicles SET vehicle_status_id = 1 WHERE id IN (?)', [vehicleIds]);
   }
 }
 
@@ -62,6 +62,11 @@ export default async function handler(req, res) {
        LIMIT 1
     `;
     console.log('[FINISH API] SQL:', sql, 'Params:', [finishedVal, id]);
+    const [rows] = await db.query('SELECT DATABASE() AS db');
+    console.log('[FINISH API] Connected to DB:', rows[0].db);
+
+    const [cols] = await db.query(`SHOW COLUMNS FROM bidrive_bookings`);
+    console.log('[FINISH API] Columns in bidrive_bookings:', cols.map(c => c.Field));
 
     const [result] = await db.execute(sql, [finishedVal, id]);
     console.log('[FINISH API] result:', result);

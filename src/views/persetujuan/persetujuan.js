@@ -9,13 +9,13 @@ import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import { FaArrowLeft } from 'react-icons/fa';
 import { fetchAllBookings } from '@/lib/fetchBookings';
-import { NS_RE, getNsFromReq} from '@/lib/ns-server';
+import { NS_RE, getNsFromReq } from '@/lib/ns-server';
 import { withNs } from '@/lib/ns';
 import { verifyAuth } from '@/lib/auth';
 
 /* ===================== KONFIGURASI STATUS ===================== */
 const STATUS_CONFIG = {
-  '1': { text: 'Pending',  className: styles.statusPending  },
+  '1': { text: 'Pending', className: styles.statusPending },
   '2': { text: 'Approved', className: styles.statusApproved },
   '3': { text: 'Rejected', className: styles.statusRejected },
   '4': { text: 'Finished', className: styles.statusFinished },
@@ -24,25 +24,28 @@ const STATUS_CONFIG = {
 
 const TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Finished', 'Cancelled'];
 const TAB_TO_STATUS_ID = { Pending: 1, Approved: 2, Rejected: 3, Finished: 4, Cancelled: 5 };
+const SEEN_KEYS = { Pending: 'pending', Approved: 'approved', Rejected: 'rejected', Finished: 'finished', Cancelled: 'cancelled' };
+const DEFAULT_SEEN = { pending: 0, approved: 0, rejected: 0, finished: 0, cancelled: 0 };
+const seenStorageKey = (userId) => `adminPersetujuanSeen:${userId}`;
 
 const FEATURE_OPTIONS = [
-  { label: 'All',      value: 'all'     },
+  { label: 'All', value: 'all' },
   { label: 'Drive', value: 'bidrive' },
-  { label: 'Care',  value: 'bicare'  },
-  { label: 'Meal',  value: 'bimeal'  },
-  { label: 'Meet',  value: 'bimeet'  },
-  { label: 'Docs',  value: 'bimail'  },
-  { label: 'Stay',  value: 'bistay'  },
+  { label: 'Care', value: 'bicare' },
+  { label: 'Meal', value: 'bimeal' },
+  { label: 'Meet', value: 'bimeet' },
+  { label: 'Docs', value: 'bimail' },
+  { label: 'Stay', value: 'bistay' },
 ];
 
 const FEATURE_LOGOS = {
   bidrive: "/assets/D'MOVE.svg",
-  bicare:  "/assets/D'CARE.svg",
-  bimeal:  "/assets/D'MEAL.svg",
-  bimeet:  "/assets/D'ROOM.svg",
-  bimail:  "/assets/D'TRACK.svg",
-  bidocs:  "/assets/D'TRACK.svg",
-  bistay:  "/assets/D'REST.svg",
+  bicare: "/assets/D'CARE.svg",
+  bimeal: "/assets/D'MEAL.svg",
+  bimeet: "/assets/D'ROOM.svg",
+  bimail: "/assets/D'TRACK.svg",
+  bidocs: "/assets/D'TRACK.svg",
+  bistay: "/assets/D'REST.svg",
 };
 
 const SERVICE_ID_MAP = {
@@ -55,15 +58,12 @@ const SERVICE_ID_MAP = {
 };
 
 const norm = (s) => String(s || '').trim().toLowerCase();
-
 const numericIdOf = (id) => {
   const m = String(id ?? '').match(/(\d+)$/);
   return m ? Number(m[1]) : NaN;
 };
 const isAlias = (k, v) =>
-  k === v ||
-  (v === 'bidocs' && k === 'bimail') ||
-  (v === 'bimail' && k === 'bidocs');
+  k === v || (v === 'bidocs' && k === 'bimail') || (v === 'bimail' && k === 'bidocs');
 
 function resolveFeatureKey(booking) {
   if (booking?.feature_key) return booking.feature_key;
@@ -87,11 +87,11 @@ function resolveFeatureKey(booking) {
 function featureLabelOf(booking) {
   switch (resolveFeatureKey(booking)) {
     case 'bidrive': return 'BI.Drive';
-    case 'bicare':  return 'BI.Care';
-    case 'bimeal':  return 'BI.Meal';
-    case 'bimeet':  return 'BI.Meet';
-    case 'bimail':  return 'BI.Docs';
-    case 'bistay':  return 'BI.Stay';
+    case 'bicare': return 'BI.Care';
+    case 'bimeal': return 'BI.Meal';
+    case 'bimeet': return 'BI.Meet';
+    case 'bimail': return 'BI.Docs';
+    case 'bistay': return 'BI.Stay';
     default: return null;
   }
 }
@@ -105,6 +105,7 @@ const formatDate = (dateString) => {
 
 const logoSrcOf = (booking) => FEATURE_LOGOS[resolveFeatureKey(booking)] || '/assets/BI-One-Blue.png';
 
+/* ===================== DROPDOWN ===================== */
 const FeatureDropdown = React.memo(({ value, onChange, allowedOptions }) => (
   <div className={styles.filterRow}>
     <label htmlFor="featureFilter" className={styles.label}>Fitur/Layanan:</label>
@@ -122,61 +123,57 @@ const FeatureDropdown = React.memo(({ value, onChange, allowedOptions }) => (
 ));
 FeatureDropdown.displayName = 'FeatureDropdown';
 
-const TabFilter = React.memo(({ currentTab, onTabChange }) => (
+/* ===================== TAB FILTER BARU ===================== */
+const TabFilter = React.memo(({ currentTab, onTabChange, badgeCounts }) => (
   <div className={styles.tabRow} role="tablist" aria-label="Filter status persetujuan">
-    {TABS.map((tabName) => (
-      <button
-        key={tabName}
-        type="button"
-        role="tab"
-        aria-selected={currentTab === tabName}
-        className={`${styles.tabBtn} ${currentTab === tabName ? styles.tabActive : ''}`}
-        onClick={() => onTabChange(tabName)}
-      >
-        <span className={styles.tabLabel}>{tabName}</span>
-        {tabName !== 'All' && <span className={`${styles.tabDot} ${styles.tabDotIdle}`} aria-hidden="true" />}
-      </button>
-    ))}
+    {TABS.map((tabName) => {
+      const isAll = tabName === 'All';
+      const key = SEEN_KEYS[tabName];
+      const count = isAll ? 0 : (badgeCounts[key] || 0);
+      const showNumber = !isAll && count > 0;
+
+      return (
+        <button
+          key={tabName}
+          type="button"
+          role="tab"
+          aria-selected={currentTab === tabName}
+          className={`${styles.tabBtn} ${currentTab === tabName ? styles.tabActive : ''}`}
+          onClick={() => onTabChange(tabName)}
+        >
+          <span className={styles.tabLabel}>{tabName}</span>
+          {showNumber && (
+            <span className={`${styles.tabBadge} ${styles.tabBadgeActive}`}>{count}</span>
+          )}
+        </button>
+      );
+    })}
   </div>
 ));
-TabFilter.displayName = 'TabFilter';
 
+
+/* ===================== BOOKING CARD ===================== */
 const BookingCard = React.memo(({ booking, onClick }) => {
   const featureKey = resolveFeatureKey(booking);
-  let statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: '' }
+  let statusInfo = STATUS_CONFIG[booking.status_id] || { text: 'Unknown', className: '' };
 
   if (featureKey === 'bicare') {
     switch (String(booking.status_id)) {
-      case '2': // default Approved
-        statusInfo = { text: 'Booked', className: styles.statusApproved };
-        break;
-      case '4': // Finished tetap
-        statusInfo = { text: 'Finished', className: styles.statusFinished };
-        break;
-      default:
-        // fallback supaya aman
-        statusInfo = { text: booking.status || 'Unknown', className: '' };
+      case '2': statusInfo = { text: 'Booked', className: styles.statusApproved }; break;
+      case '4': statusInfo = { text: 'Finished', className: styles.statusFinished }; break;
+      default: statusInfo = { text: booking.status || 'Unknown', className: '' };
     }
   }
-
   const featureLabel = featureLabelOf(booking);
 
   return (
     <div
       className={styles.cardLayanan}
       onClick={onClick}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
       role="button"
       tabIndex={0}
     >
-      <Image
-        src={logoSrcOf(booking)}
-        alt={featureLabel || 'Logo'}
-        width={70}
-        height={70}
-        className={styles.cardLogo}
-        priority
-      />
+      <Image src={logoSrcOf(booking)} alt={featureLabel || 'Logo'} width={70} height={70} className={styles.cardLogo} />
       <div className={styles.cardContent}>
         <div className={styles.layananTitle}>
           {featureLabel ? `[${featureLabel}] ` : ''}Booking | {booking.tujuan}
@@ -191,64 +188,14 @@ const BookingCard = React.memo(({ booking, onClick }) => {
 });
 BookingCard.displayName = 'BookingCard';
 
-const ADMIN_DETAIL_ROUTES = {
-  bimeet: (id) => `/Admin/Fitur/bimeet/detail?id=${id}`,
-  bicare: (id) => `/Admin/Fitur/bicare/detail?id=${id}`,
-  bimeal: (id) => `/Admin/Fitur/bimeal/detail?id=${id}`,
-  bistay: (id) => `/Admin/Fitur/bistay/detail?id=${id}`,
-  bimail: (id) => `/Admin/Fitur/bimail/detail?id=${id}`,
-  bidrive: (id) => `/Admin/Fitur/bidrive/detail?id=${id}`,
-};
-
+/* ===================== HALAMAN ===================== */
 export default function PersetujuanBooking({ initialRoleId = null, initialServiceIds = null }) {
   const router = useRouter();
-
   const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
-  const nsFromAsPath = (() => {
-    const q = router.asPath.split('?')[1];
-    if (!q) return '';
-    const params = new URLSearchParams(q);
-    const v = params.get('ns') || '';
-    return NS_RE.test(v) ? v : '';
-  })();
-  const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
+  const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : '';
 
   const [roleId, setRoleId] = useState(initialRoleId);
   const [allowedServiceIds, setAllowedServiceIds] = useState(initialServiceIds);
-  const [sbLoading, setSbLoading] = useState(initialRoleId == null);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      if (!router.isReady || initialRoleId != null) { setSbLoading(false); return; }
-      const nsParam = new URLSearchParams(location.search).get('ns') || '';
-      try {
-        const url = nsParam ? `/api/me?scope=admin&ns=${encodeURIComponent(nsParam)}` : `/api/me?scope=admin`;
-        const r = await fetch(url, { cache: 'no-store' });
-        const d = await r.json();
-        if (!alive) return;
-
-        const rl = Number(d?.payload?.role_id_num ?? d?.payload?.role_id ?? 0);
-        const rs = String(d?.payload?.role || d?.payload?.roleNormalized || '').toLowerCase();
-        const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
-
-        if (isSuper) {
-          setRoleId(1);
-          setAllowedServiceIds(null);
-        } else {
-          setRoleId(2);
-          const ids = Array.isArray(d?.payload?.service_ids) ? d.payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean) : [];
-          setAllowedServiceIds(ids);
-        }
-      } catch {
-        setRoleId(2);
-        setAllowedServiceIds([]);
-      } finally {
-        if (alive) setSbLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [router.isReady, initialRoleId]);
 
   const [allBookings, setAllBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -259,71 +206,76 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(6);
-  const listTopRef = useRef(null);
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ area: 'admin', ns }),
-      });
-    } catch {} finally {
-      router.replace('/Signin/hal-signAdmin');
+
+  const [seenCounts, setSeenCounts] = useState(DEFAULT_SEEN);
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch('/api/me?scope=admin', { credentials: 'include' });
+        const d = await r.json();
+        if (d?.payload?.sub) {
+          const uid = Number(d.payload.sub);
+          setUserId(uid);
+          try {
+            const raw = localStorage.getItem(seenStorageKey(uid));
+            setSeenCounts(raw ? { ...DEFAULT_SEEN, ...JSON.parse(raw) } : DEFAULT_SEEN);
+          } catch { setSeenCounts(DEFAULT_SEEN); }
+        }
+      } catch {}
+    })();
+  }, []);
+
+    // hitung jumlah per status
+  const tabCounts = useMemo(() => {
+    const c = { pending: 0, approved: 0, rejected: 0, finished: 0, cancelled: 0 };
+    for (const b of allBookings) {
+      if (b.status_id === 1) c.pending++;
+      else if (b.status_id === 2) c.approved++;
+      else if (b.status_id === 3) c.rejected++;
+      else if (b.status_id === 4) c.finished++;
+      else if (b.status_id === 5) c.cancelled++;
     }
-  };
+    return c;
+  }, [allBookings]);
+
+  const markTabSeen = useCallback((tabName) => {
+    if (!userId || tabName === 'All') return;
+    const key = SEEN_KEYS[tabName];
+    const next = { ...seenCounts, [key]: tabCounts[key] }; // ✅ gunakan tabCounts
+    setSeenCounts(next);
+    try { localStorage.setItem(seenStorageKey(userId), JSON.stringify(next)); } catch {}
+  }, [seenCounts, tabCounts, userId]);
+
+
+  const badgeCounts = useMemo(() => ({
+    pending: Math.max(0, (allBookings.filter(b => b.status_id === 1).length) - (seenCounts.pending || 0)),
+    approved: Math.max(0, (allBookings.filter(b => b.status_id === 2).length) - (seenCounts.approved || 0)),
+    rejected: Math.max(0, (allBookings.filter(b => b.status_id === 3).length) - (seenCounts.rejected || 0)),
+    finished: Math.max(0, (allBookings.filter(b => b.status_id === 4).length) - (seenCounts.finished || 0)),
+    cancelled: Math.max(0, (allBookings.filter(b => b.status_id === 5).length) - (seenCounts.cancelled || 0)),
+  }), [allBookings, seenCounts]);
 
   useEffect(() => {
     if (!router.isReady) return;
-    const abortCtrl = new AbortController();
     setIsLoading(true);
-
-    fetchAllBookings(ns, 'admin', abortCtrl.signal)
-      .then((merged) => {
-        console.log("[Persetujuan] bookings merged:", merged);
-
-        const bidrive = merged.filter(b => b.feature_key === 'bidrive');
-        console.log("[Persetujuan] bidrive only:", bidrive.map(b => ({
-          id: b.id,
-          status_id: b.status_id,
-          tujuan: b.tujuan,
-          start_date: b.start_date,
-          end_date: b.end_date
-        })));
-
-        setAllBookings(merged);
-      })
-      .catch((err) => setError(err.message))
+    fetchAllBookings(ns, 'admin')
+      .then(setAllBookings)
+      .catch(err => setError(err.message))
       .finally(() => setIsLoading(false));
-
-    return () => abortCtrl.abort();
   }, [router.isReady, ns]);
 
-  // ===== FILTER & PAGINATION =====
   const roleFiltered = useMemo(() => {
     if (!allowedServiceIds || allowedServiceIds.length === 0) return allBookings;
-    return allBookings.filter((b) => {
-      const key = resolveFeatureKey(b);
-      return allowedServiceIds.includes(key);
-    });
+    return allBookings.filter((b) => allowedServiceIds.includes(resolveFeatureKey(b)));
   }, [allBookings, allowedServiceIds]);
-
-  const allowedFeatureOptions = useMemo(() => {
-    if (!allowedServiceIds || allowedServiceIds.length === 0) {
-      // Super admin → semua fitur + All
-      return FEATURE_OPTIONS;
-    }
-    // Admin fitur → hanya tampilkan All + fitur yg ada di allowedServiceIds
-    return FEATURE_OPTIONS.filter(opt =>
-      opt.value === 'all' || allowedServiceIds.includes(opt.value)
-    );
-  }, [allowedServiceIds]);
 
   const statusFiltered = useMemo(() => {
     if (activeTab === 'All') return roleFiltered;
-    const statusId = TAB_TO_STATUS_ID[activeTab];
-    return roleFiltered.filter((item) => item.status_id === statusId);
+    return roleFiltered.filter((b) => b.status_id === TAB_TO_STATUS_ID[activeTab]);
   }, [activeTab, roleFiltered]);
 
   const filteredBookings = useMemo(() => {
@@ -331,47 +283,27 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
     return statusFiltered.filter((b) => isAlias(resolveFeatureKey(b), featureValue));
   }, [statusFiltered, featureValue]);
 
-  const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil((filteredBookings.length || 0) / itemsPerPage));
-  }, [filteredBookings.length, itemsPerPage]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredBookings.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginated = useMemo(
-    () => filteredBookings.slice(startIndex, endIndex),
-    [filteredBookings, startIndex, endIndex]
-  );
+  const paginated = filteredBookings.slice(startIndex, endIndex);
 
-  const onPageChange = useCallback((page) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
-    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [totalPages]);
+  const onPageChange = (page) => { if (page >= 1 && page <= totalPages) setCurrentPage(page); };
+  const onChangeItemsPerPage = (e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); };
 
-  const onChangeItemsPerPage = (e) => {
-    const val = Number(e.target.value);
-    setItemsPerPage(val);
-    setCurrentPage(1);
-    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const resultsFrom = filteredBookings.length ? startIndex + 1 : 0;
-  const resultsTo = Math.min(endIndex, filteredBookings.length);
-
-  const onCardClick = useCallback((booking) => {
+  const onCardClick = (booking) => {
     const fk = resolveFeatureKey(booking);
     const id = numericIdOf(booking.id);
     if (!Number.isFinite(id)) return;
-    const makeUrl = ADMIN_DETAIL_ROUTES[fk];
-    if (makeUrl) router.push(withNs(makeUrl(id), ns));
-    else alert('Detail untuk layanan ini belum tersedia di halaman admin.');
-  }, [router, ns]);
+    router.push(withNs(`/Admin/Fitur/${fk}/detail?id=${id}`, ns));
+  };
 
   const SidebarComp = roleId === 1 ? SidebarAdmin : SidebarFitur;
 
   return (
     <div className={styles.background}>
-      {!sbLoading && <SidebarComp onLogout={() => setShowLogoutPopup(true)} />}
+      <SidebarComp onLogout={() => setShowLogoutPopup(true)} />
       <main className={styles.mainContent}>
         <div className={styles.boxLayanan}>
           <div className={styles.topRow}>
@@ -381,10 +313,8 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
             <h1 className={styles.title}>Persetujuan Booking</h1>
           </div>
 
-          <FeatureDropdown value={featureValue} onChange={setFeatureValue} allowedOptions={allowedFeatureOptions} />
-          <TabFilter currentTab={activeTab} onTabChange={setActiveTab} />
-
-          <div ref={listTopRef} />
+          <FeatureDropdown value={featureValue} onChange={setFeatureValue} allowedOptions={FEATURE_OPTIONS} />
+          <TabFilter currentTab={activeTab} onTabChange={(t) => { setActiveTab(t); markTabSeen(t); }} badgeCounts={badgeCounts} />
 
           <div className={styles.cardList}>
             {isLoading ? (
@@ -404,17 +334,11 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
             <div className={styles.paginationContainer}>
               <div className={styles.paginationControls}>
                 <div className={styles.resultsText}>
-                  Menampilkan {resultsFrom}-{resultsTo} dari {filteredBookings.length} data
+                  Menampilkan {startIndex + 1}-{endIndex} dari {filteredBookings.length} data
                 </div>
                 <div>
                   <label htmlFor="perPage" className={styles.label}>Items per page:</label>
-                  <select
-                    id="perPage"
-                    className={styles.itemsPerPageDropdown}
-                    value={itemsPerPage}
-                    onChange={onChangeItemsPerPage}
-                    aria-label="Jumlah item per halaman"
-                  >
+                  <select id="perPage" className={styles.itemsPerPageDropdown} value={itemsPerPage} onChange={onChangeItemsPerPage}>
                     <option value={5}>5</option>
                     <option value={6}>6</option>
                     <option value={10}>10</option>
@@ -429,38 +353,27 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
         </div>
       </main>
 
-      <LogoutPopup
-        open={showLogoutPopup}
-        onCancel={() => setShowLogoutPopup(false)}
-        onLogout={handleLogout}
-      />
+      <LogoutPopup open={showLogoutPopup} onCancel={() => setShowLogoutPopup(false)} onLogout={async () => {
+        try { await fetch('/api/logout', { method: 'POST' }); } finally { router.replace('/Signin/hal-signAdmin'); }
+      }} />
     </div>
   );
 }
 
-/* ===================== SSR GUARD: role 1 & 2 ===================== */
+/* ===================== SSR GUARD ===================== */
 export async function getServerSideProps(ctx) {
   const from = ctx.resolvedUrl || '/Admin/Persetujuan/hal-persetujuan';
-
   const ns = getNsFromReq(ctx.req);
   if (!ns || !NS_RE.test(ns)) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
-
-  const auth = await verifyAuth(ctx.req, ['super_admin','admin_fitur'], 'admin');
+  const auth = await verifyAuth(ctx.req, ['super_admin', 'admin_fitur'], 'admin');
   if (!auth.ok) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
-
   const rId = Number(auth.payload?.role_id ?? 0);
   const rStr = String(auth.payload?.role || '').toLowerCase();
   const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
-
-  const serviceIds = isSuper
-    ? null
-    : (Array.isArray(auth.payload?.service_ids)
-        ? auth.payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean)
-        : []);
-
+  const serviceIds = isSuper ? null : (Array.isArray(auth.payload?.service_ids) ? auth.payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean) : []);
   return { props: { initialRoleId: isSuper ? 1 : 2, initialServiceIds: serviceIds } };
 }

@@ -10,6 +10,7 @@ import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import PersetujuanPopup from '@/components/persetujuanpopup/persetujuanPopup';
 import RejectReasonPopup from '@/components/RejectReasonPopup/RejectReasonPopup';
 import RejectVerificationPopup from '@/components/rejectVerification/RejectVerification';
+import CancelVerificationPopup from '@/components/cancelVerification/CancelVerificationPopup';
 import KontakDriverPopup from '@/components/KontakDriverPopup/KontakDriverPopup';
 import PopupAdmin from '@/components/PopupAdmin/PopupAdmin';
 
@@ -149,6 +150,30 @@ ${reason}
 Silakan lakukan perbaikan/pengajuan ulang. Terima kasih.`;
 };
 
+const buildCancelPreview = (slug, person, reason) => {
+  const service = META[slug]?.title || slug.toUpperCase();
+  return `Halo ${person?.name || ''},
+
+Booking ${service} Anda *DIBATALKAN* ❌
+
+Alasan:
+${reason}
+
+Terima kasih.`;
+};
+
+const buildFinishPreview = (slug, person, note) => {
+  const service = META[slug]?.title || slug.toUpperCase();
+  return `Halo ${person?.name || ''},
+
+Booking ${service} Anda telah *SELESAI* ✅
+
+${note ? `Catatan: ${note}` : ''}
+
+Terima kasih telah menggunakan layanan kami. Mohon tinggalkan penilaian agar kami dapat meningkatkan kualitas layanan kami.`;
+};
+
+
 /* ===== Helper numeric id + set available ===== */
 const numericIdOf = (id) => {
   const m = String(id ?? '').match(/(\d+)$/);
@@ -270,6 +295,7 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
   const [rejectLoading, setRejectLoading] = useState(false);
   const [pendingReason, setPendingReason] = useState(''); // Unified reason state
   const [showRejectSend, setShowRejectSend] = useState(false); // For the second step of reject
+  const [showCancelSend, setShowCancelSend] = useState(false);
   const [reasonPopupConfig, setReasonPopupConfig] = useState(null); // Controls the reason popup
   const [finishing, setFinishing] = useState(false);
 
@@ -423,15 +449,50 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
     });
   };
 
-  // This function will open the popup in "Cancel" mode
   const openCancelPopup = () => {
     setReasonPopupConfig({
       title: `Alasan Pembatalan ${META[slug]?.title || ''}`,
       placeholder: 'Contoh: Perubahan jadwal mendadak',
       actionButtonText: 'Lanjut Batalkan',
-      onNext: handleCancelStep1Done, // Your existing cancel handler
+      onNext: handleCancelStep1Done,
     });
   };
+
+  const handleCancelStep1Done = (reasonText) => {
+    setPendingReason(reasonText);
+    setReasonPopupConfig(null);
+    setShowCancelSend(true);
+  };
+
+
+  const handleCancelStep2Submit = async (reasonText, openWhatsApp, messageText) => {
+    const reason = reasonText.trim();
+    setIsCancelling(true);
+    try {
+      const res = await fetch(`/api/admin/cancel/${apiSlug}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(id), reason }),
+      });
+      if (!res.ok) throw new Error('Gagal membatalkan booking');
+
+      if (openWhatsApp) {
+        const person = pickPersonForWA(slug, booking, detail);
+        const target = toWaNumber(person?.phone);
+        const msg = (messageText || buildCancelPreview(slug, person, reason)).trim();
+        if (target) window.open(`https://wa.me/${target}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
+
+      openNotif('Booking berhasil dibatalkan.', 'success');
+      router.push(withNs('/Admin/Persetujuan/hal-persetujuan', ns));
+    } catch (err) {
+      openNotif(`Error: ${err.message}`, 'error');
+    } finally {
+      setIsCancelling(false);
+      setShowRejectSend(false);
+    }
+  };
+
 
   /* ========= REJECT (2 langkah) ========= */
   const handleRejectStep1Done = (reasonText) => {
@@ -477,45 +538,6 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
       openNotif(`Error: ${e.message || e}`, 'error');
     } finally {
       setRejectLoading(false);
-    }
-  };
-
-  /* ========= CANCEL (2 steps) ========= */
-  const handleCancelStep1Done = (reasonText) => {
-    if (!reasonText.trim()) {
-      openNotif('Alasan pembatalan wajib diisi.', 'error');
-      return;
-    }
-    setPendingReason(reasonText); // <-- Use the new state setter
-    setReasonPopupConfig(null); // <-- Close the popup by clearing the config
-    handleCancelStep2Submit(reasonText); 
-  };
-
-  const handleCancelStep2Submit = async (reason) => {
-    setIsCancelling(true);
-    try {
-      const res = await fetch(`/api/admin/cancel/${apiSlug}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: Number(id), reason }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok || j?.error) throw new Error(j?.error || 'Gagal membatalkan booking.');
-
-      // Update UI optimistically
-      if (slug === 'bidrive') {
-        setBooking(prev => prev ? { ...prev, status_id: 5, rejection_reason: reason } : null);
-      } else {
-        setDetail(prev => prev ? { ...prev, status_id: 5, rejection_reason: reason } : null);
-      }
-
-      openNotif('Booking berhasil dibatalkan.', 'success');
-      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
-
-    } catch (err) {
-      openNotif(`Error: ${err.message}`, 'error');
-    } finally {
-      setIsCancelling(false);
     }
   };
 
@@ -763,6 +785,16 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
         previewBuilder={(person, r) => buildRejectPreview(slug, person, r)}
         initialReason={pendingReason}
       />
+      <CancelVerificationPopup
+        show={showCancelSend}
+        onClose={() => setShowCancelSend(false)}
+        onSubmit={handleCancelStep2Submit}
+        loading={isCancelling}
+        person={pickPersonForWA(slug, booking, detail)}
+        previewBuilder={(person, r) => buildCancelPreview(slug, person, r)}
+        initialReason={pendingReason}
+      />
+
 
       {/* Notifikasi Global */}
       {showNotif && <PopupAdmin message={notif.message} type={notif.type} onClose={() => setShowNotif(false)} />}
