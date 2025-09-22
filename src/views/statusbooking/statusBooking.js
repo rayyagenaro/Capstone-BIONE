@@ -256,7 +256,7 @@ export default function History() {
             setSelectedBooking(prev => prev && prev.id === b.id ? { ...prev, status_id: 4 } : prev);
           } catch (e) {
             autoFinishTried.current.delete(b.id);
-            console.warn('Auto-finish BI.Care gagal:', e);
+            
           }
         }
       }
@@ -452,7 +452,6 @@ export default function History() {
 
       setSelectedBooking(full);
     } catch (e) {
-      console.error('fetch detail error:', e);
     }
   }, [ns]);
 

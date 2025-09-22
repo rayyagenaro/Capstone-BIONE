@@ -163,7 +163,7 @@ function normalizeBIStayRow(row) {
 /* ===================== Fetch All Services ===================== */
 export async function fetchAllBookings(ns, scope = "user", abortSignal) {
   if (!ns) {
-    console.warn("[fetchAllBookings] ns kosong → return []");
+    console.warn("Session Error");
     return [];
   }
 
@@ -217,9 +217,6 @@ export async function fetchAllBookings(ns, scope = "user", abortSignal) {
       try {
         const res = await fetch(withNs(url, ns), opts(abortSignal));
         const j = await res.json().catch(() => ({}));
-        if (service === "bidrive") {
-          console.log("bidrive raw payload:", j);
-        }
 
         if (!res.ok)
           throw new Error(j?.reason || j?.error || `HTTP ${res.status}`);

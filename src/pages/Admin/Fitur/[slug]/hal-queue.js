@@ -285,7 +285,6 @@ export default function HalQueue({ initialAdminName = 'Admin', initialRoleId = n
 
 /* ========= SSR guard (boleh role 1 & 2) ========= */
 export async function getServerSideProps(ctx) {
-  console.log("JWT_SECRET seen by the server:", process.env.JWT_SECRET);
   const { ns: raw } = ctx.query;
   const ns = Array.isArray(raw) ? raw[0] : raw;
   const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;

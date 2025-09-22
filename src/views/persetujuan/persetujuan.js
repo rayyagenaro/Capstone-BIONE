@@ -12,6 +12,7 @@ import { fetchAllBookings } from '@/lib/fetchBookings';
 import { NS_RE, getNsFromReq } from '@/lib/ns-server';
 import { withNs } from '@/lib/ns';
 import { verifyAuth } from '@/lib/auth';
+import { ensureNsServer } from '@/lib/ns';
 
 /* ===================== KONFIGURASI STATUS ===================== */
 const STATUS_CONFIG = {
@@ -191,8 +192,15 @@ BookingCard.displayName = 'BookingCard';
 /* ===================== HALAMAN ===================== */
 export default function PersetujuanBooking({ initialRoleId = null, initialServiceIds = null }) {
   const router = useRouter();
-  const nsFromQuery = typeof router.query.ns === 'string' ? router.query.ns : '';
-  const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : '';
+  const nsFromQuery = typeof router.query?.ns === 'string' ? router.query.ns : '';
+  const nsFromAsPath = (() => {
+    const q = (router.asPath || '').split('?')[1];
+    if (!q) return '';
+    const p = new URLSearchParams(q);
+    const v = p.get('ns') || '';
+    return NS_RE.test(v) ? v : '';
+  })();
+  const ns = NS_RE.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
 
   const [roleId, setRoleId] = useState(initialRoleId);
   const [allowedServiceIds, setAllowedServiceIds] = useState(initialServiceIds);
@@ -213,9 +221,18 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
   const [userId, setUserId] = useState(null);
 
   useEffect(() => {
+    if (!ns || !NS_RE.test(ns)) {
+      router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
+      return;
+    }
+
     (async () => {
       try {
         const r = await fetch('/api/me?scope=admin', { credentials: 'include' });
+        if (r.status === 401) {
+          router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
+          return;
+        }
         const d = await r.json();
         if (d?.payload?.sub) {
           const uid = Number(d.payload.sub);
@@ -223,11 +240,20 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
           try {
             const raw = localStorage.getItem(seenStorageKey(uid));
             setSeenCounts(raw ? { ...DEFAULT_SEEN, ...JSON.parse(raw) } : DEFAULT_SEEN);
-          } catch { setSeenCounts(DEFAULT_SEEN); }
+          } catch {
+            setSeenCounts(DEFAULT_SEEN);
+          }
+        } else {
+          router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
         }
-      } catch {}
+      } catch {
+        router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
+      }
     })();
-  }, []);
+  }, [ns, router]);
+
+
+  
 
     // hitung jumlah per status
   const tabCounts = useMemo(() => {
@@ -353,9 +379,32 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
         </div>
       </main>
 
-      <LogoutPopup open={showLogoutPopup} onCancel={() => setShowLogoutPopup(false)} onLogout={async () => {
-        try { await fetch('/api/logout', { method: 'POST' }); } finally { router.replace('/Signin/hal-signAdmin'); }
-      }} />
+      <LogoutPopup 
+        open={showLogoutPopup} 
+        onCancel={() => setShowLogoutPopup(false)} 
+        onLogout={async () => {
+          try {
+            const nsFromQuery = typeof router.query?.ns === 'string' ? router.query.ns : '';
+            const nsFromAsPath = (() => {
+              const q = (router.asPath || '').split('?')[1];
+              if (!q) return '';
+              const p = new URLSearchParams(q);
+              const v = p.get('ns') || '';
+              return /^[A-Za-z0-9_-]{3,32}$/.test(v) ? v : '';
+            })();
+            const ns = /^[A-Za-z0-9_-]{3,32}$/.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
+
+            await fetch('/api/logout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ area: 'admin', ns }),
+            });
+          } finally {
+            router.replace('/Signin/hal-signAdmin');
+          }
+        }} 
+      />
+
     </div>
   );
 }
@@ -363,17 +412,27 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
 /* ===================== SSR GUARD ===================== */
 export async function getServerSideProps(ctx) {
   const from = ctx.resolvedUrl || '/Admin/Persetujuan/hal-persetujuan';
-  const ns = getNsFromReq(ctx.req);
-  if (!ns || !NS_RE.test(ns)) {
-    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
-  }
+
+  // 🔹 cek ns dulu
+  const nsGuard = ensureNsServer(ctx.req, `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`);
+  if (nsGuard) return nsGuard;
+
+  // 🔹 cek auth
   const auth = await verifyAuth(ctx.req, ['super_admin', 'admin_fitur'], 'admin');
   if (!auth.ok) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
+
+  // 🔹 role & service
   const rId = Number(auth.payload?.role_id ?? 0);
   const rStr = String(auth.payload?.role || '').toLowerCase();
-  const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
-  const serviceIds = isSuper ? null : (Array.isArray(auth.payload?.service_ids) ? auth.payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean) : []);
+  const isSuper = rId === 1 || ['super_admin', 'superadmin', 'super-admin'].includes(rStr);
+
+  const serviceIds = isSuper
+    ? null
+    : (Array.isArray(auth.payload?.service_ids)
+      ? auth.payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean)
+      : []);
+
   return { props: { initialRoleId: isSuper ? 1 : 2, initialServiceIds: serviceIds } };
 }

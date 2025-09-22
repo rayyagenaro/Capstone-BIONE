@@ -162,18 +162,6 @@ ${reason}
 Terima kasih.`;
 };
 
-const buildFinishPreview = (slug, person, note) => {
-  const service = META[slug]?.title || slug.toUpperCase();
-  return `Halo ${person?.name || ''},
-
-Booking ${service} Anda telah *SELESAI* ✅
-
-${note ? `Catatan: ${note}` : ''}
-
-Terima kasih telah menggunakan layanan kami. Mohon tinggalkan penilaian agar kami dapat meningkatkan kualitas layanan kami.`;
-};
-
-
 /* ===== Helper numeric id + set available ===== */
 const numericIdOf = (id) => {
   const m = String(id ?? '').match(/(\d+)$/);
@@ -804,22 +792,17 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
 
 /* ====== SSR guard (boleh role 1 & 2) ====== */
 export async function getServerSideProps(ctx) {
-  console.log('[SSR] headers.cookie:', ctx.req.headers.cookie);
-  console.log('[SSR] ns from req:', getNsFromReq(ctx.req));
   const from = ctx.resolvedUrl || '/Admin/DetailsLaporan/hal-detailslaporan';
 
   const ns = getNsFromReq(ctx.req) || ctx.query?.ns;
   if (!ns || !NS_RE.test(ns)) {
-    console.warn('[SSR] Invalid ns:', ns);
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 
 
   const auth = await verifyAuth(ctx.req, ['super_admin', 'admin_fitur'], 'admin');
-  console.log('[SSR] verifyAuth result:', auth);
 
   if (!auth.ok) {
-    console.warn('[SSR] Auth failed:', auth.reason);
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 

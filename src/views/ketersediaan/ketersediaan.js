@@ -7,8 +7,10 @@ import SidebarFitur from '@/components/SidebarFitur/SidebarFitur';
 import LogoutPopup from '@/components/LogoutPopup/LogoutPopup';
 import Pagination from '@/components/Pagination/Pagination';
 import { FaChevronDown } from 'react-icons/fa';
-import { jwtVerify } from 'jose';
 import { FaUsers, FaCar, FaUserMd, FaCalendarAlt, FaFileAlt } from 'react-icons/fa';
+import { verifyAuth } from '@/lib/auth';
+import { NS_RE, getNsFromReq } from '@/lib/ns-server';
+import { fetchAvailability } from '@/lib/fetchAvailability';
 
 // SECTION COMPONENTS
 import DriversSection from '@/components/ketersediaan/drive/DriversSection';
@@ -25,7 +27,6 @@ import MeetCalendarAdmin from '@/components/ketersediaan/meet/MeetCalendarAdmin'
 import RulesMeetSection from '@/components/ketersediaan/meet/RulesMeetSection';
 
 /* ====== util ====== */
-const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 const meetStatusToMap = (arr) => { const m = {}; for (const s of arr) m[s.id] = s.name; return m; };
 
 // --- SORTER BARU: numeric-aware & hoisted ---
@@ -140,15 +141,26 @@ export default function KetersediaanPage({ initialRoleId = null }) {
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const handleLogout = async () => {
     try {
-      const ns = new URLSearchParams(location.search).get('ns');
+      const nsFromQuery = typeof router.query?.ns === 'string' ? router.query.ns : '';
+      const nsFromAsPath = (() => {
+        const q = (router.asPath || '').split('?')[1];
+        if (!q) return '';
+        const p = new URLSearchParams(q);
+        const v = p.get('ns') || '';
+        return /^[A-Za-z0-9_-]{3,32}$/.test(v) ? v : '';
+      })();
+      const ns = /^[A-Za-z0-9_-]{3,32}$/.test(nsFromQuery) ? nsFromQuery : nsFromAsPath;
+
       await fetch('/api/logout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ area: 'admin', ns }),
       });
-    } catch {}
-    router.replace('/Signin/hal-signAdmin');
+    } finally {
+      router.replace('/Signin/hal-signAdmin');
+    }
   };
+
 
   /* ===== View data (filter + sort) ===== */
   const docsUnitsPrepared = useMemo(() => {
@@ -185,54 +197,44 @@ export default function KetersediaanPage({ initialRoleId = null }) {
     setLoading(true);
     try {
       const [
-        driversRes, vehiclesRes,
-        careDocRes, careRulesRes,
-        roomsRes, statusRes, meetRulesRes,
-        docsUnitsRes, docsJenisRes
+        drivers, vehicles,
+        careDocs, careRules,
+        rooms, status, meetRules,
+        docsUnits, docsJenis
       ] = await Promise.all([
-        fetch('/api/ketersediaanAdmin?type=drivers'),
-        fetch('/api/ketersediaanAdmin?type=vehicles'),
-        fetch('/api/ketersediaanAdmin?type=bicare_doctors'),
-        fetch('/api/ketersediaanAdmin?type=bicare_rules'),
-        fetch('/api/ketersediaanAdmin?type=bimeet_rooms'),
-        fetch('/api/ketersediaanAdmin?type=bimeet_room_status'),
-        fetch('/api/ketersediaanAdmin?type=bimeet_rules'),
-        fetch('/api/ketersediaanAdmin?type=bimail_units'),
-        fetch('/api/ketersediaanAdmin?type=bimail_jenis'),
+        fetchAvailability(router, 'drivers'),
+        fetchAvailability(router, 'vehicles'),
+        fetchAvailability(router, 'bicare_doctors'),
+        fetchAvailability(router, 'bicare_rules'),
+        fetchAvailability(router, 'bimeet_rooms'),
+        fetchAvailability(router, 'bimeet_room_status'),
+        fetchAvailability(router, 'bimeet_rules'),
+        fetchAvailability(router, 'bimail_units'),
+        fetchAvailability(router, 'bimail_jenis'),
       ]);
 
-      const [
-        driversJson, vehiclesJson,
-        careDocJson, careRulesJson,
-        roomsJson, statusJson, meetRulesJson,
-        docsUnitsJson, docsJenisJson
-      ] = await Promise.all([
-        driversRes.json(), vehiclesRes.json(),
-        careDocRes.json(), careRulesRes.json(),
-        roomsRes.json(), statusRes.json(), meetRulesRes.json(),
-        docsUnitsRes.json(), docsJenisRes.json()
-      ]);
+      setDrivers(drivers);
+      setVehicles(vehicles);
 
-      setDrivers(driversJson.data || []);
-      setVehicles(vehiclesJson.data || []);
+      setCareDoctors(careDocs);
+      setCurrentDoctorId(prev =>
+        (prev && careDocs.some(d => d.id === prev)) ? prev : (careDocs[0]?.id ?? null)
+      );
 
-      const docs = careDocJson.data || [];
-      setCareDoctors(docs);
-      setCurrentDoctorId(prev => (prev && docs.some(d => d.id === prev)) ? prev : (docs[0]?.id ?? null));
+      setCareRules(careRules);
 
-      setCareRules(careRulesJson.data || []);
+      setMeetRooms(rooms);
+      setCurrentRoomId(prev =>
+        (prev && rooms.some(r => r.id === prev)) ? prev : (rooms[0]?.id ?? null)
+      );
 
-      const rms = roomsJson.data || [];
-      setMeetRooms(rms);
-      setCurrentRoomId(prev => (prev && rms.some(r => r.id === prev)) ? prev : (rms[0]?.id ?? null));
+      setMeetStatus(status);
+      setMeetRules(meetRules);
 
-      setMeetStatus(statusJson.data || []);
-
-      setMeetRules(meetRulesJson.data || []);
-
-      setDocsUnits(docsUnitsJson.data || []); // {id, code, name}
-      setDocsJenis(docsJenisJson.data || []); // {id, kode, nama}
-    } catch {
+      setDocsUnits(docsUnits);
+      setDocsJenis(docsJenis);
+    } catch (err) {
+      console.error(err);
       alert('Gagal load data!');
     }
     setLoading(false);
@@ -861,34 +863,21 @@ function Modal({ editMode, modalType, formData, handleChange, handleCloseModal, 
 
 // ====== SSR guard (boleh role 1 & 2)
 export async function getServerSideProps(ctx) {
-  const { ns: raw } = ctx.query;
-  const ns = Array.isArray(raw) ? raw[0] : raw;
-  const nsValid = typeof ns === 'string' && NS_RE.test(ns) ? ns : null;
   const from = ctx.resolvedUrl || '/Admin/Ketersediaan/hal-ketersediaan';
+  const ns = getNsFromReq(ctx.req);
 
-  if (!nsValid) {
+  if (!ns || !NS_RE.test(ns)) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 
-  const cookieName = `admin_session__${nsValid}`;
-  const token = ctx.req.cookies?.[cookieName] || null;
-  if (!token) {
+  const auth = await verifyAuth(ctx.req, ['super_admin', 'admin_fitur'], 'admin');
+  if (!auth.ok) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 
-  try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET), { algorithms: ['HS256'], clockTolerance: 10 });
-    const rId = Number(payload?.role_id ?? 0);
-    const rStr = String(payload?.role || '').toLowerCase();
-    const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
-    const isFitur = rId === 2 || ['admin_fitur','admin-fitur','admin'].includes(rStr);
+  const rId = Number(auth.payload?.role_id ?? 0);
+  const rStr = String(auth.payload?.role || '').toLowerCase();
+  const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
 
-    if (!isSuper && !isFitur) {
-      return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
-    }
-
-    return { props: { initialRoleId: isSuper ? 1 : 2 } };
-  } catch {
-    return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
-  }
+  return { props: { initialRoleId: isSuper ? 1 : 2 } };
 }

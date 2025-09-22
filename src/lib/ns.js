@@ -1,4 +1,5 @@
-// lib/ns.js
+import { useEffect } from 'react';
+
 export const makeNs = () =>
   (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2))
     .replace(/-/g, '')
@@ -8,9 +9,6 @@ export const NS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
 /**
  * Ambil ns dari router (prioritas query, fallback localStorage).
- * - Query ns harus valid (NS_RE).
- * - Kalau valid → simpan ke localStorage agar konsisten.
- * - Kalau tidak ada → fallback localStorage.
  */
 export function getNs(router) {
   if (!router) return '';
@@ -48,7 +46,6 @@ export const withNs = (to, ns) => {
   return `${to}${sep}ns=${encodeURIComponent(ns)}`;
 };
 
-// Router helpers (query-based)
 export const pushNs = (router, to) => {
   const ns = getNs(router);
   return router.push(withNs(to, ns));
@@ -58,3 +55,31 @@ export const replaceNs = (router, to) => {
   const ns = getNs(router);
   return router.replace(withNs(to, ns));
 };
+
+/* ===========================================================
+   🔒 UNIVERSAL GUARD
+   - Bisa dipanggil di client (React.useEffect)
+   - Bisa dipanggil di SSR (getServerSideProps)
+   =========================================================== */
+
+/** SSR guard: dipakai di getServerSideProps */
+export function ensureNsServer(req, redirectTo = '/Signin/hal-signAdmin') {
+  const u = new URL(req.url, `http://${req.headers.host}`);
+  const ns = u.searchParams.get('ns');
+  if (!ns || !NS_RE.test(ns)) {
+    return {
+      redirect: { destination: redirectTo, permanent: false },
+    };
+  }
+  return null; // valid, lanjut
+}
+
+/** Client guard: dipakai di komponen React */
+export function useEnsureNs(router, redirectTo = '/Signin/hal-signAdmin') {
+  useEffect(() => {
+    const ns = getNs(router);
+    if (!ns || !NS_RE.test(ns)) {
+      router.replace(redirectTo);
+    }
+  }, [router, redirectTo]);
+}
