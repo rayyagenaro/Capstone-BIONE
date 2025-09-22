@@ -3,34 +3,37 @@
 import React from 'react';
 import styles from './Pagination.module.css';
 
-const Pagination = ({ currentPage, totalPages, onPageChange }) => {
-  // Fungsi ini membuat array nomor halaman, termasuk elipsis (...)
+  const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    // Fungsi ini membuat array nomor halaman, termasuk elipsis (...)
+    // Maksimal 3 ke kanan dari current
   const generatePageNumbers = () => {
     const pages = [];
-    // Jika total halaman sedikit, tampilkan semua nomor
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Logika untuk menampilkan elipsis jika total halaman banyak
-      pages.push(1); // Selalu tampilkan halaman 1
-      if (currentPage > 3) {
-        pages.push('...');
-      }
-      
-      const startPage = Math.max(2, currentPage - 1);
-      const endPage = Math.min(totalPages - 1, currentPage + 1);
+    const maxRight = 3;
 
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-      }
-
-      if (currentPage < totalPages - 2) {
-        pages.push('...');
-      }
-      pages.push(totalPages); // Selalu tampilkan halaman terakhir
+    // Kalau total sedikit, tampilkan semua
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      return pages;
     }
+
+    // Selalu tampilkan halaman 1
+    pages.push(1);
+
+    // Window kanan mulai dari current (min 2) sampai max 3 ke kanan
+    const start = Math.max(2, currentPage);
+    const end = Math.min(totalPages - 1, currentPage + maxRight - 1);
+
+    // Elipsis sebelum window jika ada gap
+    if (start > 2) pages.push('...');
+
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    // Elipsis sesudah window jika masih jauh dari last
+    if (end < totalPages - 1) pages.push('...');
+
+    // Selalu tampilkan halaman terakhir
+    pages.push(totalPages);
+
     return pages;
   };
 

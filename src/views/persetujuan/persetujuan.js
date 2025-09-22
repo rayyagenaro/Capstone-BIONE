@@ -220,22 +220,18 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
   const [seenCounts, setSeenCounts] = useState(DEFAULT_SEEN);
   const [userId, setUserId] = useState(null);
 
+  // Tambahan: resolve role di client (samakan dengan HalamanUtama)
   useEffect(() => {
-    if (!ns || !NS_RE.test(ns)) {
-      router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
-      return;
-    }
-
+    let alive = true;
     (async () => {
+      if (!router.isReady || !ns) return;
+
       try {
-        const r = await fetch('/api/me?scope=admin', { credentials: 'include' });
-        if (r.status === 401) {
-          router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
-          return;
-        }
+        const r = await fetch(withNs('/api/me?scope=admin', ns), { cache: 'no-store' });
         const d = await r.json();
-        if (d?.payload?.sub) {
-          const uid = Number(d.payload.sub);
+        // set userId + load seenCounts dari localStorage
+        const uid = Number(d?.payload?.sub);
+        if (Number.isFinite(uid)) {
           setUserId(uid);
           try {
             const raw = localStorage.getItem(seenStorageKey(uid));
@@ -243,19 +239,38 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
           } catch {
             setSeenCounts(DEFAULT_SEEN);
           }
+        }
+        if (!alive) return;
+
+        if (!d?.hasToken || !d?.payload) {
+          router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
+          return;
+        }
+
+        // Set role & allowed services dari payload
+        if (d.payload.roleNormalized === 'super_admin') {
+          setRoleId(1);
+          setAllowedServiceIds(null);
+        } else if (d.payload.roleNormalized === 'admin_fitur') {
+          setRoleId(2);
+          setAllowedServiceIds(
+            Array.isArray(d.payload.service_ids)
+              ? d.payload.service_ids.map(x => SERVICE_ID_MAP[x] || null).filter(Boolean)
+              : []
+          );
         } else {
+          // role tidak valid untuk area admin
           router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
         }
       } catch {
         router.replace(`/Signin/hal-signAdmin?from=${encodeURIComponent(router.asPath)}`);
       }
     })();
-  }, [ns, router]);
 
+    return () => { alive = false; };
+  }, [router.isReady, router.asPath, ns]);
 
-  
-
-    // hitung jumlah per status
+  // hitung jumlah per status
   const tabCounts = useMemo(() => {
     const c = { pending: 0, approved: 0, rejected: 0, finished: 0, cancelled: 0 };
     for (const b of allBookings) {
@@ -276,6 +291,15 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
     try { localStorage.setItem(seenStorageKey(userId), JSON.stringify(next)); } catch {}
   }, [seenCounts, tabCounts, userId]);
 
+  useEffect(() => {
+    if (!userId || activeTab === 'All') return;
+    const key = SEEN_KEYS[activeTab];
+    const next = { ...seenCounts, [key]: tabCounts[key] }; // nol-in badge utk tab tsb
+    if (next[key] !== seenCounts[key]) {
+      setSeenCounts(next);
+      try { localStorage.setItem(seenStorageKey(userId), JSON.stringify(next)); } catch {}
+    }
+  }, [userId, activeTab, tabCounts]);
 
   const badgeCounts = useMemo(() => ({
     pending: Math.max(0, (allBookings.filter(b => b.status_id === 1).length) - (seenCounts.pending || 0)),
@@ -325,7 +349,15 @@ export default function PersetujuanBooking({ initialRoleId = null, initialServic
     router.push(withNs(`/Admin/Fitur/${fk}/detail?id=${id}`, ns));
   };
 
-  const SidebarComp = roleId === 1 ? SidebarAdmin : SidebarFitur;
+  // Saat memilih komponen sidebar, tunggu roleId resolved
+  const SidebarComp = roleId === 1 ? SidebarAdmin
+                    : roleId === 2 ? SidebarFitur
+                    : null;
+
+  // Optional: render loading kecil kalau roleId masih null
+  if (!SidebarComp) {
+    return <div style={{color:'#2f4d8e', padding:'24px'}}>Memuat…</div>;
+  }
 
   return (
     <div className={styles.background}>

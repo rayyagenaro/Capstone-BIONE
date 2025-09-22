@@ -39,6 +39,7 @@
   min-height: 100vh;
   margin-left: 255px;
 }
+
 .cardContainer {
   width: 90%;
   max-width: 1200px;
@@ -508,13 +509,34 @@
 /* Responsive */
 @media (max-width: 900px) {
   .mainContent { margin-left: 0; }
-  .cardContainer { width: 98vw; padding: 18px 4vw 14px 4vw; border-radius: 12px; }
+  /* HAPUS width: 98vw di sini juga */
+  .cardContainer {
+    width: 100%;
+    padding: 18px 16px 14px 16px;
+    border-radius: 12px;
+  }
 }
+
 @media (max-width: 600px) {
-  .cardContainer { padding: 7vw 2vw 8vw 2vw; }
-  .dataTable th, .dataTable td { padding: 7px 5px; font-size: 12px; }
-  .modalContent { width: 96vw; min-width: unset; padding: 18px 8px 14px 8px; }
-  .selectWrap{ width:100%; }
+    .cardContainer {
+    /* HAPUS: padding: 7vw 2vw 8vw 2vw; */
+    padding: 16px; /* atau 14–18px terserah selera */
+  }
+
+  .dataTable th, .dataTable td { 
+    padding: 7px 5px; 
+    font-size: 12px; 
+  }
+
+  .modalContent { 
+    width: 96vw; 
+    min-width: unset; 
+    padding: 18px 8px 14px 8px; 
+  }
+
+  .selectWrap{ 
+    width:100%; 
+  }
 }
 
 /* booked oleh user -> tidak bisa diklik */
@@ -667,23 +689,19 @@
 
 /* ===== Tablet & small laptop (samakan dengan page lain) ===== */
 @media (max-width: 1200px) {
-  /* sembunyikan komponen sidebar (class nya di-hash, pakai substring) */
-  .background :global([class*="sidebar"]) {
-    display: none !important;
-  }
-
-  /* buang ruang kosong 255px di kiri */
   .mainContent {
     margin-left: 0 !important;
+    /* kasih jarak seragam kiri-kanan */
     padding: 24px 16px;
-    padding-top: 72px; /* ruang untuk topbar hamburger */
+    padding-top: 72px; /* ruang header */
   }
 
-  /* rapikan kontainer konten */
   .cardContainer {
-    width: 98vw;
+    /* HAPUS width: 98vw; */
+    width: 100%;
     margin: 16px auto;
-    padding: 18px 4vw;
+    /* padding dalam card, bebas kamu atur */
+    padding: 18px 16px;
     border-radius: 12px;
   }
 
@@ -692,5 +710,120 @@
   .subTabs {
     flex-wrap: wrap;
     justify-content: center;
+  }
+}
+
+/* === Fix overlay & header di mobile === */
+@media (max-width: 1200px) {
+  /* pastikan header di atas overlay */
+  .background :global(.mobileHeader) {
+    position: fixed !important;
+    top: 0; left: 0; right: 0;
+    z-index: 1201 !important;   /* > overlay */
+  }
+
+  /* overlay jangan menutupi header */
+  .background :global(.overlay) {
+    position: fixed !important;
+    top: 60px !important;        /* tinggi header mobileHeader */
+    left: 0; right: 0; bottom: 0;
+    z-index: 1200 !important;
+  }
+
+  /* drawer/aside tetap dari atas di bawah header */
+  .background :global(.sidebar) {
+    top: 60px !important;
+    height: calc(100vh - 60px) !important;
+  }
+
+  /* konten kasih ruang di bawah header */
+  .mainContent {
+    margin-left: 0 !important;
+    padding: 24px 16px;
+    padding-top: 72px;           /* ruang untuk header */
+  }
+}
+
+/* === Responsif tab (rapih center, 2 kolom di mobile) === */
+@media (max-width: 700px) {
+  .mainTabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    justify-items: center;
+  }
+  .mainTabBtn {
+    width: 100%;
+    justify-content: center;
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .subTabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+    gap: 8px;
+    justify-items: center;
+  }
+  .subTabBtn {
+    width: 100%;
+    justify-content: center;
+    font-size: 13.5px;
+    padding: 9px 10px;
+  }
+
+  /* form pilih dokter/room biar full */
+  .selectRow { justify-content: stretch; }
+  .selectWrap { width: 100%; }
+}
+
+/* Extra kecil */
+@media (max-width: 420px) {
+  .mainTabBtn { font-size: 13px; }
+  .subTabBtn  { font-size: 12.5px; }
+}
+
+@media (max-width: 1200px) {
+  .background :global(.sidebar) {
+    display: block !important;
+  }
+}
+
+/* Header mobile selalu di atas overlay */
+@media (max-width: 1200px) {
+  .background :global(.mobileHeader) {
+    position: fixed !important;
+    top: 0; left: 0; right: 0;
+    z-index: 1202 !important;
+  }
+
+  /* Overlay mulai di bawah header */
+  .background :global(.overlay) {
+    position: fixed !important;
+    top: 60px !important;              /* tinggi mobileHeader */
+    left: 0; right: 0; bottom: 0;
+    z-index: 1200 !important;
+  }
+
+  /* Drawer: off-canvas dari kiri, di bawah header, di atas overlay */
+  .background :global(.sidebar) {
+    position: fixed !important;
+    top: 60px !important;
+    left: 0;
+    height: calc(100vh - 60px) !important;
+    width: 70%;
+    max-width: 320px;
+    transform: translateX(-100%);      /* keadaan tertutup */
+    z-index: 1201 !important;
+  }
+  .background :global(.sidebar.open) {
+    transform: translateX(0) !important; /* buka */
+  }
+
+  /* Konten beri ruang untuk header */
+  .mainContent {
+    margin-left: 0 !important;
+    padding: 24px 16px;
+    padding-top: 72px;
   }
 }

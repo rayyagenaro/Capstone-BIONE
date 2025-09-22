@@ -355,26 +355,78 @@ export default function KetersediaanPage({ initialRoleId = null }) {
 
   const SidebarComp = roleId === 1 ? SidebarAdmin : SidebarFitur;
 
+  // --- Main tabs as options for dropdown ---
+  const MAIN_TABS = [
+    { key: 'drive', label: 'BI.DRIVE', Icon: FaUsers },
+    { key: 'care',  label: 'BI.CARE',  Icon: FaUserMd },
+    { key: 'meet',  label: 'BI.MEET',  Icon: FaCalendarAlt },
+    { key: 'docs',  label: 'BI.DOCS',  Icon: FaFileAlt },
+  ];
+
+  // dropdown state
+  const [isMainOpen, setIsMainOpen] = useState(false);
+
+  // util: current tab label
+  const currentMain = useMemo(() => {
+    const f = MAIN_TABS.find(t => t.key === mainTab);
+    return f || MAIN_TABS[0];
+  }, [mainTab]);
+
   return (
     <div className={styles.background}>
       {!sbLoading && <SidebarComp onLogout={() => setShowLogoutPopup(true)} />}
 
       <main className={styles.mainContent}>
         <div className={styles.cardContainer}>
-          {/* Tabs level-1 */}
-          <div className={styles.mainTabs}>
-            <button className={`${styles.mainTabBtn} ${mainTab === 'drive' ? styles.mainTabActive : ''}`} onClick={() => setMainTab('drive')}>
-              <FaUsers style={{ marginRight: 8 }} /> BI.DRIVE
-            </button>
-            <button className={`${styles.mainTabBtn} ${mainTab === 'care' ? styles.mainTabActive : ''}`} onClick={() => setMainTab('care')}>
-              <FaUserMd style={{ marginRight: 8 }} /> BI.CARE
-            </button>
-            <button className={`${styles.mainTabBtn} ${mainTab === 'meet' ? styles.mainTabActive : ''}`} onClick={() => setMainTab('meet')}>
-              <FaCalendarAlt style={{ marginRight: 8 }} /> BI.MEET
-            </button>
-            <button className={`${styles.mainTabBtn} ${mainTab === 'docs' ? styles.mainTabActive : ''}`} onClick={() => setMainTab('docs')}>
-              <FaFileAlt style={{ marginRight: 8 }} /> BI.DOCS
-            </button>
+          {/* Main Tab as Dropdown */}
+          <div className={styles.selectRow} style={{ marginBottom: 14 }}>
+            <span className={styles.selectLabel}>Module:</span>
+
+            <div className={styles.selectWrap}>
+              <button
+                type="button"
+                className={styles.selectBtn}
+                onClick={() => setIsMainOpen(o => !o)}
+                aria-haspopup="listbox"
+                aria-expanded={isMainOpen}
+              >
+                <span className={styles.selectText} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {(() => {
+                    const { Icon, label } = currentMain;
+                    return (<><Icon /> {label}</>);
+                  })()}
+                </span>
+                <span className={styles.selectCaret}><FaChevronDown /></span>
+              </button>
+
+              {isMainOpen && (
+                <div
+                  className={styles.selectPopover}
+                  role="listbox"
+                  tabIndex={-1}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setIsMainOpen(false); }}
+                >
+                  {MAIN_TABS.map(({ key, label, Icon }) => {
+                    const active = key === mainTab;
+                    return (
+                      <div
+                        key={key}
+                        role="option"
+                        aria-selected={active}
+                        className={`${styles.selectOption} ${active ? styles.selectOptionActive : ''}`}
+                        onClick={() => {
+                          setMainTab(key);
+                          setIsMainOpen(false);
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                      >
+                        <Icon /> {label}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* SubTabs */}
