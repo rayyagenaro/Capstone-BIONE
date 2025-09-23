@@ -44,11 +44,12 @@ const initialDriver  = { id: null, nim: '', name: '', phone: '' };
 const initialVehicle = { id: null, plat_nomor: '', tahun: '', vehicle_type_id: '', vehicle_status_id: '' };
 const initialRoom    = { id: null, name: '', floor: 1, capacity: 1, status_id: 1 };
 
-export default function KetersediaanPage({ initialRoleId = null }) {
+export default function KetersediaanPage({ initialRoleId = null, initialAllowedServiceIds = null }) {
   const router = useRouter();
 
   // ===== pilih sidebar: role 1 = SidebarAdmin, role 2 = SidebarFitur
   const [roleId, setRoleId] = useState(initialRoleId);
+  const [allowedServiceIds, setAllowedServiceIds] = useState(initialAllowedServiceIds);
   const [sbLoading, setSbLoading] = useState(initialRoleId == null);
 
   useEffect(() => {
@@ -64,7 +65,13 @@ export default function KetersediaanPage({ initialRoleId = null }) {
         const rl = Number(d.payload.role_id_num ?? d.payload.role_id ?? 0);
         const rs = String(d.payload.role || d.payload.roleNormalized || '').toLowerCase();
         const isSuper = rl === 1 || ['super_admin','superadmin','super-admin'].includes(rs);
-        setRoleId(isSuper ? 1 : 2);
+        if (isSuper) {
+          setRoleId(1);
+          setAllowedServiceIds(null);
+        } else {
+          setRoleId(2);
+          setAllowedServiceIds(Array.isArray(d.payload.service_ids) ? d.payload.service_ids : []);
+        }
       } catch {
         setRoleId(null);
       } finally {
@@ -357,20 +364,30 @@ export default function KetersediaanPage({ initialRoleId = null }) {
 
   // --- Main tabs as options for dropdown ---
   const MAIN_TABS = [
-    { key: 'drive', label: 'BI.DRIVE', Icon: FaUsers },
-    { key: 'care',  label: 'BI.CARE',  Icon: FaUserMd },
-    { key: 'meet',  label: 'BI.MEET',  Icon: FaCalendarAlt },
-    { key: 'docs',  label: 'BI.DOCS',  Icon: FaFileAlt },
+    { key: 'drive', label: 'BI.DRIVE', Icon: FaUsers, serviceId: 1 },
+    { key: 'care',  label: 'BI.CARE',  Icon: FaUserMd, serviceId: 2 },
+    { key: 'meet',  label: 'BI.MEET',  Icon: FaCalendarAlt, serviceId: 4 },
+    { key: 'docs',  label: 'BI.DOCS',  Icon: FaFileAlt, serviceId: 5 },
   ];
 
-  // dropdown state
   const [isMainOpen, setIsMainOpen] = useState(false);
 
-  // util: current tab label
+  const filteredTabs = useMemo(() => {
+    if (roleId === 1) return MAIN_TABS; // super admin lihat semua
+    if (roleId === 2 && Array.isArray(allowedServiceIds)) {
+      const normalized = allowedServiceIds.map(id => Number(id)); // pastikan angka
+      return MAIN_TABS.filter(t => normalized.includes(t.serviceId));
+    }
+    return [];
+  }, [roleId, allowedServiceIds]);
+
   const currentMain = useMemo(() => {
-    const f = MAIN_TABS.find(t => t.key === mainTab);
-    return f || MAIN_TABS[0];
-  }, [mainTab]);
+    if (!filteredTabs || filteredTabs.length === 0) {
+      return { key: '', label: 'Tidak Ada Modul', Icon: () => null };
+    }
+    const f = filteredTabs.find(t => t.key === mainTab);
+    return f || filteredTabs[0];
+  }, [mainTab, filteredTabs]);
 
   return (
     <div className={styles.background}>
@@ -391,10 +408,9 @@ export default function KetersediaanPage({ initialRoleId = null }) {
                 aria-expanded={isMainOpen}
               >
                 <span className={styles.selectText} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {(() => {
-                    const { Icon, label } = currentMain;
-                    return (<><Icon /> {label}</>);
-                  })()}
+                  {currentMain && currentMain.Icon
+                    ? (<><currentMain.Icon /> {currentMain.label}</>)
+                    : 'Tidak Ada Modul'}
                 </span>
                 <span className={styles.selectCaret}><FaChevronDown /></span>
               </button>
@@ -406,7 +422,7 @@ export default function KetersediaanPage({ initialRoleId = null }) {
                   tabIndex={-1}
                   onKeyDown={(e) => { if (e.key === 'Escape') setIsMainOpen(false); }}
                 >
-                  {MAIN_TABS.map(({ key, label, Icon }) => {
+                  {filteredTabs.map(({ key, label, Icon }) => {
                     const active = key === mainTab;
                     return (
                       <div
@@ -927,9 +943,18 @@ export async function getServerSideProps(ctx) {
     return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
   }
 
-  const rId = Number(auth.payload?.role_id ?? 0);
-  const rStr = String(auth.payload?.role || '').toLowerCase();
-  const isSuper = rId === 1 || ['super_admin','superadmin','super-admin'].includes(rStr);
+  if (auth.payload?.roleNormalized === 'super_admin') {
+    return { props: { initialRoleId: 1, initialAllowedServiceIds: null } };
+  }
 
-  return { props: { initialRoleId: isSuper ? 1 : 2 } };
+  if (auth.payload?.roleNormalized === 'admin_fitur') {
+    return { 
+      props: { 
+        initialRoleId: 2, 
+        initialAllowedServiceIds: Array.isArray(auth.payload.service_ids) ? auth.payload.service_ids : [] 
+      } 
+    };
+  }
+
+  return { redirect: { destination: `/Signin/hal-signAdmin?from=${encodeURIComponent(from)}`, permanent: false } };
 }
