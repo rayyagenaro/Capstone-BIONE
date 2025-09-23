@@ -531,11 +531,12 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
 
   /* ===== Approve generic (selain BI.DOCS) ===== */
   const handleApproveGeneric = async () => {
-    if (slug === 'bimail') return;
+    if (slug === 'bimail') return false;
     setIsUpdatingGeneric(true);
     try {
       const res = await fetch(`/api/admin/approve/${apiSlug}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: Number(id) }),
       });
       const j = await res.json().catch(() => ({}));
@@ -543,17 +544,21 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
 
       const svc = META[slug]?.title || slug.toUpperCase();
       openNotif(`Pengajuan ${svc} Berhasil!`, 'success');
-      setTimeout(() => router.push(withNs('/Admin/HalamanUtama/hal-utamaAdmin', ns)), 1200);
 
+      // refresh detail
       const r = await fetch(`/api/admin/detail/${apiSlug}?id=${id}`);
       const d = await r.json();
       setDetail(d.item || null);
+
+      return true; // ✅ kasih tanda sukses
     } catch (err) {
       openNotif(`Error: ${err.message || err}`, 'error');
+      return false;
     } finally {
       setIsUpdatingGeneric(false);
     }
   };
+
 
   /* ===== Export PDF ===== */
   const handleExportPDF = async () => {
@@ -720,9 +725,9 @@ export default function DetailsLaporanView({ initialRoleId = null }) {
                 mapStatus={mapStatus}
                 isPendingGeneric={isPendingGeneric}
                 isUpdatingGeneric={isUpdatingGeneric}
-                onRequestReject={openRejectPopup}   // <-- Use the new function here
-                onRequestCancel={openCancelPopup} // <-- Add this new prop
-                isCancelling={isCancelling}       // <-- Add this new prop
+                onRequestReject={openRejectPopup}   
+                onRequestCancel={openCancelPopup} 
+                isCancelling={isCancelling}       
                 onApproveGeneric={handleApproveGeneric}
                 finishing={finishing}
                 onFinishBooking={handleFinishBooking}

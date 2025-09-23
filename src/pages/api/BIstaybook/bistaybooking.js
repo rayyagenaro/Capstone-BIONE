@@ -1,6 +1,5 @@
 import db from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
-import { getNsFromReq } from '@/lib/ns-server';
 
 /* ---------- Helpers ---------- */
 function toMySQLDateTime(value) {

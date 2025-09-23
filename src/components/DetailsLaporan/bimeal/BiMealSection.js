@@ -7,17 +7,25 @@ export default function BiMealSection({
   detail,
   formatDateTime, 
   mapStatus,
-  isUpdatingGeneric,
   onRequestCancel,
   isCancelling,
   onFinishBooking,
   finishing,
+  onApproveGeneric,
+  isUpdatingGeneric,
+  approving,
+  onRequestReject, // 🔹 baru
+  rejecting,       // 🔹 baru
 }) {
   const [showFinishPopup, setShowFinishPopup] = useState(false);
+  const [showRejectPopup, setShowRejectPopup] = useState(false); // 🔹 popup tolak
+  const [rejectMsg, setRejectMsg] = useState('Pesanan anda ditolak, silakan hubungi admin.'); // 🔹 default pesan
 
   const status = mapStatus(detail);
   const statusId = detail?.status_id;
   const slug = 'bimeal';
+
+  const noWa = detail?.no_wa_pic || '';
 
   return (
     <div className={styles.detailCard}>
@@ -65,10 +73,49 @@ export default function BiMealSection({
             </div>
           </div>
 
-          {/* Aksi Approved */}
+          {/* Aksi Booked → Approve / Tolak */}
+          {statusId === 1 && (
+            <div className={styles.actionBtnRow} style={{ gap: 12 }}>
+              {/* Tombol Tolak */}
+              <button
+                type="button"
+                className={styles.btnTolak}
+                onClick={onRequestReject}   // ✅ cukup panggil handler
+                disabled={!!isUpdatingGeneric}
+                title="Tolak pesanan ini"
+              >
+                {isUpdatingGeneric ? 'Memproses...' : 'Tolak'}
+              </button>
+
+              {/* Tombol Setujui */}
+              <button
+                type="button"
+                className={styles.btnSetujui}
+                onClick={async () => {
+                  try {
+                    const ok = await onApproveGeneric?.(); // ✅ approve dulu
+                    if (ok && detail?.id) {
+                      // ✅ langsung buka nota di tab baru
+                      window.open(`/api/nota/bimeal/${detail.id}`, '_blank');
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    alert('Gagal menyetujui pesanan.');
+                  }
+                }}
+                disabled={!!isUpdatingGeneric}
+                title="Setujui pesanan ini"
+              >
+                {isUpdatingGeneric ? 'Memproses...' : 'Setujui'}
+              </button>
+            </div>
+          )}
+
+
+
+          {/* Aksi Approved → Cancel + Finish */}
           {statusId === 2 && (
             <div className={styles.actionBtnRow} style={{ gap: 12, flexWrap: 'wrap' }}>
-              {/* Tombol Cancel */}
               <button
                 type="button"
                 className={styles.btnTolak}
@@ -79,7 +126,6 @@ export default function BiMealSection({
                 {isCancelling ? 'Memproses...' : 'Batalkan Pesanan'}
               </button>
 
-              {/* Tombol Finish */}
               <button
                 type="button"
                 className={styles.btnSetujui}
@@ -103,6 +149,48 @@ export default function BiMealSection({
                 onFinishBooking();
               }}
             />
+          )}
+
+          {/* Popup Konfirmasi Tolak */}
+          {showRejectPopup && (
+            <div className={styles.modalBackdrop}>
+              <div className={styles.modalContent}>
+                <h3 className={styles.modalTitle}>Tolak Pesanan #{detail.id}</h3>
+                <textarea
+                  className={styles.input}
+                  rows={4}
+                  value={rejectMsg}
+                  onChange={(e) => setRejectMsg(e.target.value)}
+                />
+                <div className={styles.modalBtnGroup}>
+                  <button
+                    type="button"
+                    className={styles.btnCancel}
+                    onClick={() => setShowRejectPopup(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.btnTolak}
+                    disabled={!!rejecting}
+                    onClick={async () => {
+                      await onRejectBooking?.(detail.id, rejectMsg);
+                      setShowRejectPopup(false);
+                      // buka WhatsApp dengan pesan
+                      if (noWa) {
+                        window.open(
+                          `https://wa.me/${noWa.replace(/^0/, '62')}?text=${encodeURIComponent(rejectMsg)}`,
+                          '_blank'
+                        );
+                      }
+                    }}
+                  >
+                    {rejecting ? 'Memproses...' : 'Kirim & Tolak'}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </>
       )}
