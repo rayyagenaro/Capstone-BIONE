@@ -48,13 +48,16 @@ export default function BiMealSection({
             <div className={styles.detailColLeft}>
               <L styles={styles} label="ID" v={detail.id} />
               <L styles={styles} label="Nama PIC" v={detail.nama_pic || '-'} />
+              <L styles={styles} label="Nama PIC Tagihan" v={detail.nama_pic_tagihan || '-'} />
               <L styles={styles} label="No. WA PIC" v={detail.no_wa_pic || '-'} />
             </div>
 
             <div className={styles.detailColRight}>
               <L styles={styles} label="Waktu Pesanan" v={formatDateTime(detail.waktu_pesanan)} />
               <L styles={styles} label="Unit Kerja" v={detail.unit_kerja || '-'} />
-              <L styles={styles} label="Status" v={detail.status_name || (statusId === 1 ? 'Booked' : statusId ?? '-')} />
+              <L styles={styles} label="Status" v={status?.text || '-'} />
+              <L styles={styles} label="Lokasi Pengiriman" v={detail.lokasi_pengiriman || '-'} />
+              <L styles={styles} label="Keterangan" v={detail.keterangan || '-'} />
             </div>
           </div>
 
@@ -65,7 +68,9 @@ export default function BiMealSection({
                 {Array.isArray(detail.items) && detail.items.length ? (
                   <ul style={{ margin: 0 }}>
                     {detail.items.map((it) => (
-                      <li key={it.id}>{it.nama_pesanan} ({it.jumlah})</li>
+                      <li key={`${detail.id}-${it.nama_pesanan}`}>
+                        {it.nama_pesanan} ({it.jumlah} {it.satuan || 'pcs'})
+                      </li>
                     ))}
                   </ul>
                 ) : ('-')}

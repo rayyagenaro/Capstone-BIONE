@@ -11,7 +11,8 @@ function normalizeItems(items) {
       const item = (typeof x === 'string' ? x : x?.item) ?? '';
       const qtyNum = Number((typeof x === 'string' ? 1 : x?.qty) ?? 1);
       const qty = Number.isFinite(qtyNum) ? Math.max(1, Math.min(999, qtyNum)) : 1;
-      return { item: String(item).trim(), qty };
+      const unit = (typeof x === 'string' ? 'pcs' : x?.unit) || 'pcs';
+      return { item: String(item).trim(), qty, unit };
     })
     .filter((r) => r.item.length > 0);
 }
